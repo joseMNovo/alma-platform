@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
     const newVoluntario = {
       id: getNextId(data.voluntarios),
       nombre: voluntarioData.nombre,
+      apellido: voluntarioData.apellido || undefined,
       edad: voluntarioData.edad ? Number.parseInt(voluntarioData.edad) : undefined,
       sexo: voluntarioData.sexo || undefined,
       foto: voluntarioData.foto || null,
