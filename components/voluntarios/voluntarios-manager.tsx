@@ -29,6 +29,7 @@ export default function VoluntariosManager({ user }) {
   const [deleting, setDeleting] = useState(false)
   const [formData, setFormData] = useState({
     nombre: "",
+    apellido: "",
     edad: "",
     sexo: "",
     foto: "",
@@ -112,6 +113,7 @@ export default function VoluntariosManager({ user }) {
   const resetForm = () => {
     setFormData({
       nombre: "",
+      apellido: "",
       edad: "",
       sexo: "",
       foto: "",
@@ -126,6 +128,7 @@ export default function VoluntariosManager({ user }) {
     setEditingVoluntario(voluntario)
     setFormData({
       nombre: voluntario.nombre || "",
+      apellido: voluntario.apellido || "",
       edad: voluntario.edad?.toString() || "",
       sexo: voluntario.sexo || "",
       foto: voluntario.foto || "",
@@ -156,6 +159,25 @@ export default function VoluntariosManager({ user }) {
       default:
         return "bg-gray-100 text-gray-800"
     }
+  }
+
+  const getNombreCompleto = (voluntario) => {
+    if (voluntario.apellido) {
+      return `${voluntario.nombre} ${voluntario.apellido}`
+    }
+    return voluntario.nombre
+  }
+
+  // Función para validar solo números en teléfono
+  const handleTelefonoChange = (e) => {
+    const value = e.target.value.replace(/[^0-9+\-\s]/g, '')
+    setFormData({...formData, telefono: value})
+  }
+
+  // Función para validar solo números en edad
+  const handleEdadChange = (e) => {
+    const value = e.target.value.replace(/[^0-9]/g, '')
+    setFormData({...formData, edad: value})
   }
 
   if (loading) {
@@ -209,14 +231,24 @@ export default function VoluntariosManager({ user }) {
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="sm:col-span-2">
+                <div>
                   <Label htmlFor="nombre">Nombre *</Label>
                   <Input
                     id="nombre"
                     value={formData.nombre}
                     onChange={(e) => setFormData({...formData, nombre: e.target.value})}
-                    placeholder="Nombre completo"
+                    placeholder="Nombre"
                     required
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="apellido">Apellido</Label>
+                  <Input
+                    id="apellido"
+                    value={formData.apellido}
+                    onChange={(e) => setFormData({...formData, apellido: e.target.value})}
+                    placeholder="Apellido"
                   />
                 </div>
                 
@@ -224,12 +256,11 @@ export default function VoluntariosManager({ user }) {
                   <Label htmlFor="edad">Edad</Label>
                   <Input
                     id="edad"
-                    type="number"
+                    type="text"
                     value={formData.edad}
-                    onChange={(e) => setFormData({...formData, edad: e.target.value})}
+                    onChange={handleEdadChange}
                     placeholder="Edad"
-                    min="18"
-                    max="100"
+                    maxLength="3"
                   />
                 </div>
                 
@@ -252,8 +283,9 @@ export default function VoluntariosManager({ user }) {
                   <Input
                     id="telefono"
                     value={formData.telefono}
-                    onChange={(e) => setFormData({...formData, telefono: e.target.value})}
+                    onChange={handleTelefonoChange}
                     placeholder="+54 11 1234-5678"
+                    maxLength="20"
                   />
                 </div>
                 
@@ -302,7 +334,7 @@ export default function VoluntariosManager({ user }) {
                   {voluntario.foto ? (
                     <img 
                       src={voluntario.foto} 
-                      alt={voluntario.nombre}
+                      alt={getNombreCompleto(voluntario)}
                       className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                     />
                   ) : (
@@ -311,7 +343,7 @@ export default function VoluntariosManager({ user }) {
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <CardTitle className="text-lg truncate">{voluntario.nombre}</CardTitle>
+                    <CardTitle className="text-lg truncate">{getNombreCompleto(voluntario)}</CardTitle>
                     <div className="flex flex-wrap items-center gap-2 mt-1">
                       <Badge variant="secondary" className={`text-xs ${getSexoColor(voluntario.sexo)}`}>
                         {getSexoIcon(voluntario.sexo)} {voluntario.sexo || "No especificado"}
