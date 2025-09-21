@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LogOut, Users, Calendar, Activity, CreditCard, Package, Heart, Settings, Mail, BarChart3 } from "lucide-react"
@@ -17,24 +18,41 @@ import DevelopmentNotice from "@/components/ui/development-notice"
 import { Menu } from "lucide-react"
 
 export default function Dashboard({ user, onLogout }: { user: any, onLogout: () => void }) {
-  const [activeTab, setActiveTab] = useState("inventario")
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const router = useRouter()
+  const pathname = usePathname()
+  
   let [ajustesAuthenticated, setAjustesAuthenticated] = useState(false)
 
   const isAdmin = user.rol === "admin"
   const isJose = user?.email === "jose@alma.com"
   ajustesAuthenticated = isJose
 
+  // Obtener el tab activo basado en la URL
+  const getActiveTab = () => {
+    if (pathname.includes('/inventario')) return 'inventario'
+    if (pathname.includes('/voluntarios')) return 'voluntarios'
+    if (pathname.includes('/ajustes')) return 'ajustes'
+    if (pathname.includes('/talleres')) return 'talleres'
+    if (pathname.includes('/grupos')) return 'grupos'
+    if (pathname.includes('/actividades')) return 'actividades'
+    if (pathname.includes('/pagos')) return 'pagos'
+    if (pathname.includes('/emails')) return 'emails'
+    return 'inventario' // default
+  }
+
+  const activeTab = getActiveTab()
+
   const handleTabChange = (value: string) => {
     // Permitir acceso a Inventario y Voluntarios
     if (value === "inventario" || value === "voluntarios") {
-      setActiveTab(value)
+      router.push(`/${value}`)
       setMobileMenuOpen(false)
     }
     // Para Ajustes, siempre verificar autenticación y solo si es Jose
     else if (value === "ajustes" && isJose) {
       if (ajustesAuthenticated) {
-        setActiveTab(value)
+        router.push('/ajustes')
         setMobileMenuOpen(false)
       } else {
         setMobileMenuOpen(false)
@@ -107,6 +125,26 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                     </div>
                     <div className="flex-1 overflow-auto p-4">
                       <nav className="space-y-2">
+                        {isAdmin && (
+                          <>
+                            <Button
+                              variant={activeTab === "inventario" ? "default" : "ghost"}
+                              className={`w-full justify-start ${activeTab === "inventario" ? "bg-[#4dd0e1] text-white" : ""}`}
+                              onClick={() => handleTabChange("inventario")}
+                            >
+                              <Package className="w-5 h-5 mr-3" />
+                              Inventario
+                            </Button>
+                            <Button
+                              variant={activeTab === "voluntarios" ? "default" : "ghost"}
+                              className={`w-full justify-start ${activeTab === "voluntarios" ? "bg-[#4dd0e1] text-white" : ""}`}
+                              onClick={() => handleTabChange("voluntarios")}
+                            >
+                              <Heart className="w-5 h-5 mr-3" />
+                              Voluntarios
+                            </Button>
+                          </>
+                        )}
                         <Button
                           variant="ghost"
                           disabled
@@ -141,22 +179,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                         </Button>
                         {isAdmin && (
                           <>
-                            <Button
-                              variant={activeTab === "inventario" ? "default" : "ghost"}
-                              className={`w-full justify-start ${activeTab === "inventario" ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange("inventario")}
-                            >
-                              <Package className="w-5 h-5 mr-3" />
-                              Inventario
-                            </Button>
-                            <Button
-                              variant={activeTab === "voluntarios" ? "default" : "ghost"}
-                              className={`w-full justify-start ${activeTab === "voluntarios" ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange("voluntarios")}
-                            >
-                              <Heart className="w-5 h-5 mr-3" />
-                              Voluntarios
-                            </Button>
                             {/* Ajustes: si es Jose, botón habilitado (según autenticación); si no, opaco y deshabilitado */}
                             {isJose ? (
                               <Button
@@ -201,8 +223,28 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
         <DevelopmentNotice isAdmin={isAdmin} />
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="hidden md:grid w-full grid-cols-2 lg:grid-cols-8 bg-white border border-gray-200 p-1 rounded-lg">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+          <TabsList className="hidden md:grid w-full grid-cols-2 lg:grid-cols-8 bg-white border border-gray-200 p-1 rounded-lg">
+            {/* Inventario y Voluntarios primero */}
+            {isAdmin && (
+              <>
+                <TabsTrigger
+                  value="inventario"
+                  className="flex items-center space-x-2 data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
+                >
+                  <Package className="w-4 h-4" />
+                  <span className="hidden sm:inline">Inventario</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="voluntarios"
+                  className="flex items-center space-x-2 data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
+                >
+                  <Heart className="w-4 h-4" />
+                  <span className="hidden sm:inline">Voluntarios</span>
+                </TabsTrigger>
+              </>
+            )}
+            {/* Todos los demás */}
             <TabsTrigger
               value="talleres"
               disabled
@@ -238,20 +280,14 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
             {isAdmin && (
               <>
                 <TabsTrigger
-                  value="inventario"
-                  className="flex items-center space-x-2 data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
+                  value="emails"
+                  disabled
+                  className="flex items-center space-x-2 opacity-50 cursor-not-allowed"
                 >
-                  <Package className="w-4 h-4" />
-                  <span className="hidden sm:inline">Inventario</span>
+                  <Mail className="w-4 h-4" />
+                  <span className="hidden sm:inline">Emails</span>
                 </TabsTrigger>
-                <TabsTrigger
-                  value="voluntarios"
-                  className="flex items-center space-x-2 data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
-                >
-                  <Heart className="w-4 h-4" />
-                  <span className="hidden sm:inline">Voluntarios</span>
-                </TabsTrigger>
-                {/* Ajustes: si es Jose, habilitado según autenticación; si no, opaco y deshabilitado */}
+                {/* Ajustes al final */}
                 {isJose ? (
                   <TabsTrigger
                     value="ajustes"
@@ -271,14 +307,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                     <span className="hidden sm:inline">Ajustes</span>
                   </TabsTrigger>
                 )}
-                <TabsTrigger
-                  value="emails"
-                  disabled
-                  className="flex items-center space-x-2 opacity-50 cursor-not-allowed"
-                >
-                  <Mail className="w-4 h-4" />
-                  <span className="hidden sm:inline">Emails</span>
-                </TabsTrigger>
               </>
             )}
           </TabsList>

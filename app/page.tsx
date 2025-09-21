@@ -1,25 +1,43 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import LoginForm from "@/components/auth/login-form"
 import Dashboard from "@/components/dashboard/dashboard"
 
 export default function HomePage() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
     // Verificar si hay una sesión activa
     const savedUser = localStorage.getItem("alma_user")
     if (savedUser) {
-      setUser(JSON.parse(savedUser))
+      const userData = JSON.parse(savedUser)
+      setUser(userData)
+      
+      // Si hay un parámetro de redirección, ir a esa página
+      const redirect = searchParams.get('redirect')
+      if (redirect && userData.rol === "admin") {
+        router.push(redirect)
+      } else if (!redirect && userData.rol === "admin") {
+        // Si no hay redirect, ir directo a inventario
+        router.push('/inventario')
+      }
     }
     setLoading(false)
-  }, [])
+  }, [router, searchParams])
 
   const handleLogin = (userData) => {
     setUser(userData)
     localStorage.setItem("alma_user", JSON.stringify(userData))
+    
+    // Después del login, redirigir a inventario
+    if (userData.rol === "admin") {
+      router.push('/inventario')
+    }
   }
 
   const handleLogout = () => {
