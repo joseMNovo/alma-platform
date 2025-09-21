@@ -1,15 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import LoginForm from "@/components/auth/login-form"
 import Dashboard from "@/components/dashboard/dashboard"
 
+// Forzar renderizado dinámico para evitar problemas de prerendering
+export const dynamic = 'force-dynamic'
+
 export default function HomePage() {
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
-  const searchParams = useSearchParams()
 
   useEffect(() => {
     // Verificar si hay una sesión activa
@@ -18,17 +20,13 @@ export default function HomePage() {
       const userData = JSON.parse(savedUser)
       setUser(userData)
       
-      // Si hay un parámetro de redirección, ir a esa página
-      const redirect = searchParams.get('redirect')
-      if (redirect && userData.rol === "admin") {
-        router.push(redirect)
-      } else if (!redirect && userData.rol === "admin") {
-        // Si no hay redirect, ir directo a inventario
+      // Si es admin, ir directo a inventario
+      if (userData.rol === "admin") {
         router.push('/inventario')
       }
     }
     setLoading(false)
-  }, [router, searchParams])
+  }, [router])
 
   const handleLogin = (userData) => {
     setUser(userData)

@@ -4,8 +4,11 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Dashboard from "@/components/dashboard/dashboard"
 
+// Forzar renderizado dinámico para evitar problemas de prerendering
+export const dynamic = 'force-dynamic'
+
 export default function InventarioPage() {
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
