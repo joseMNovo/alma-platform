@@ -752,7 +752,6 @@ export default function InventarioManager({ user }: { user: any }) {
                   className="flex-1"
                   disabled={item.cantidad === 0}
                 >
-                  <TrendingDown className="w-4 h-4 mr-1" />
                   -1
                 </Button>
                 <Button
@@ -761,7 +760,6 @@ export default function InventarioManager({ user }: { user: any }) {
                   size="sm"
                   className="flex-1"
                 >
-                  <TrendingUp className="w-4 h-4 mr-1" />
                   +1
                 </Button>
               </div>
