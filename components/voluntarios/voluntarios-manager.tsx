@@ -170,11 +170,11 @@ export default function VoluntariosManager({ user }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 sm:px-0">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div className="text-center sm:text-left">
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center justify-center sm:justify-start">
             <Users className="w-6 h-6 mr-3 text-[#4dd0e1]" />
             Gestión de Voluntarios
           </h2>
@@ -188,13 +188,13 @@ export default function VoluntariosManager({ user }) {
                 resetForm()
                 setDialogOpen(true)
               }}
-              className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
+              className="w-full sm:w-auto bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
               Agregar Voluntario
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[500px] mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingVoluntario ? "Editar Voluntario" : "Agregar Nuevo Voluntario"}
@@ -208,8 +208,8 @@ export default function VoluntariosManager({ user }) {
             </DialogHeader>
             
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
                   <Label htmlFor="nombre">Nombre *</Label>
                   <Input
                     id="nombre"
@@ -293,26 +293,26 @@ export default function VoluntariosManager({ user }) {
       </div>
 
       {/* Lista de Voluntarios */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4 sm:px-0">
         {voluntarios.map((voluntario) => (
           <Card key={voluntario.id} className="hover:shadow-lg transition-shadow duration-200">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-3 flex-1 min-w-0">
                   {voluntario.foto ? (
                     <img 
                       src={voluntario.foto} 
                       alt={voluntario.nombre}
-                      className="w-12 h-12 rounded-full object-cover"
+                      className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#4dd0e1] to-[#3bc0d1] flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#4dd0e1] to-[#3bc0d1] flex items-center justify-center flex-shrink-0">
                       <User className="w-6 h-6 text-white" />
                     </div>
                   )}
-                  <div>
-                    <CardTitle className="text-lg">{voluntario.nombre}</CardTitle>
-                    <div className="flex items-center space-x-2 mt-1">
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="text-lg truncate">{voluntario.nombre}</CardTitle>
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
                       <Badge variant="secondary" className={`text-xs ${getSexoColor(voluntario.sexo)}`}>
                         {getSexoIcon(voluntario.sexo)} {voluntario.sexo || "No especificado"}
                       </Badge>
@@ -331,29 +331,29 @@ export default function VoluntariosManager({ user }) {
               <div className="space-y-2">
                 {voluntario.telefono && (
                   <div className="flex items-center text-sm text-gray-600">
-                    <Phone className="w-4 h-4 mr-2" />
-                    {voluntario.telefono}
+                    <Phone className="w-4 h-4 mr-2 flex-shrink-0" />
+                    <span className="truncate">{voluntario.telefono}</span>
                   </div>
                 )}
                 
                 {voluntario.email && (
                   <div className="flex items-center text-sm text-gray-600">
-                    <Mail className="w-4 h-4 mr-2" />
-                    {voluntario.email}
+                    <Mail className="w-4 h-4 mr-2 flex-shrink-0" />
+                    <span className="truncate">{voluntario.email}</span>
                   </div>
                 )}
                 
                 <div className="flex items-center text-sm text-gray-600">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Registrado: {new Date(voluntario.fechaRegistro).toLocaleDateString("es-ES")}
+                  <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm">Registrado: {new Date(voluntario.fechaRegistro).toLocaleDateString("es-ES")}</span>
                 </div>
               </div>
               
               {voluntario.especialidades && voluntario.especialidades.length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center text-sm font-medium text-gray-700">
-                    <Heart className="w-4 h-4 mr-2" />
-                    Especialidades:
+                    <Heart className="w-4 h-4 mr-2 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm">Especialidades:</span>
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {voluntario.especialidades.map((especialidad, index) => (
@@ -365,7 +365,7 @@ export default function VoluntariosManager({ user }) {
                 </div>
               )}
               
-              <div className="flex space-x-2 pt-3 border-t">
+              <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t">
                 <Button 
                   onClick={() => openEditDialog(voluntario)} 
                   variant="outline" 
@@ -379,7 +379,7 @@ export default function VoluntariosManager({ user }) {
                   onClick={() => handleDeleteClick(voluntario)}
                   variant="outline"
                   size="sm"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 sm:w-auto"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -390,7 +390,7 @@ export default function VoluntariosManager({ user }) {
       </div>
 
       {voluntarios.length === 0 && (
-        <div className="text-center py-12">
+        <div className="text-center py-12 px-4">
           <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No hay voluntarios registrados</h3>
           <p className="text-gray-600">Agrega el primer voluntario para comenzar a gestionar el equipo.</p>

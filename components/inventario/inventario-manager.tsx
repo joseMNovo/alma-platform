@@ -322,28 +322,30 @@ export default function InventarioManager({ user }: { user: any }) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
+    <div className="space-y-6 px-4 sm:px-0">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div className="text-center sm:text-left">
           <h2 className="text-2xl font-bold text-gray-900">Inventario</h2>
           <p className="text-gray-600">Gestión de materiales y recursos</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center gap-3">
           <Button
             variant="outline"
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 relative ${hasActiveFilters ? 'border-[#4dd0e1] text-[#4dd0e1]' : ''}`}
+            className={`w-full sm:w-auto flex items-center justify-center gap-2 relative ${hasActiveFilters ? 'border-[#4dd0e1] text-[#4dd0e1]' : ''}`}
           >
             <Filter className="w-4 h-4" />
             {showFilters ? (
               <>
                 <ChevronUp className="w-4 h-4" />
-                Ocultar Filtros
+                <span className="hidden sm:inline">Ocultar Filtros</span>
+                <span className="sm:hidden">Ocultar</span>
               </>
             ) : (
               <>
                 <ChevronDown className="w-4 h-4" />
-                Mostrar Filtros
+                <span className="hidden sm:inline">Mostrar Filtros</span>
+                <span className="sm:hidden">Filtros</span>
               </>
             )}
             {hasActiveFilters && !showFilters && (
@@ -352,12 +354,12 @@ export default function InventarioManager({ user }: { user: any }) {
           </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={resetForm} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+            <Button onClick={resetForm} className="w-full sm:w-auto bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
               <Plus className="w-4 h-4 mr-2" />
               Nuevo Item
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingItem ? "Editar Item" : "Nuevo Item"}</DialogTitle>
               <DialogDescription>
@@ -392,7 +394,7 @@ export default function InventarioManager({ user }: { user: any }) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="cantidad">Cantidad</Label>
                   <Input
@@ -463,16 +465,16 @@ export default function InventarioManager({ user }: { user: any }) {
 
       {/* Filtros y Ordenamiento */}
       {showFilters && (
-        <Card className="bg-gray-50 border-gray-200">
-        <CardHeader>
+        <Card className="bg-gray-50 border-gray-200 mx-4 sm:mx-0">
+        <CardHeader className="px-4 sm:px-6">
           <CardTitle className="flex items-center text-lg">
             <Filter className="w-5 h-5 mr-2 text-[#4dd0e1]" />
             Filtros y Ordenamiento
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 px-4 sm:px-6">
           {/* Fila 1: Búsqueda general */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2">
               <Label htmlFor="search">Búsqueda General</Label>
               <div className="relative">
@@ -524,7 +526,7 @@ export default function InventarioManager({ user }: { user: any }) {
           </div>
 
           {/* Fila 2: Filtros específicos */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label htmlFor="stock-status">Estado de Stock</Label>
               <Select value={filters.stockStatus} onValueChange={(value) => setFilters({...filters, stockStatus: value})}>
@@ -611,9 +613,9 @@ export default function InventarioManager({ user }: { user: any }) {
 
       {/* Resumen de filtros activos cuando está oculto */}
       {!showFilters && hasActiveFilters && (
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
+        <Card className="bg-blue-50 border-blue-200 mx-4 sm:mx-0">
+          <CardContent className="pt-4 px-4 sm:px-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-blue-600" />
                 <span className="text-sm text-blue-800">
@@ -624,7 +626,7 @@ export default function InventarioManager({ user }: { user: any }) {
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowFilters(true)}
-                className="text-blue-600 hover:text-blue-800"
+                className="text-blue-600 hover:text-blue-800 self-end sm:self-auto"
               >
                 Ver filtros
               </Button>
@@ -634,7 +636,7 @@ export default function InventarioManager({ user }: { user: any }) {
       )}
 
       {/* Resumen del Inventario */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 px-4 sm:px-0">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Total Items</CardTitle>
@@ -665,19 +667,19 @@ export default function InventarioManager({ user }: { user: any }) {
 
       {/* Alertas de Stock Bajo */}
       {itemsBajoStock.length > 1 && (
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader>
+        <Card className="border-red-200 bg-red-50 mx-4 sm:mx-0">
+          <CardHeader className="px-4 sm:px-6">
             <CardTitle className="text-red-800 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5" />
               Alertas de Stock Bajo
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6">
             <div className="space-y-2">
               {itemsBajoStock.map((item) => (
                 <div key={item.id} className="flex justify-between items-center text-sm">
-                  <span className="font-medium">{item.nombre}</span>
-                  <span className="text-red-600">
+                  <span className="font-medium truncate">{item.nombre}</span>
+                  <span className="text-red-600 text-xs sm:text-sm">
                     Stock: {item.cantidad} (Mín: {item.stockMinimo})
                   </span>
                 </div>
@@ -688,7 +690,7 @@ export default function InventarioManager({ user }: { user: any }) {
       )}
 
       {/* Lista de Items */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 px-4 sm:px-0">
         {filteredInventario.map((item) => (
           <Card key={item.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
@@ -784,7 +786,7 @@ export default function InventarioManager({ user }: { user: any }) {
       </div>
 
       {filteredInventario.length === 0 && inventario.length > 0 && (
-        <div className="text-center py-12">
+        <div className="text-center py-12 px-4">
           <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No se encontraron items</h3>
           <p className="text-gray-600">Intenta ajustar los filtros para ver más resultados.</p>
@@ -792,7 +794,7 @@ export default function InventarioManager({ user }: { user: any }) {
       )}
 
       {inventario.length === 0 && (
-        <div className="text-center py-12">
+        <div className="text-center py-12 px-4">
           <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No hay items en el inventario</h3>
           <p className="text-gray-600">Agrega el primer item para comenzar a gestionar el inventario.</p>
