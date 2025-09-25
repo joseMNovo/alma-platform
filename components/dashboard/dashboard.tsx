@@ -372,10 +372,10 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <div className="text-center flex-1">
-              <p className="text-sm text-gray-600">Creado por ALMA Rosario - 2025</p>
+              <p className="text-sm text-gray-600">Creado con amor por ALMA Rosario - 2025</p>
             </div>
             <div className="text-sm text-gray-500">
-              v1.0.1
+              v1.0.2
             </div>
           </div>
         </div>

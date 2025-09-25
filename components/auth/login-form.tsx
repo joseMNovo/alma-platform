@@ -45,12 +45,15 @@ export default function LoginForm({ onLogin }: { onLogin: (user: any) => void })
       <Card className="w-full max-w-md shadow-2xl border-0">
         <CardHeader className="text-center pb-6 md:pb-8">
           <div className="mx-auto mb-4 md:mb-6 flex justify-center">
-            <img src="/images/alma-logo.png" alt="ALMA - Alzheimer Rosario" className="h-12 md:h-16 w-auto" />
+            <img src="/images/alma-logo.png" alt="ALMA - Alzheimer Rosario" className="h-16 md:h-20 w-auto" />
           </div>
           <CardTitle className="text-xl md:text-2xl text-gray-800">Bienvenido</CardTitle>
           <CardDescription className="text-gray-600">
             Ingresa tu email para acceder a la plataforma
           </CardDescription>
+          <div className="mt-2">
+            <span className="text-xs text-gray-400">v1.0.2</span>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
