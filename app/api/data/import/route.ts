@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
     const importedData = await request.json()
     
     // Validar estructura básica del JSON
-    const requiredKeys = ["usuarios", "talleres", "grupos", "actividades", "pagos", "inventario", "voluntarios", "inscripciones"]
+    const requiredKeys = ["usuarios", "talleres", "grupos", "actividades", "pagos", "inventario", "voluntarios", "inscripciones", "pendientes"]
     
     for (const key of requiredKeys) {
       if (!(key in importedData)) {
@@ -32,11 +32,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Validar que al menos haya un usuario admin
-    const hasAdmin = importedData.usuarios.some((user: any) => user.rol === "admin")
-    if (!hasAdmin) {
+    // Validar que al menos haya un administrador (en usuarios o voluntarios)
+    const hasAdminUser = importedData.usuarios.some((user: any) => user.rol === "admin")
+    const hasAdminVoluntario = importedData.voluntarios?.some((voluntario: any) => voluntario.administrador === true)
+    
+    if (!hasAdminUser && !hasAdminVoluntario) {
       return NextResponse.json({ 
-        error: "Debe existir al menos un usuario administrador" 
+        error: "Debe existir al menos un usuario administrador en usuarios o un voluntario administrador" 
       }, { status: 400 })
     }
 
