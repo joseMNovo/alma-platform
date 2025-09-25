@@ -71,5 +71,34 @@ export default function VoluntariosPage() {
     )
   }
 
-  return <Dashboard user={user} onLogout={handleLogout} />
+  return (
+    <div className="relative overflow-hidden">
+      {/* Flores decorativas de fondo distribuidas aleatoriamente */}
+      <div className="absolute top-14 left-14 w-32 h-32 opacity-[0.01] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute top-36 right-18 w-26 h-26 opacity-[0.005] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute top-1/4 left-1/6 w-38 h-38 opacity-[0.015] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute bottom-22 right-14 w-30 h-30 opacity-[0.01] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute bottom-1/4 right-1/5 w-42 h-42 opacity-[0.005] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute top-1/2 left-1/2 w-22 h-22 opacity-[0.015] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute top-22 right-1/2 w-34 h-34 opacity-[0.01] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute bottom-14 left-1/3 w-26 h-26 opacity-[0.005] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <Dashboard user={user} onLogout={handleLogout} />
+    </div>
+  )
 }

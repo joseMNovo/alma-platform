@@ -356,6 +356,9 @@ export default function PendientesManager({ user }) {
 
   // Función para determinar si el usuario puede ver una categoría
   const canUserSeeCategory = (categoria: Categoria) => {
+    // José tiene acceso completo a todo
+    if (user.email === process.env.NEXT_PUBLIC_JOSE_EMAIL || user.email === "jose@alma.com") return true
+    
     if (!showOnlyMine) return true
     
     // Si el usuario está asignado a la categoría
@@ -367,11 +370,17 @@ export default function PendientesManager({ user }) {
 
   // Función para determinar si el usuario puede editar/eliminar una categoría
   const canUserEditCategory = (categoria: Categoria) => {
+    // José tiene acceso completo a todo
+    if (user.email === process.env.NEXT_PUBLIC_JOSE_EMAIL || user.email === "jose@alma.com") return true
+    
     return categoria.voluntarioAsignado === user.id.toString()
   }
 
   // Función para determinar si el usuario puede editar/eliminar una sub-tarea
   const canUserEditSubItem = (subItem: SubItem) => {
+    // José tiene acceso completo a todo
+    if (user.email === process.env.NEXT_PUBLIC_JOSE_EMAIL || user.email === "jose@alma.com") return true
+    
     return subItem.voluntarioAsignado === user.id.toString()
   }
 
@@ -402,33 +411,35 @@ export default function PendientesManager({ user }) {
           <p className="text-gray-600">Gestiona tus tareas y categorías pendientes</p>
         </div>
         
-        <div className="flex items-center gap-3">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="show-completed"
-              checked={showCompleted}
-              onCheckedChange={setShowCompleted}
-            />
-            <Label htmlFor="show-completed" className="text-sm">
-              Ver completados
-            </Label>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="show-only-mine"
-              checked={showOnlyMine}
-              onCheckedChange={setShowOnlyMine}
-            />
-            <Label htmlFor="show-only-mine" className="text-sm">
-              Ver solo los míos
-            </Label>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="show-completed"
+                checked={showCompleted}
+                onCheckedChange={setShowCompleted}
+              />
+              <Label htmlFor="show-completed" className="text-sm">
+                Ver completados
+              </Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="show-only-mine"
+                checked={showOnlyMine}
+                onCheckedChange={setShowOnlyMine}
+              />
+              <Label htmlFor="show-only-mine" className="text-sm">
+                Ver solo los míos
+              </Label>
+            </div>
           </div>
           
           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
             <DialogTrigger asChild>
               <Button 
-                className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white"
+                className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white w-full sm:w-auto"
                 onClick={() => {
                   setFormData({ descripcion: '', voluntarioAsignado: '' })
                 }}

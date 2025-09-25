@@ -71,5 +71,34 @@ export default function PendientesPage() {
     )
   }
 
-  return <Dashboard user={user} onLogout={handleLogout} />
+  return (
+    <div className="relative overflow-hidden">
+      {/* Flores decorativas de fondo distribuidas aleatoriamente */}
+      <div className="absolute top-16 left-16 w-34 h-34 opacity-[0.01] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute top-38 right-20 w-30 h-30 opacity-[0.005] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute top-1/3 left-1/7 w-46 h-46 opacity-[0.015] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute bottom-26 right-16 w-34 h-34 opacity-[0.01] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute bottom-1/3 right-1/6 w-44 h-44 opacity-[0.005] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute top-1/2 left-1/2 w-26 h-26 opacity-[0.015] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute top-26 right-1/2 w-38 h-38 opacity-[0.01] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute bottom-16 left-1/4 w-30 h-30 opacity-[0.005] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <Dashboard user={user} onLogout={handleLogout} />
+    </div>
+  )
 }

@@ -71,5 +71,34 @@ export default function InventarioPage() {
     )
   }
 
-  return <Dashboard user={user} onLogout={handleLogout} />
+  return (
+    <div className="relative overflow-hidden">
+      {/* Flores decorativas de fondo distribuidas aleatoriamente */}
+      <div className="absolute top-12 left-12 w-36 h-36 opacity-[0.08] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute top-40 right-16 w-28 h-28 opacity-[0.05] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute top-1/3 left-1/5 w-44 h-44 opacity-[0.12] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute bottom-24 right-12 w-32 h-32 opacity-[0.07] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute bottom-1/3 right-1/4 w-40 h-40 opacity-[0.06] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute top-1/2 left-1/2 w-24 h-24 opacity-[0.09] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute top-24 right-1/2 w-36 h-36 opacity-[0.07] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute bottom-12 left-1/4 w-28 h-28 opacity-[0.06] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <Dashboard user={user} onLogout={handleLogout} />
+    </div>
+  )
 }

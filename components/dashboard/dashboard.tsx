@@ -25,7 +25,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   let [ajustesAuthenticated, setAjustesAuthenticated] = useState(false)
 
   const isAdmin = user.rol === "admin"
-  const isJose = user?.email === "jose@alma.com"
+  const isJose = user?.email === process.env.NEXT_PUBLIC_JOSE_EMAIL || user?.email === "jose@alma.com"
   ajustesAuthenticated = isJose
 
   // Obtener el tab activo basado en la URL
@@ -44,6 +44,13 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   const activeTab = getActiveTab()
 
   const handleTabChange = (value: string) => {
+    // José tiene acceso completo a todos los módulos
+    if (isJose) {
+      router.push(`/${value}`)
+      setMobileMenuOpen(false)
+      return
+    }
+    
     // Permitir acceso a Inventario, Pendientes y Voluntarios para todos
     if (value === "inventario" || value === "pendientes" || value === "voluntarios") {
       router.push(`/${value}`)
@@ -58,10 +65,40 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         setMobileMenuOpen(false)
       }
     }
+    // Para otros módulos, verificar si es admin
+    else if (isAdmin) {
+      router.push(`/${value}`)
+      setMobileMenuOpen(false)
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 relative overflow-hidden">
+      {/* Flores decorativas de fondo distribuidas aleatoriamente */}
+      <div className="absolute top-10 left-10 w-32 h-32 opacity-[0.01] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute top-32 right-20 w-24 h-24 opacity-[0.005] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute top-1/3 left-1/4 w-40 h-40 opacity-[0.015] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute bottom-20 right-10 w-28 h-28 opacity-[0.01] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute bottom-1/3 right-1/3 w-36 h-36 opacity-[0.005] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute top-1/2 left-1/2 w-20 h-20 opacity-[0.015] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute top-20 right-1/2 w-32 h-32 opacity-[0.01] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute bottom-10 left-1/3 w-24 h-24 opacity-[0.005] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -72,7 +109,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
             
             {/* Título centrado */}
             <div className="flex-1 flex justify-center">
-              <h1 className="text-xl font-bold">
+              <h1 className="text-lg sm:text-xl font-bold text-center">
                 <span className="text-[#4dd0e1]">ALMA</span> - Plataforma de gestión
               </h1>
             </div>
@@ -375,7 +412,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               <p className="text-sm text-gray-600">Creado con amor por ALMA Rosario - 2025</p>
             </div>
             <div className="text-sm text-gray-500">
-              v1.0.2
+              v1.0.3
             </div>
           </div>
         </div>

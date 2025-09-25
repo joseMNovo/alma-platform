@@ -41,7 +41,32 @@ export default function LoginForm({ onLogin }: { onLogin: (user: any) => void })
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#4dd0e1] to-white p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#4dd0e1] to-white p-4 relative overflow-hidden">
+      {/* Flores decorativas de fondo distribuidas aleatoriamente */}
+      <div className="absolute top-16 left-16 w-28 h-28 opacity-[0.02] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute top-24 right-24 w-20 h-20 opacity-[0.01] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute top-1/4 left-1/3 w-32 h-32 opacity-[0.015] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute bottom-24 right-16 w-24 h-24 opacity-[0.01] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute bottom-1/4 right-1/4 w-36 h-36 opacity-[0.01] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute top-1/2 left-1/2 w-16 h-16 opacity-[0.02] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute top-20 right-1/2 w-28 h-28 opacity-[0.015] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
+      <div className="absolute bottom-16 left-1/4 w-20 h-20 opacity-[0.01] pointer-events-none">
+        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
+      </div>
       <Card className="w-full max-w-md shadow-2xl border-0">
         <CardHeader className="text-center pb-6 md:pb-8">
           <div className="mx-auto mb-4 md:mb-6 flex justify-center">
@@ -52,7 +77,7 @@ export default function LoginForm({ onLogin }: { onLogin: (user: any) => void })
             Ingresa tu email para acceder a la plataforma
           </CardDescription>
           <div className="mt-2">
-            <span className="text-xs text-gray-400">v1.0.2</span>
+            <span className="text-xs text-gray-400">v1.0.3</span>
           </div>
         </CardHeader>
         <CardContent>
