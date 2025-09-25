@@ -7,12 +7,13 @@ ALMA es una plataforma web de gestión integral diseñada específicamente para 
 ## Características Principales
 
 ### 🎯 Módulos de Gestión
+- **Inventario**: Gestión de materiales didácticos y mobiliario
+- **Voluntarios**: Administración de voluntarios y permisos
+- **Pendientes**: Sistema de tareas y categorías con asignación de voluntarios
 - **Talleres**: Gestión completa de talleres de memoria y estimulación cognitiva
 - **Grupos**: Administración de grupos de apoyo familiar y para cuidadores
 - **Actividades**: Organización de charlas, jornadas y eventos
 - **Pagos**: Control de cuotas mensuales y pagos de servicios
-- **Inventario**: Gestión de materiales didácticos y mobiliario
-- **Emails**: Sistema de comunicación masiva
 - **Reportes**: Análisis y estadísticas del sistema
 - **Configuración**: Ajustes del sistema y usuarios
 
@@ -136,7 +137,9 @@ alma-platform/
 │   │   ├── grupos/               # Gestión de grupos
 │   │   ├── inventario/           # Control de inventario
 │   │   ├── pagos/                # Gestión de pagos
-│   │   └── talleres/             # Gestión de talleres
+│   │   ├── pendientes/           # Gestión de tareas pendientes
+│   │   ├── talleres/             # Gestión de talleres
+│   │   └── voluntarios/          # Gestión de voluntarios
 │   ├── globals.css               # Estilos globales
 │   ├── layout.tsx                # Layout principal
 │   └── page.tsx                  # Página de inicio
@@ -149,8 +152,10 @@ alma-platform/
 │   ├── grupos/                   # Componentes de grupos
 │   ├── inventario/               # Componentes de inventario
 │   ├── pagos/                    # Componentes de pagos
+│   ├── pendientes/               # Componentes de tareas pendientes
 │   ├── reportes/                 # Componentes de reportes
 │   ├── talleres/                 # Componentes de talleres
+│   ├── voluntarios/              # Componentes de voluntarios
 │   ├── theme-provider.tsx        # Proveedor de temas
 │   └── ui/                       # Componentes UI reutilizables
 ├── frontend/                     # Frontend adicional (legacy)
@@ -208,6 +213,7 @@ alma-platform/
 - **Módulos disponibles**:
   - ✅ Inventario (gestión de materiales)
   - ✅ Voluntarios (gestión de comunidad)
+  - ✅ Pendientes (gestión de tareas y categorías)
   - ❌ Ajustes (solo para José)
 
 #### 🔧 José (`email`)
@@ -215,6 +221,7 @@ alma-platform/
 - **Módulos disponibles**:
   - ✅ Inventario (gestión de materiales)
   - ✅ Voluntarios (gestión de comunidad)
+  - ✅ Pendientes (gestión de tareas y categorías)
   - ✅ **Ajustes** (importar/exportar datos JSON)
 
 #### 👤 Usuarios Adicionales
@@ -222,11 +229,35 @@ alma-platform/
 - **Módulos disponibles**:
   - ✅ Inventario
   - ✅ Voluntarios
+  - ✅ Pendientes
   - ❌ Ajustes (solo para José)
 
 ### Configuración de Acceso
 
 Las credenciales se configuran en el archivo `.env.local`:
+
+## 📋 Módulo de Pendientes
+
+### Características Principales
+- **Sistema de Tareas**: Gestión de categorías y sub-tareas
+- **Asignación de Voluntarios**: Cada tarea puede ser asignada a un voluntario específico
+- **Filtros Inteligentes**: "Ver solo los míos" y "Ver completados"
+- **Permisos Granulares**: Acceso diferenciado según asignación
+- **CRUD Completo**: Crear, editar, eliminar y marcar como completado
+
+### Funcionalidades
+- **Categorías**: Tareas principales con descripción y asignación
+- **Sub-tareas**: Tareas específicas dentro de cada categoría
+- **Completado**: Marcado de tareas como terminadas
+- **Filtros**: Visualización personalizada según permisos
+- **Asignación**: Vinculación con voluntarios del sistema
+
+### Permisos por Usuario
+- **Administradores**: Acceso completo a todas las tareas
+- **Voluntarios**: Solo ven tareas asignadas a ellos
+- **Mixto**: Pueden ver categorías con sub-tareas asignadas (solo lectura en categoría)
+
+## 🚀 Instalación
 
 ```bash
 # Administrador principal

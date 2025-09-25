@@ -62,7 +62,7 @@ export default function InventarioManager({ user }: { user: any }) {
     voluntarioAsignado: "sin-asignar",
   })
 
-  const categorias = ["Material Didáctico", "Material Terapéutico", "Mobiliario", "Tecnología", "Oficina", "Limpieza"]
+  const categorias = ["Material Didáctico", "Material Terapéutico", "Mobiliario", "Tecnología", "Oficina", "Limpieza", "Merchandising"]
 
   useEffect(() => {
     fetchInventario()
@@ -338,13 +338,13 @@ export default function InventarioManager({ user }: { user: any }) {
             {showFilters ? (
               <>
                 <ChevronUp className="w-4 h-4" />
-                <span className="hidden sm:inline">Ocultar Filtros</span>
+                <span className="hidden sm:inline">Ocultar filtros</span>
                 <span className="sm:hidden">Ocultar</span>
               </>
             ) : (
               <>
                 <ChevronDown className="w-4 h-4" />
-                <span className="hidden sm:inline">Mostrar Filtros</span>
+                <span className="hidden sm:inline">Mostrar filtros</span>
                 <span className="sm:hidden">Filtros</span>
               </>
             )}
@@ -368,7 +368,7 @@ export default function InventarioManager({ user }: { user: any }) {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="nombre">Nombre del Item</Label>
+                <Label htmlFor="nombre">Nombre del item</Label>
                 <Input
                   id="nombre"
                   value={formData.nombre}
@@ -406,7 +406,7 @@ export default function InventarioManager({ user }: { user: any }) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="stockMinimo">Stock Mínimo</Label>
+                  <Label htmlFor="stockMinimo">Stock mínimo</Label>
                   <Input
                     id="stockMinimo"
                     type="number"
@@ -417,7 +417,7 @@ export default function InventarioManager({ user }: { user: any }) {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="precio">Precio Unitario ($) <span className="text-gray-400">(opcional)</span></Label>
+                <Label htmlFor="precio">Precio unitario ($) <span className="text-gray-400">(opcional)</span></Label>
                 <Input
                   id="precio"
                   type="number"
@@ -437,7 +437,7 @@ export default function InventarioManager({ user }: { user: any }) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="voluntarioAsignado">Voluntario Asignado</Label>
+                <Label htmlFor="voluntarioAsignado">Voluntario asignado</Label>
                 <Select value={formData.voluntarioAsignado} onValueChange={(value) => setFormData({...formData, voluntarioAsignado: value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar voluntario" />
@@ -469,14 +469,14 @@ export default function InventarioManager({ user }: { user: any }) {
         <CardHeader className="px-4 sm:px-6">
           <CardTitle className="flex items-center text-lg">
             <Filter className="w-5 h-5 mr-2 text-[#4dd0e1]" />
-            Filtros y Ordenamiento
+            Filtros y ordenamiento
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 px-4 sm:px-6">
           {/* Fila 1: Búsqueda general */}
           <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="search">Búsqueda General</Label>
+              <Label htmlFor="search">Búsqueda general</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
@@ -528,21 +528,21 @@ export default function InventarioManager({ user }: { user: any }) {
           {/* Fila 2: Filtros específicos */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="stock-status">Estado de Stock</Label>
+              <Label htmlFor="stock-status">Estado de stock</Label>
               <Select value={filters.stockStatus} onValueChange={(value) => setFilters({...filters, stockStatus: value})}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todos los estados" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos los estados</SelectItem>
-                  <SelectItem value="stock-normal">Stock Normal</SelectItem>
-                  <SelectItem value="bajo-stock">Bajo Stock</SelectItem>
+                  <SelectItem value="stock-normal">Stock normal</SelectItem>
+                  <SelectItem value="bajo-stock">Bajo stock</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="precio-min">Precio Mínimo</Label>
+              <Label htmlFor="precio-min">Precio mínimo</Label>
               <Input
                 id="precio-min"
                 type="number"
@@ -553,7 +553,7 @@ export default function InventarioManager({ user }: { user: any }) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="precio-max">Precio Máximo</Label>
+              <Label htmlFor="precio-max">Precio máximo</Label>
               <Input
                 id="precio-max"
                 type="number"
@@ -569,7 +569,7 @@ export default function InventarioManager({ user }: { user: any }) {
                 onClick={clearFilters}
                 className="w-full"
               >
-                Limpiar Filtros
+                Limpiar filtros
               </Button>
             </div>
           </div>
@@ -639,7 +639,7 @@ export default function InventarioManager({ user }: { user: any }) {
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 px-4 sm:px-0">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total Items</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Total items</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-[#4dd0e1]">{inventario.length}</div>
@@ -647,7 +647,7 @@ export default function InventarioManager({ user }: { user: any }) {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Items Bajo Stock</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Items bajo stock</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{itemsBajoStock.length}</div>
@@ -656,7 +656,7 @@ export default function InventarioManager({ user }: { user: any }) {
         {valorTotalInventario > 0 && (
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Valor Total</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">Valor total</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">${valorTotalInventario.toLocaleString()}</div>
@@ -671,7 +671,7 @@ export default function InventarioManager({ user }: { user: any }) {
           <CardHeader className="px-4 sm:px-6">
             <CardTitle className="text-red-800 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5" />
-              Alertas de Stock Bajo
+              Alertas de stock bajo
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4 sm:px-6">
@@ -702,7 +702,7 @@ export default function InventarioManager({ user }: { user: any }) {
                 {/* Cambiado: mostrar "Stock Bajo" solo si esBajoStock(item) */}
                 {esBajoStock(item) && (
                   <Badge variant="destructive" className="bg-red-500">
-                    Stock Bajo
+                    Stock bajo
                   </Badge>
                 )}
               </div>
@@ -714,18 +714,18 @@ export default function InventarioManager({ user }: { user: any }) {
                   <span className="font-medium">{item.cantidad}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Stock Mínimo:</span>
+                  <span className="text-gray-600">Stock mínimo:</span>
                   <span className="font-medium">{item.stockMinimo}</span>
                 </div>
                 {item.precio > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Precio Unitario:</span>
+                    <span className="text-gray-600">Precio unitario:</span>
                     <span className="font-medium">${item.precio.toLocaleString()}</span>
                   </div>
                 )}
                 {item.precio > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Valor Total:</span>
+                    <span className="text-gray-600">Valor total:</span>
                     <span className="font-medium text-[#4dd0e1]">${(item.cantidad * item.precio).toLocaleString()}</span>
                   </div>
                 )}

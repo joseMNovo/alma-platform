@@ -57,9 +57,10 @@ export default function VoluntariosPage() {
     return null // Se está redirigiendo
   }
 
-  const isAdmin = user && user.rol === "admin"
+  // Permitir acceso a administradores y voluntarios
+  const hasAccess = user && (user.rol === "admin" || user.rol === "voluntario")
 
-  if (!isAdmin) {
+  if (!hasAccess) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

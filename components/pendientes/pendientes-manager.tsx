@@ -40,6 +40,7 @@ export default function PendientesManager({ user }) {
   const [pendientes, setPendientes] = useState<Categoria[]>([])
   const [voluntarios, setVoluntarios] = useState([])
   const [showCompleted, setShowCompleted] = useState(false)
+  const [showOnlyMine, setShowOnlyMine] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isSubCategoryModalOpen, setIsSubCategoryModalOpen] = useState(false)
@@ -353,6 +354,27 @@ export default function PendientesManager({ user }) {
     return voluntario ? voluntario.nombre : 'Sin asignar'
   }
 
+  // Función para determinar si el usuario puede ver una categoría
+  const canUserSeeCategory = (categoria: Categoria) => {
+    if (!showOnlyMine) return true
+    
+    // Si el usuario está asignado a la categoría
+    if (categoria.voluntarioAsignado === user.id.toString()) return true
+    
+    // Si el usuario está asignado a alguna sub-tarea
+    return categoria.subItems.some(subItem => subItem.voluntarioAsignado === user.id.toString())
+  }
+
+  // Función para determinar si el usuario puede editar/eliminar una categoría
+  const canUserEditCategory = (categoria: Categoria) => {
+    return categoria.voluntarioAsignado === user.id.toString()
+  }
+
+  // Función para determinar si el usuario puede editar/eliminar una sub-tarea
+  const canUserEditSubItem = (subItem: SubItem) => {
+    return subItem.voluntarioAsignado === user.id.toString()
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
       day: '2-digit',
@@ -361,9 +383,15 @@ export default function PendientesManager({ user }) {
     })
   }
 
-  const filteredPendientes = showCompleted 
-    ? pendientes 
-    : pendientes.filter(item => !item.completado)
+  const filteredPendientes = pendientes.filter(item => {
+    // Filtro por completado
+    const showByCompleted = showCompleted || !item.completado
+    
+    // Filtro por visibilidad (puede ver si está asignado a categoría o sub-tarea)
+    const showByVisibility = !showOnlyMine || canUserSeeCategory(item)
+    
+    return showByCompleted && showByVisibility
+  })
 
   return (
     <div className="space-y-6">
@@ -383,6 +411,17 @@ export default function PendientesManager({ user }) {
             />
             <Label htmlFor="show-completed" className="text-sm">
               Ver completados
+            </Label>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="show-only-mine"
+              checked={showOnlyMine}
+              onCheckedChange={setShowOnlyMine}
+            />
+            <Label htmlFor="show-only-mine" className="text-sm">
+              Ver solo los míos
             </Label>
           </div>
           
@@ -625,31 +664,35 @@ export default function PendientesManager({ user }) {
                         </Badge>
                       )}
                       <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleAddSubCategory(categoria.id)}
-                          className="h-8 w-8 p-0 text-[#4dd0e1] hover:text-[#3bb5c7] hover:bg-[#4dd0e1]/10"
-                          title="Agregar sub-categoría"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(categoria.id, 'categoria')}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(categoria.id, 'categoria')}
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {canUserEditCategory(categoria) && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleAddSubCategory(categoria.id)}
+                              className="h-8 w-8 p-0 text-[#4dd0e1] hover:text-[#3bb5c7] hover:bg-[#4dd0e1]/10"
+                              title="Agregar sub-categoría"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(categoria.id, 'categoria')}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(categoria.id, 'categoria')}
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -660,7 +703,11 @@ export default function PendientesManager({ user }) {
                     <div className="space-y-2">
                       <h4 className="font-medium text-sm text-gray-700 mb-3">Sub-tareas:</h4>
                       {categoria.subItems
-                        .filter(subItem => showCompleted || !subItem.completado)
+                        .filter(subItem => {
+                          const showByCompleted = showCompleted || !subItem.completado
+                          const showByAssignment = !showOnlyMine || subItem.voluntarioAsignado === user.id.toString()
+                          return showByCompleted && showByAssignment
+                        })
                         .map(subItem => (
                           <div 
                             key={subItem.id} 
@@ -698,22 +745,26 @@ export default function PendientesManager({ user }) {
                                   Completado
                                 </Badge>
                               )}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEdit(subItem.id, 'subcategoria', categoria.id)}
-                                className="h-6 w-6 p-0"
-                              >
-                                <Edit className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDelete(subItem.id, 'subcategoria', categoria.id)}
-                                className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
+                              {canUserEditSubItem(subItem) && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEdit(subItem.id, 'subcategoria', categoria.id)}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <Edit className="w-3 h-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDelete(subItem.id, 'subcategoria', categoria.id)}
+                                    className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </div>
                         ))}

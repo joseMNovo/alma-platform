@@ -21,10 +21,10 @@ export const config = {
   }
 }
 
-// Función para validar credenciales
+// Función para validar credenciales (solo email)
 export function validateCredentials(email: string, password: string) {
-  // Validar administrador
-  if (email === config.admin.email && password === config.admin.password) {
+  // Validar administrador (solo email)
+  if (email === config.admin.email) {
     return {
       valid: true,
       user: {
@@ -36,8 +36,8 @@ export function validateCredentials(email: string, password: string) {
     }
   }
   
-  // Validar José
-  if (email === config.jose.email && password === config.jose.password) {
+  // Validar José (solo email)
+  if (email === config.jose.email) {
     return {
       valid: true,
       user: {

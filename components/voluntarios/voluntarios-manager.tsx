@@ -19,13 +19,37 @@ import {
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 import { Plus, Edit, Trash2, Users, User, Calendar, Phone, Mail, Heart } from "lucide-react"
 
-export default function VoluntariosManager({ user }) {
-  const [voluntarios, setVoluntarios] = useState([])
+// Interfaces para tipado
+interface User {
+  id: number
+  nombre: string
+  email: string
+  rol: string
+  administrador?: boolean
+}
+
+interface Voluntario {
+  id: number
+  nombre: string
+  apellido: string
+  edad: number | null
+  sexo: string
+  foto: string | null
+  telefono: string
+  email: string
+  especialidades: string[]
+  fechaNacimiento: string
+  fechaRegistro: string
+  administrador: boolean
+}
+
+export default function VoluntariosManager({ user }: { user: User }) {
+  const [voluntarios, setVoluntarios] = useState<Voluntario[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingVoluntario, setEditingVoluntario] = useState(null)
+  const [editingVoluntario, setEditingVoluntario] = useState<Voluntario | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [voluntarioToDelete, setVoluntarioToDelete] = useState(null)
+  const [voluntarioToDelete, setVoluntarioToDelete] = useState<Voluntario | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [formData, setFormData] = useState({
     nombre: "",
@@ -35,7 +59,9 @@ export default function VoluntariosManager({ user }) {
     foto: "",
     telefono: "",
     email: "",
-    especialidades: []
+    especialidades: [] as string[],
+    fechaNacimiento: "",
+    administrador: false
   })
 
   useEffect(() => {
@@ -57,7 +83,7 @@ export default function VoluntariosManager({ user }) {
     }
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
       const method = editingVoluntario ? "PUT" : "POST"
@@ -81,12 +107,12 @@ export default function VoluntariosManager({ user }) {
     }
   }
 
-  const handleDeleteClick = (voluntario) => {
+  const handleDeleteClick = (voluntario: Voluntario) => {
     setVoluntarioToDelete(voluntario)
     setDeleteDialogOpen(true)
   }
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = async (): Promise<void> => {
     if (!voluntarioToDelete) return
     
     setDeleting(true)
@@ -119,12 +145,14 @@ export default function VoluntariosManager({ user }) {
       foto: "",
       telefono: "",
       email: "",
-      especialidades: []
+      especialidades: [],
+      fechaNacimiento: "",
+      administrador: false
     })
     setEditingVoluntario(null)
   }
 
-  const openEditDialog = (voluntario) => {
+  const openEditDialog = (voluntario: Voluntario) => {
     setEditingVoluntario(voluntario)
     setFormData({
       nombre: voluntario.nombre || "",
@@ -134,12 +162,14 @@ export default function VoluntariosManager({ user }) {
       foto: voluntario.foto || "",
       telefono: voluntario.telefono || "",
       email: voluntario.email || "",
-      especialidades: voluntario.especialidades || []
+      especialidades: voluntario.especialidades || [],
+      fechaNacimiento: voluntario.fechaNacimiento || "",
+      administrador: voluntario.administrador || false
     })
     setDialogOpen(true)
   }
 
-  const getSexoIcon = (sexo) => {
+  const getSexoIcon = (sexo: string) => {
     switch (sexo?.toLowerCase()) {
       case "masculino":
         return "👨"
@@ -150,7 +180,7 @@ export default function VoluntariosManager({ user }) {
     }
   }
 
-  const getSexoColor = (sexo) => {
+  const getSexoColor = (sexo: string) => {
     switch (sexo?.toLowerCase()) {
       case "masculino":
         return "bg-blue-100 text-blue-800"
@@ -161,7 +191,7 @@ export default function VoluntariosManager({ user }) {
     }
   }
 
-  const getNombreCompleto = (voluntario) => {
+  const getNombreCompleto = (voluntario: Voluntario) => {
     if (voluntario.apellido) {
       return `${voluntario.nombre} ${voluntario.apellido}`
     }
@@ -169,13 +199,13 @@ export default function VoluntariosManager({ user }) {
   }
 
   // Función para validar solo números en teléfono
-  const handleTelefonoChange = (e) => {
+  const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/[^0-9+\-\s]/g, '')
     setFormData({...formData, telefono: value})
   }
 
   // Función para validar solo números en edad
-  const handleEdadChange = (e) => {
+  const handleEdadChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/[^0-9]/g, '')
     setFormData({...formData, edad: value})
   }
@@ -198,7 +228,7 @@ export default function VoluntariosManager({ user }) {
         <div className="text-center sm:text-left">
           <h2 className="text-2xl font-bold text-gray-900 flex items-center justify-center sm:justify-start">
             <Users className="w-6 h-6 mr-3 text-[#4dd0e1]" />
-            Gestión de Voluntarios
+            Gestión de voluntarios
           </h2>
           <p className="text-gray-600 mt-1">Administra los voluntarios de ALMA</p>
         </div>
@@ -213,13 +243,13 @@ export default function VoluntariosManager({ user }) {
               className="w-full sm:w-auto bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Agregar Voluntario
+              Agregar voluntario
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px] mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {editingVoluntario ? "Editar Voluntario" : "Agregar Nuevo Voluntario"}
+                {editingVoluntario ? "Editar voluntario" : "Agregar nuevo voluntario"}
               </DialogTitle>
               <DialogDescription>
                 {editingVoluntario 
@@ -236,7 +266,7 @@ export default function VoluntariosManager({ user }) {
                   <Input
                     id="nombre"
                     value={formData.nombre}
-                    onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, nombre: e.target.value})}
                     placeholder="Nombre"
                     required
                   />
@@ -247,7 +277,7 @@ export default function VoluntariosManager({ user }) {
                   <Input
                     id="apellido"
                     value={formData.apellido}
-                    onChange={(e) => setFormData({...formData, apellido: e.target.value})}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, apellido: e.target.value})}
                     placeholder="Apellido"
                   />
                 </div>
@@ -260,7 +290,7 @@ export default function VoluntariosManager({ user }) {
                     value={formData.edad}
                     onChange={handleEdadChange}
                     placeholder="Edad"
-                    maxLength="3"
+                    maxLength={3}
                   />
                 </div>
                 
@@ -285,7 +315,7 @@ export default function VoluntariosManager({ user }) {
                     value={formData.telefono}
                     onChange={handleTelefonoChange}
                     placeholder="+54 11 1234-5678"
-                    maxLength="20"
+                    maxLength={20}
                   />
                 </div>
                 
@@ -295,8 +325,18 @@ export default function VoluntariosManager({ user }) {
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, email: e.target.value})}
                     placeholder="email@ejemplo.com"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="fechaNacimiento">Fecha de nacimiento</Label>
+                  <Input
+                    id="fechaNacimiento"
+                    type="date"
+                    value={formData.fechaNacimiento}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, fechaNacimiento: e.target.value})}
                   />
                 </div>
                 
@@ -305,11 +345,27 @@ export default function VoluntariosManager({ user }) {
                   <Input
                     id="foto"
                     value={formData.foto}
-                    onChange={(e) => setFormData({...formData, foto: e.target.value})}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, foto: e.target.value})}
                     placeholder="https://ejemplo.com/foto.jpg"
                   />
                 </div> */}
               </div>
+              
+              {/* Campo Administrador - Solo visible para administradores */}
+              {user.rol === "admin" && (
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="administrador"
+                    checked={formData.administrador}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, administrador: e.target.checked})}
+                    className="rounded border-gray-300 text-[#4dd0e1] focus:ring-[#4dd0e1]"
+                  />
+                  <Label htmlFor="administrador" className="text-sm font-medium">
+                    Administrador
+                  </Label>
+                </div>
+              )}
               
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
@@ -353,6 +409,11 @@ export default function VoluntariosManager({ user }) {
                           {voluntario.edad} años
                         </Badge>
                       )}
+                      {voluntario.administrador && user.rol === "admin" && (
+                        <Badge variant="default" className="text-xs bg-[#4dd0e1] text-white">
+                          👑 Administrador
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -372,6 +433,13 @@ export default function VoluntariosManager({ user }) {
                   <div className="flex items-center text-sm text-gray-600">
                     <Mail className="w-4 h-4 mr-2 flex-shrink-0" />
                     <span className="truncate">{voluntario.email}</span>
+                  </div>
+                )}
+                
+                {voluntario.fechaNacimiento && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm">Nacimiento: {new Date(voluntario.fechaNacimiento).toLocaleDateString("es-ES")}</span>
                   </div>
                 )}
                 

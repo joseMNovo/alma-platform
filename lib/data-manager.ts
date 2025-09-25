@@ -12,6 +12,17 @@ export interface Database {
   inventario: InventarioItem[]
   voluntarios: Voluntario[]
   inscripciones: Inscripcion[]
+  pendientes: Pendiente[]
+}
+
+export interface Pendiente {
+  id: string
+  descripcion: string
+  voluntarioAsignado: string
+  completado: boolean
+  fechaCreacion: string
+  fechaCompletado?: string
+  subItems?: Pendiente[]
 }
 
 export interface User {
@@ -101,6 +112,7 @@ export interface Voluntario {
   fechaRegistro: string
   estado: string
   especialidades?: string[]
+  administrador?: boolean
 }
 
 export interface Inscripcion {
@@ -128,6 +140,7 @@ export function readData(): Database {
       pagos: [],
       inventario: [],
       voluntarios: [],
+      pendientes: [],
       inscripciones: []
     }
   }

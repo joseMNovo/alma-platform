@@ -13,8 +13,7 @@ export default function DevelopmentNotice({ isAdmin = false }: DevelopmentNotice
       <Alert className="mb-6 border-amber-200 bg-amber-50">
         <Construction className="h-4 w-4 text-amber-600" />
         <AlertDescription className="text-amber-800">
-          Solo los módulos de Inventario y Voluntarios están habilitados. 
-          Los demás están en desarrollo.
+        <strong>Plataforma en Desarrollo:</strong> Solo algunos módulos están habilitados. Estamos trabajando en el resto.
         </AlertDescription>
       </Alert>
     )
@@ -24,8 +23,7 @@ export default function DevelopmentNotice({ isAdmin = false }: DevelopmentNotice
     <Alert className="mb-6 border-blue-200 bg-blue-50">
       <Package className="h-4 w-4 text-blue-600" />
       <AlertDescription className="text-blue-800">
-        <strong>Plataforma en Desarrollo:</strong> Los módulos están siendo desarrollados. 
-        Solo administradores tienen acceso a los módulos de Inventario y Voluntarios actualmente.
+        <strong>Plataforma en Desarrollo:</strong> Solo algunos módulos están habilitados. Estamos trabajando en el resto.
       </AlertDescription>
     </Alert>
   )

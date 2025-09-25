@@ -63,7 +63,7 @@ Detalles:
 - Fecha: ${new Date(actividad.fecha).toLocaleDateString("es-ES")}
 - Horario: ${actividad.horario}
 - Lugar: ${actividad.lugar}
-${!actividad.gratuita ? `- Costo: $${actividad.costo.toLocaleString()}` : "- Actividad gratuita"}
+${!actividad.gratuita && actividad.costo ? `- Costo: $${actividad.costo.toLocaleString()}` : "- Actividad gratuita"}
 
 ¡Nos vemos en la actividad!
 

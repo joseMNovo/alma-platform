@@ -44,8 +44,8 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   const activeTab = getActiveTab()
 
   const handleTabChange = (value: string) => {
-    // Permitir acceso a Inventario, Voluntarios y Pendientes
-    if (value === "inventario" || value === "voluntarios" || value === "pendientes") {
+    // Permitir acceso a Inventario, Pendientes y Voluntarios para todos
+    if (value === "inventario" || value === "pendientes" || value === "voluntarios") {
       router.push(`/${value}`)
       setMobileMenuOpen(false)
     }
@@ -67,16 +67,19 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <img src="/images/alma-logo.png" alt="ALMA" className="h-8 w-auto" />
-              <div className="hidden sm:block">
-                <h1 className="text-xl font-bold text-gray-900">ALMA</h1>
-                <p className="text-sm text-gray-600">Plataforma de Gestión</p>
-              </div>
+              <img src="/images/flor.png" alt="ALMA" className="h-8 w-auto" />
+            </div>
+            
+            {/* Título centrado */}
+            <div className="flex-1 flex justify-center">
+              <h1 className="text-xl font-bold">
+                <span className="text-[#4dd0e1]">ALMA</span> - Plataforma de gestión
+              </h1>
             </div>
 
             <div className="flex items-center space-x-4">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-medium text-gray-900">{user.nombre}</p>
+                <p className="text-sm font-medium text-[#4dd0e1]">{user.nombre}</p>
                 <p className="text-xs text-gray-600 capitalize">{user.rol}</p>
               </div>
               <Button
@@ -99,17 +102,18 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                 </SheetTrigger>
                 <SheetContent side="left" className="w-[80%] sm:w-[350px] p-0">
                   <div className="flex flex-col h-full">
-                    <div className="p-4 border-b">
-                      <div className="flex items-center space-x-3">
-                        <img src="/images/alma-logo.png" alt="ALMA" className="h-8 w-auto" />
-                        <div>
-                          <h2 className="text-lg font-bold">ALMA</h2>
-                          <p className="text-sm text-gray-600">Plataforma de Gestión</p>
-                        </div>
+                  <div className="p-4 border-b">
+                    <div className="flex items-center space-x-3">
+                      <img src="/images/flor.png" alt="ALMA" className="h-8 w-auto" />
+                      <div>
+                        <h2 className="text-lg font-bold">
+                          <span className="text-[#4dd0e1]">ALMA</span> - Plataforma de gestión
+                        </h2>
                       </div>
+                    </div>
                       <div className="mt-4 flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium">{user.nombre}</p>
+                          <p className="text-sm font-medium text-[#4dd0e1]">{user.nombre}</p>
                           <p className="text-xs text-gray-600 capitalize">{user.rol}</p>
                         </div>
                         <Button
@@ -125,34 +129,31 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                     </div>
                     <div className="flex-1 overflow-auto p-4">
                       <nav className="space-y-2">
-                        {isAdmin && (
-                          <>
-                            <Button
-                              variant={activeTab === "inventario" ? "default" : "ghost"}
-                              className={`w-full justify-start ${activeTab === "inventario" ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange("inventario")}
-                            >
-                              <Package className="w-5 h-5 mr-3" />
-                              Inventario
-                            </Button>
-                            <Button
-                              variant={activeTab === "voluntarios" ? "default" : "ghost"}
-                              className={`w-full justify-start ${activeTab === "voluntarios" ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange("voluntarios")}
-                            >
-                              <Heart className="w-5 h-5 mr-3" />
-                              Voluntarios
-                            </Button>
-                            <Button
-                              variant={activeTab === "pendientes" ? "default" : "ghost"}
-                              className={`w-full justify-start ${activeTab === "pendientes" ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange("pendientes")}
-                            >
-                              <CheckSquare className="w-5 h-5 mr-3" />
-                              Pendientes
-                            </Button>
-                          </>
-                        )}
+                        {/* Inventario, Pendientes y Voluntarios para todos */}
+                        <Button
+                          variant={activeTab === "inventario" ? "default" : "ghost"}
+                          className={`w-full justify-start ${activeTab === "inventario" ? "bg-[#4dd0e1] text-white" : ""}`}
+                          onClick={() => handleTabChange("inventario")}
+                        >
+                          <Package className="w-5 h-5 mr-3" />
+                          Inventario
+                        </Button>
+                        <Button
+                          variant={activeTab === "pendientes" ? "default" : "ghost"}
+                          className={`w-full justify-start ${activeTab === "pendientes" ? "bg-[#4dd0e1] text-white" : ""}`}
+                          onClick={() => handleTabChange("pendientes")}
+                        >
+                          <CheckSquare className="w-5 h-5 mr-3" />
+                          Pendientes
+                        </Button>
+                        <Button
+                          variant={activeTab === "voluntarios" ? "default" : "ghost"}
+                          className={`w-full justify-start ${activeTab === "voluntarios" ? "bg-[#4dd0e1] text-white" : ""}`}
+                          onClick={() => handleTabChange("voluntarios")}
+                        >
+                          <Heart className="w-5 h-5 mr-3" />
+                          Voluntarios
+                        </Button>
                         <Button
                           variant="ghost"
                           disabled
@@ -225,32 +226,28 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         <DevelopmentNotice isAdmin={isAdmin} />
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="hidden md:grid w-full grid-cols-2 lg:grid-cols-8 bg-white border border-gray-200 p-1 rounded-lg">
-            {/* Inventario y Voluntarios primero */}
-            {isAdmin && (
-              <>
-                <TabsTrigger
-                  value="inventario"
-                  className="flex items-center space-x-2 data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
-                >
-                  <Package className="w-4 h-4" />
-                  <span className="hidden sm:inline">Inventario</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="voluntarios"
-                  className="flex items-center space-x-2 data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
-                >
-                  <Heart className="w-4 h-4" />
-                  <span className="hidden sm:inline">Voluntarios</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="pendientes"
-                  className="flex items-center space-x-2 data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
-                >
-                  <CheckSquare className="w-4 h-4" />
-                  <span className="hidden sm:inline">Pendientes</span>
-                </TabsTrigger>
-              </>
-            )}
+            {/* Inventario, Pendientes y Voluntarios para todos */}
+            <TabsTrigger
+              value="inventario"
+              className="flex items-center space-x-2 data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
+            >
+              <Package className="w-4 h-4" />
+              <span className="hidden sm:inline">Inventario</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="pendientes"
+              className="flex items-center space-x-2 data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
+            >
+              <CheckSquare className="w-4 h-4" />
+              <span className="hidden sm:inline">Pendientes</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="voluntarios"
+              className="flex items-center space-x-2 data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
+            >
+              <Heart className="w-4 h-4" />
+              <span className="hidden sm:inline">Voluntarios</span>
+            </TabsTrigger>
             {/* Todos los demás */}
             <TabsTrigger
               value="talleres"
@@ -348,56 +345,41 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
             </>
           )}
 
-          {/* Solo Inventario y Voluntarios están disponibles para admins */}
-          {isAdmin && (
-            <>
-              <TabsContent value="inventario" className="space-y-6">
-                <InventarioManager user={user} />
-              </TabsContent>
+          {/* Inventario, Pendientes y Voluntarios disponibles para todos */}
+          <TabsContent value="inventario" className="space-y-6">
+            <InventarioManager user={user} />
+          </TabsContent>
+          
+          <TabsContent value="pendientes" className="space-y-6">
+            <PendientesManager user={user} />
+          </TabsContent>
+          
+          <TabsContent value="voluntarios" className="space-y-6">
+            <VoluntariosManager user={user} />
+          </TabsContent>
               
-              <TabsContent value="voluntarios" className="space-y-6">
-                <VoluntariosManager user={user} />
-              </TabsContent>
-              
-              <TabsContent value="pendientes" className="space-y-6">
-                <PendientesManager user={user} />
-              </TabsContent>
-              
-              {/* Ajustes solo para isJose */}
-              {isJose && (
-                <TabsContent value="ajustes" className="space-y-6">
-                  <AjustesManager user={user} />
-                </TabsContent>
-              )}
-            </>
-          )}
-
-          {/* Mensaje para usuarios no admin */}
-          {!isAdmin && (
-            <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 text-center">
-              <div className="max-w-md mx-auto">
-                <div className="mb-4">
-                  <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                    Módulos en Desarrollo
-                  </h2>
-                  <p className="text-gray-600 mb-4">
-                    Los módulos de Talleres, Grupos, Actividades y Pagos están actualmente en desarrollo.
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Solo los módulos de Inventario, Voluntarios y Ajustes están disponibles para administradores. Ajustes requiere autenticación adicional.
-                  </p>
-                </div>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-800">
-                    <strong>Próximamente:</strong> Pronto tendrás acceso a todas las funcionalidades de la plataforma ALMA.
-                  </p>
-                </div>
-              </div>
-            </div>
+          {/* Ajustes solo para isJose */}
+          {isJose && (
+            <TabsContent value="ajustes" className="space-y-6">
+              <AjustesManager user={user} />
+            </TabsContent>
           )}
         </Tabs>
       </main>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-gray-200 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center">
+            <div className="text-center flex-1">
+              <p className="text-sm text-gray-600">Creado por ALMA Rosario - 2025</p>
+            </div>
+            <div className="text-sm text-gray-500">
+              v1.0.1
+            </div>
+          </div>
+        </div>
+      </footer>
 
     </div>
   )

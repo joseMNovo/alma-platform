@@ -7,8 +7,73 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Users, DollarSign, Download, Activity, AlertTriangle } from "lucide-react"
 
-export default function ReportesManager({ user }) {
-  const [data, setData] = useState({
+// Interfaces para tipado
+interface User {
+  id: number
+  nombre: string
+  email: string
+  rol: string
+  estado?: string
+}
+
+interface Taller {
+  id: number
+  nombre: string
+  cupos: number
+  inscritos: number
+  dia: string
+  horario: string
+  estado?: string
+}
+
+interface Grupo {
+  id: number
+  nombre: string
+  participantes: number
+  inscritos: number
+  estado?: string
+  dia?: string
+  horario?: string
+}
+
+interface Actividad {
+  id: number
+  nombre: string
+  participantes: number
+  inscritos: number
+  estado?: string
+}
+
+interface Pago {
+  id: number
+  concepto: string
+  monto: number
+  estado: string
+  metodoPago: string
+  fechaVencimiento?: string
+}
+
+interface InventarioItem {
+  id: number
+  nombre: string
+  categoria: string
+  cantidad: number
+  stockMinimo: number
+  precio: number
+}
+
+interface Data {
+  usuarios: User[]
+  talleres: Taller[]
+  grupos: Grupo[]
+  actividades: Actividad[]
+  pagos: Pago[]
+  inventario: InventarioItem[]
+  inscripciones: any[]
+}
+
+export default function ReportesManager({ user }: { user: User }) {
+  const [data, setData] = useState<Data>({
     usuarios: [],
     talleres: [],
     grupos: [],
@@ -63,7 +128,7 @@ export default function ReportesManager({ user }) {
     actividadesActivas: data.actividades.filter((a) => a.estado === "activo").length,
     ingresosTotales: data.pagos.filter((p) => p.estado === "pagado").reduce((sum, p) => sum + p.monto, 0),
     pagosPendientes: data.pagos.filter((p) => p.estado === "pendiente").length,
-    pagosVencidos: data.pagos.filter((p) => p.estado === "pendiente" && new Date(p.fechaVencimiento) < new Date())
+    pagosVencidos: data.pagos.filter((p) => p.estado === "pendiente" && p.fechaVencimiento && new Date(p.fechaVencimiento) < new Date())
       .length,
     inventarioTotal: data.inventario.length,
     itemsBajoStock: data.inventario.filter((i) => i.cantidad <= i.stockMinimo).length,
@@ -90,7 +155,7 @@ export default function ReportesManager({ user }) {
     ],
   }
 
-  const exportarReporte = (tipo) => {
+  const exportarReporte = (tipo: string): void => {
     // Simulación de exportación
     alert(`Exportando reporte de ${tipo}...`)
   }
@@ -506,7 +571,7 @@ export default function ReportesManager({ user }) {
                 <CardTitle className="text-lg">Por Categoría</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {["Material Didáctico", "Material Terapéutico", "Mobiliario"].map((categoria) => {
+                {["Material Didáctico", "Material Terapéutico", "Mobiliario", "Merchandising"].map((categoria) => {
                   const items = data.inventario.filter((i) => i.categoria === categoria)
                   return (
                     <div key={categoria} className="flex justify-between">
