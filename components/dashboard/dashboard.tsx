@@ -4,15 +4,15 @@ import { useState, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { LogOut, Users, Calendar, Activity, CreditCard, Package, Heart, Settings, Mail, BarChart3 } from "lucide-react"
+import { LogOut, Users, Calendar, Activity, CreditCard, Package, Heart, Settings, Mail, BarChart3, CheckSquare } from "lucide-react"
 import TalleresManager from "@/components/talleres/talleres-manager"
 import GruposManager from "@/components/grupos/grupos-manager"
 import ActividadesManager from "@/components/actividades/actividades-manager"
 import PagosManager from "@/components/pagos/pagos-manager"
 import InventarioManager from "@/components/inventario/inventario-manager"
 import VoluntariosManager from "@/components/voluntarios/voluntarios-manager"
+import PendientesManager from "@/components/pendientes/pendientes-manager"
 import AjustesManager from "@/components/ajustes/ajustes-manager"
-import EmailManager from "@/components/emails/email-manager"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import DevelopmentNotice from "@/components/ui/development-notice"
 import { Menu } from "lucide-react"
@@ -32,20 +32,20 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   const getActiveTab = () => {
     if (pathname.includes('/inventario')) return 'inventario'
     if (pathname.includes('/voluntarios')) return 'voluntarios'
+    if (pathname.includes('/pendientes')) return 'pendientes'
     if (pathname.includes('/ajustes')) return 'ajustes'
     if (pathname.includes('/talleres')) return 'talleres'
     if (pathname.includes('/grupos')) return 'grupos'
     if (pathname.includes('/actividades')) return 'actividades'
     if (pathname.includes('/pagos')) return 'pagos'
-    if (pathname.includes('/emails')) return 'emails'
     return 'inventario' // default
   }
 
   const activeTab = getActiveTab()
 
   const handleTabChange = (value: string) => {
-    // Permitir acceso a Inventario y Voluntarios
-    if (value === "inventario" || value === "voluntarios") {
+    // Permitir acceso a Inventario, Voluntarios y Pendientes
+    if (value === "inventario" || value === "voluntarios" || value === "pendientes") {
       router.push(`/${value}`)
       setMobileMenuOpen(false)
     }
@@ -143,6 +143,14 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                               <Heart className="w-5 h-5 mr-3" />
                               Voluntarios
                             </Button>
+                            <Button
+                              variant={activeTab === "pendientes" ? "default" : "ghost"}
+                              className={`w-full justify-start ${activeTab === "pendientes" ? "bg-[#4dd0e1] text-white" : ""}`}
+                              onClick={() => handleTabChange("pendientes")}
+                            >
+                              <CheckSquare className="w-5 h-5 mr-3" />
+                              Pendientes
+                            </Button>
                           </>
                         )}
                         <Button
@@ -200,14 +208,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                                 Ajustes
                               </Button>
                             )}
-                            <Button
-                              variant="ghost"
-                              disabled
-                              className="w-full justify-start opacity-50 cursor-not-allowed"
-                            >
-                              <Mail className="w-5 h-5 mr-3" />
-                              Emails
-                            </Button>
                           </>
                         )}
                       </nav>
@@ -241,6 +241,13 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                 >
                   <Heart className="w-4 h-4" />
                   <span className="hidden sm:inline">Voluntarios</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="pendientes"
+                  className="flex items-center space-x-2 data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
+                >
+                  <CheckSquare className="w-4 h-4" />
+                  <span className="hidden sm:inline">Pendientes</span>
                 </TabsTrigger>
               </>
             )}
@@ -279,14 +286,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
             </TabsTrigger>
             {isAdmin && (
               <>
-                <TabsTrigger
-                  value="emails"
-                  disabled
-                  className="flex items-center space-x-2 opacity-50 cursor-not-allowed"
-                >
-                  <Mail className="w-4 h-4" />
-                  <span className="hidden sm:inline">Emails</span>
-                </TabsTrigger>
                 {/* Ajustes al final */}
                 {isJose ? (
                   <TabsTrigger
@@ -320,9 +319,8 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               {activeTab === "pagos" && <CreditCard className="w-5 h-5 mr-2" />}
               {activeTab === "inventario" && <Package className="w-5 h-5 mr-2" />}
               {activeTab === "voluntarios" && <Heart className="w-5 h-5 mr-2" />}
+              {activeTab === "pendientes" && <CheckSquare className="w-5 h-5 mr-2" />}
               {activeTab === "ajustes" && <Settings className="w-5 h-5 mr-2" />}
-              {activeTab === "emails" && <Mail className="w-5 h-5 mr-2" />}
-              {activeTab === "configuracion" && <Settings className="w-5 h-5 mr-2" />}
               {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
             </h2>
           </div>
@@ -346,9 +344,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                 <PagosManager user={user} />
               </TabsContent>
 
-              <TabsContent value="emails" className="space-y-6">
-                <EmailManager user={user} />
-              </TabsContent>
 
             </>
           )}
@@ -362,6 +357,10 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               
               <TabsContent value="voluntarios" className="space-y-6">
                 <VoluntariosManager user={user} />
+              </TabsContent>
+              
+              <TabsContent value="pendientes" className="space-y-6">
+                <PendientesManager user={user} />
               </TabsContent>
               
               {/* Ajustes solo para isJose */}
