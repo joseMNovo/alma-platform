@@ -109,7 +109,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
             {/* Título centrado */}
             <div className="flex-1 flex justify-center">
               <h1 className="text-lg sm:text-xl font-bold text-center">
-                Plataforma <span className="text-[#4dd0e1]">ALMA</span>
+                Plataforma <span className="text-[#4dd0e1]">alma</span>
               </h1>
             </div>
 
@@ -144,7 +144,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                         <img src="/images/flor.png" alt="ALMA" className="h-8 w-auto" />
                         <div>
                           <h2 className="text-lg font-bold">
-                            Plataforma <span className="text-[#4dd0e1]">ALMA</span>
+                            Plataforma <span className="text-[#4dd0e1]">alma</span>
                           </h2>
                         </div>
                       </div>

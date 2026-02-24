@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "ALMA - Alzheimer Rosario",
-  description: "Plataforma de gestión para ALMA",
+  description: "Plataforma de gestión para alma",
     generator: 'v0.app'
 }
 
