@@ -16,25 +16,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Plus, Edit, Trash2, Package, AlertTriangle, TrendingUp, TrendingDown, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, ChevronUp, ChevronDown } from "lucide-react"
+import { Plus, Edit, Trash2, Package, AlertTriangle, Search, Filter, ArrowUp, ArrowDown, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 
-// Nueva función utilitaria para determinar si un item está bajo stock según la lógica pedida
-function esBajoStock(item: any) {
-  // Si el stock mínimo es 1 y la cantidad es 1, NO es bajo stock
-  if (item.stockMinimo === 1 && item.cantidad === 1) {
-    return false
-  }
-  // Si el stock mínimo es 2 o más, es bajo stock si cantidad < stockMinimo
-  if (item.cantidad < item.stockMinimo) {
-    return true
-  }
+function isLowStock(item: any) {
+  if (item.minimum_stock === 1 && item.quantity === 1) return false
+  if (item.quantity < item.minimum_stock) return true
   return false
 }
 
 export default function InventarioManager({ user }: { user: any }) {
-  const [inventario, setInventario] = useState<any[]>([])
-  const [voluntarios, setVoluntarios] = useState<any[]>([])
+  const [inventory, setInventory] = useState<any[]>([])
+  const [volunteers, setVolunteers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
@@ -43,37 +36,37 @@ export default function InventarioManager({ user }: { user: any }) {
   const [deleting, setDeleting] = useState(false)
   const [filters, setFilters] = useState({
     searchTerm: "",
-    categoria: "todas",
-    voluntario: "todos",
+    category: "todas",
+    volunteer: "todos",
     stockStatus: "todos",
-    precioMin: "",
-    precioMax: ""
+    priceMin: "",
+    priceMax: "",
   })
   const [sortField, setSortField] = useState("")
   const [sortDirection, setSortDirection] = useState("asc")
   const [showFilters, setShowFilters] = useState(false)
   const [formData, setFormData] = useState({
-    nombre: "",
-    categoria: "",
-    cantidad: "",
-    stockMinimo: "",
-    precio: "",
-    proveedor: "",
-    voluntarioAsignado: "sin-asignar",
+    name: "",
+    category: "",
+    quantity: "",
+    minimum_stock: "",
+    price: "",
+    supplier: "",
+    assigned_volunteer_id: "sin-asignar",
   })
 
-  const categorias = ["Material Didáctico", "Material Terapéutico", "Mobiliario", "Tecnología", "Oficina", "Limpieza", "Merchandising"]
+  const categories = ["Material Didáctico", "Material Terapéutico", "Mobiliario", "Tecnología", "Oficina", "Limpieza", "Merchandising"]
 
   useEffect(() => {
-    fetchInventario()
-    fetchVoluntarios()
+    fetchInventory()
+    fetchVolunteers()
   }, [])
 
-  const fetchInventario = async () => {
+  const fetchInventory = async () => {
     try {
       const response = await fetch("/api/inventario")
       const data = await response.json()
-      setInventario(data)
+      setInventory(data)
     } catch (error) {
       console.error("Error fetching inventario:", error)
     } finally {
@@ -81,12 +74,12 @@ export default function InventarioManager({ user }: { user: any }) {
     }
   }
 
-  const fetchVoluntarios = async () => {
+  const fetchVolunteers = async () => {
     try {
       const response = await fetch("/api/voluntarios")
       if (response.ok) {
         const data = await response.json()
-        setVoluntarios(data)
+        setVolunteers(data)
       }
     } catch (error) {
       console.error("Error fetching voluntarios:", error)
@@ -101,21 +94,22 @@ export default function InventarioManager({ user }: { user: any }) {
 
       const response = await fetch(url, {
         method,
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          cantidad: Number.parseInt(formData.cantidad),
-          stockMinimo: Number.parseInt(formData.stockMinimo),
-          precio: formData.precio ? Number.parseFloat(formData.precio) : 0,
-          proveedor: formData.proveedor || "",
-          voluntarioAsignado: formData.voluntarioAsignado && formData.voluntarioAsignado !== "sin-asignar" ? Number.parseInt(formData.voluntarioAsignado) : null,
+          quantity: Number.parseInt(formData.quantity),
+          minimum_stock: Number.parseInt(formData.minimum_stock),
+          price: formData.price ? Number.parseFloat(formData.price) : 0,
+          supplier: formData.supplier || "",
+          assigned_volunteer_id:
+            formData.assigned_volunteer_id && formData.assigned_volunteer_id !== "sin-asignar"
+              ? Number.parseInt(formData.assigned_volunteer_id)
+              : null,
         }),
       })
 
       if (response.ok) {
-        fetchInventario()
+        fetchInventory()
         setDialogOpen(false)
         resetForm()
       }
@@ -131,14 +125,12 @@ export default function InventarioManager({ user }: { user: any }) {
 
   const handleDeleteConfirm = async () => {
     if (!itemToDelete) return
-    
+
     setDeleting(true)
     try {
-      const response = await fetch(`/api/inventario?id=${itemToDelete.id}`, {
-        method: "DELETE",
-      })
+      const response = await fetch(`/api/inventario?id=${itemToDelete.id}`, { method: "DELETE" })
       if (response.ok) {
-        fetchInventario()
+        fetchInventory()
         setDeleteDialogOpen(false)
         setItemToDelete(null)
       }
@@ -149,21 +141,14 @@ export default function InventarioManager({ user }: { user: any }) {
     }
   }
 
-  const actualizarStock = async (id: any, nuevaCantidad: any) => {
+  const updateStock = async (id: any, newQuantity: any) => {
     try {
       const response = await fetch(`/api/inventario?id=${id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          cantidad: nuevaCantidad,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quantity: newQuantity }),
       })
-
-      if (response.ok) {
-        fetchInventario()
-      }
+      if (response.ok) fetchInventory()
     } catch (error) {
       console.error("Error updating stock:", error)
     }
@@ -171,13 +156,13 @@ export default function InventarioManager({ user }: { user: any }) {
 
   const resetForm = () => {
     setFormData({
-      nombre: "",
-      categoria: "",
-      cantidad: "",
-      stockMinimo: "",
-      precio: "",
-      proveedor: "",
-      voluntarioAsignado: "sin-asignar",
+      name: "",
+      category: "",
+      quantity: "",
+      minimum_stock: "",
+      price: "",
+      supplier: "",
+      assigned_volunteer_id: "sin-asignar",
     })
     setEditingItem(null)
   }
@@ -185,98 +170,90 @@ export default function InventarioManager({ user }: { user: any }) {
   const openEditDialog = (item: any) => {
     setEditingItem(item)
     setFormData({
-      nombre: item.nombre,
-      categoria: item.categoria,
-      cantidad: item.cantidad.toString(),
-      stockMinimo: item.stockMinimo.toString(),
-      precio: item.precio.toString(),
-      proveedor: item.proveedor,
-      voluntarioAsignado: item.voluntarioAsignado?.toString() || "sin-asignar",
+      name: item.name,
+      category: item.category,
+      quantity: item.quantity.toString(),
+      minimum_stock: item.minimum_stock.toString(),
+      price: item.price.toString(),
+      supplier: item.supplier,
+      assigned_volunteer_id: item.assigned_volunteer_id?.toString() || "sin-asignar",
     })
     setDialogOpen(true)
   }
 
-  const getVoluntarioNombre = (voluntarioId: any) => {
-    const voluntario = voluntarios.find(v => v.id === voluntarioId)
-    return voluntario ? voluntario.nombre : "Sin asignar"
+  const getVolunteerName = (volunteerId: any) => {
+    const volunteer = volunteers.find((v) => v.id === volunteerId)
+    return volunteer ? volunteer.name : "Sin asignar"
   }
 
-  // Función para filtrar y ordenar el inventario
-  const getFilteredAndSortedInventario = () => {
-    let filteredItems = [...inventario]
+  const getFilteredAndSortedInventory = () => {
+    let filtered = [...inventory]
 
-    // Aplicar filtros
     if (filters.searchTerm) {
-      const searchLower = filters.searchTerm.toLowerCase()
-      filteredItems = filteredItems.filter(item => 
-        item.nombre.toLowerCase().includes(searchLower) ||
-        item.categoria.toLowerCase().includes(searchLower) ||
-        (item.proveedor && item.proveedor.toLowerCase().includes(searchLower)) ||
-        getVoluntarioNombre(item.voluntarioAsignado).toLowerCase().includes(searchLower)
+      const search = filters.searchTerm.toLowerCase()
+      filtered = filtered.filter(
+        (item) =>
+          item.name.toLowerCase().includes(search) ||
+          item.category?.toLowerCase().includes(search) ||
+          (item.supplier && item.supplier.toLowerCase().includes(search)) ||
+          getVolunteerName(item.assigned_volunteer_id).toLowerCase().includes(search)
       )
     }
 
-    if (filters.categoria && filters.categoria !== "todas") {
-      filteredItems = filteredItems.filter(item => item.categoria === filters.categoria)
+    if (filters.category && filters.category !== "todas") {
+      filtered = filtered.filter((item) => item.category === filters.category)
     }
 
-    if (filters.voluntario && filters.voluntario !== "todos") {
-      if (filters.voluntario === "sin-asignar") {
-        filteredItems = filteredItems.filter(item => !item.voluntarioAsignado)
+    if (filters.volunteer && filters.volunteer !== "todos") {
+      if (filters.volunteer === "sin-asignar") {
+        filtered = filtered.filter((item) => !item.assigned_volunteer_id)
       } else {
-        filteredItems = filteredItems.filter(item => item.voluntarioAsignado === parseInt(filters.voluntario))
+        filtered = filtered.filter((item) => item.assigned_volunteer_id === parseInt(filters.volunteer))
       }
     }
 
-    if (filters.stockStatus && filters.stockStatus !== "todos") {
+    if (filters.stockStatus !== "todos") {
       if (filters.stockStatus === "bajo-stock") {
-        filteredItems = filteredItems.filter(item => esBajoStock(item))
+        filtered = filtered.filter(isLowStock)
       } else if (filters.stockStatus === "stock-normal") {
-        filteredItems = filteredItems.filter(item => !esBajoStock(item))
+        filtered = filtered.filter((item) => !isLowStock(item))
       }
     }
 
-    if (filters.precioMin) {
-      const precioMin = parseFloat(filters.precioMin)
-      filteredItems = filteredItems.filter(item => (item.precio || 0) >= precioMin)
+    if (filters.priceMin) {
+      filtered = filtered.filter((item) => (item.price || 0) >= parseFloat(filters.priceMin))
+    }
+    if (filters.priceMax) {
+      filtered = filtered.filter((item) => (item.price || 0) <= parseFloat(filters.priceMax))
     }
 
-    if (filters.precioMax) {
-      const precioMax = parseFloat(filters.precioMax)
-      filteredItems = filteredItems.filter(item => (item.precio || 0) <= precioMax)
-    }
-
-    // Aplicar ordenamiento
     if (sortField) {
-      filteredItems.sort((a, b) => {
-        let aValue = a[sortField]
-        let bValue = b[sortField]
+      filtered.sort((a, b) => {
+        let aVal = a[sortField]
+        let bVal = b[sortField]
 
-        // Manejar casos especiales
-        if (sortField === "voluntarioAsignado") {
-          aValue = getVoluntarioNombre(a.voluntarioAsignado)
-          bValue = getVoluntarioNombre(b.voluntarioAsignado)
-        } else if (sortField === "valorTotal") {
-          aValue = (a.cantidad || 0) * (a.precio || 0)
-          bValue = (b.cantidad || 0) * (b.precio || 0)
+        if (sortField === "assigned_volunteer_id") {
+          aVal = getVolunteerName(a.assigned_volunteer_id)
+          bVal = getVolunteerName(b.assigned_volunteer_id)
+        } else if (sortField === "totalValue") {
+          aVal = (a.quantity || 0) * (a.price || 0)
+          bVal = (b.quantity || 0) * (b.price || 0)
         }
 
-        // Convertir a string para comparación si no es número
-        if (typeof aValue !== "number" && typeof bValue !== "number") {
-          aValue = String(aValue || "").toLowerCase()
-          bValue = String(bValue || "").toLowerCase()
+        if (typeof aVal !== "number" || typeof bVal !== "number") {
+          aVal = String(aVal || "").toLowerCase()
+          bVal = String(bVal || "").toLowerCase()
         }
 
-        if (aValue < bValue) return sortDirection === "asc" ? -1 : 1
-        if (aValue > bValue) return sortDirection === "asc" ? 1 : -1
+        if (aVal < bVal) return sortDirection === "asc" ? -1 : 1
+        if (aVal > bVal) return sortDirection === "asc" ? 1 : -1
         return 0
       })
     }
 
-    return filteredItems
+    return filtered
   }
 
-  // Función para manejar el ordenamiento
   const handleSort = (field: string) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc")
@@ -286,35 +263,23 @@ export default function InventarioManager({ user }: { user: any }) {
     }
   }
 
-  // Función para limpiar filtros
   const clearFilters = () => {
-    setFilters({
-      searchTerm: "",
-      categoria: "todas",
-      voluntario: "todos",
-      stockStatus: "todos",
-      precioMin: "",
-      precioMax: ""
-    })
+    setFilters({ searchTerm: "", category: "todas", volunteer: "todos", stockStatus: "todos", priceMin: "", priceMax: "" })
     setSortField("")
     setSortDirection("asc")
   }
 
-  // Cambiado: ahora usamos la función esBajoStock para filtrar
-  const itemsBajoStock = inventario.filter(esBajoStock)
-  const valorTotalInventario = inventario.reduce((total, item) => total + (item.cantidad * (item.precio || 0)), 0)
-  
-  // Obtener items filtrados y ordenados
-  const filteredInventario = getFilteredAndSortedInventario()
+  const lowStockItems = inventory.filter(isLowStock)
+  const totalInventoryValue = inventory.reduce((total, item) => total + item.quantity * (item.price || 0), 0)
+  const filteredInventory = getFilteredAndSortedInventory()
 
-  // Verificar si hay filtros activos
-  const hasActiveFilters = 
+  const hasActiveFilters =
     filters.searchTerm !== "" ||
-    filters.categoria !== "todas" ||
-    filters.voluntario !== "todos" ||
+    filters.category !== "todas" ||
+    filters.volunteer !== "todos" ||
     filters.stockStatus !== "todos" ||
-    filters.precioMin !== "" ||
-    filters.precioMax !== "" ||
+    filters.priceMin !== "" ||
+    filters.priceMax !== "" ||
     sortField !== ""
 
   if (loading) {
@@ -332,286 +297,241 @@ export default function InventarioManager({ user }: { user: any }) {
           <Button
             variant="outline"
             onClick={() => setShowFilters(!showFilters)}
-            className={`w-full sm:w-auto flex items-center justify-center gap-2 relative ${hasActiveFilters ? 'border-[#4dd0e1] text-[#4dd0e1]' : ''}`}
+            className={`w-full sm:w-auto flex items-center justify-center gap-2 relative ${hasActiveFilters ? "border-[#4dd0e1] text-[#4dd0e1]" : ""}`}
           >
             <Filter className="w-4 h-4" />
             {showFilters ? (
-              <>
-                <ChevronUp className="w-4 h-4" />
-                <span className="hidden sm:inline">Ocultar filtros</span>
-                <span className="sm:hidden">Ocultar</span>
-              </>
+              <><ChevronUp className="w-4 h-4" /><span className="hidden sm:inline">Ocultar filtros</span><span className="sm:hidden">Ocultar</span></>
             ) : (
-              <>
-                <ChevronDown className="w-4 h-4" />
-                <span className="hidden sm:inline">Mostrar filtros</span>
-                <span className="sm:hidden">Filtros</span>
-              </>
+              <><ChevronDown className="w-4 h-4" /><span className="hidden sm:inline">Mostrar filtros</span><span className="sm:hidden">Filtros</span></>
             )}
             {hasActiveFilters && !showFilters && (
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#4dd0e1] rounded-full"></div>
             )}
           </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm} className="w-full sm:w-auto bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
-              <Plus className="w-4 h-4 mr-2" />
-              Nuevo Item
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingItem ? "Editar Item" : "Nuevo Item"}</DialogTitle>
-              <DialogDescription>
-                {editingItem ? "Modifica los datos del item" : "Agrega un nuevo item al inventario"}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="nombre">Nombre del item</Label>
-                <Input
-                  id="nombre"
-                  value={formData.nombre}
-                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="categoria">Categoría</Label>
-                <Select
-                  value={formData.categoria}
-                  onValueChange={(value) => setFormData({ ...formData, categoria: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar categoría" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categorias.map((categoria) => (
-                      <SelectItem key={categoria} value={categoria}>
-                        {categoria}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <DialogTrigger asChild>
+              <Button onClick={resetForm} className="w-full sm:w-auto bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+                <Plus className="w-4 h-4 mr-2" />
+                Nuevo Item
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{editingItem ? "Editar Item" : "Nuevo Item"}</DialogTitle>
+                <DialogDescription>
+                  {editingItem ? "Modifica los datos del item" : "Agrega un nuevo item al inventario"}
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="cantidad">Cantidad</Label>
+                  <Label htmlFor="name">Nombre del item</Label>
                   <Input
-                    id="cantidad"
-                    type="number"
-                    value={formData.cantidad}
-                    onChange={(e) => setFormData({ ...formData, cantidad: e.target.value })}
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="stockMinimo">Stock mínimo</Label>
+                  <Label htmlFor="category">Categoría</Label>
+                  <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">Cantidad</Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      value={formData.quantity}
+                      onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="minimum_stock">Stock mínimo</Label>
+                    <Input
+                      id="minimum_stock"
+                      type="number"
+                      value={formData.minimum_stock}
+                      onChange={(e) => setFormData({ ...formData, minimum_stock: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="price">Precio unitario ($) <span className="text-gray-400">(opcional)</span></Label>
                   <Input
-                    id="stockMinimo"
+                    id="price"
                     type="number"
-                    value={formData.stockMinimo}
-                    onChange={(e) => setFormData({ ...formData, stockMinimo: e.target.value })}
-                    required
+                    step="0.01"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    placeholder="0"
                   />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="precio">Precio unitario ($) <span className="text-gray-400">(opcional)</span></Label>
-                <Input
-                  id="precio"
-                  type="number"
-                  step="0.01"
-                  value={formData.precio}
-                  onChange={(e) => setFormData({ ...formData, precio: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="proveedor">Proveedor <span className="text-gray-400">(opcional)</span></Label>
-                <Input
-                  id="proveedor"
-                  value={formData.proveedor}
-                  onChange={(e) => setFormData({ ...formData, proveedor: e.target.value })}
-                  placeholder="Nombre del proveedor"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="voluntarioAsignado">Voluntario asignado</Label>
-                <Select value={formData.voluntarioAsignado} onValueChange={(value) => setFormData({...formData, voluntarioAsignado: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar voluntario" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="sin-asignar">Sin asignar</SelectItem>
-                    {voluntarios.map((voluntario) => (
-                      <SelectItem key={voluntario.id} value={voluntario.id.toString()}>
-                        {voluntario.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <DialogFooter>
-                <Button type="submit" className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
-                  {editingItem ? "Actualizar" : "Agregar"} Item
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
+                <div className="space-y-2">
+                  <Label htmlFor="supplier">Proveedor <span className="text-gray-400">(opcional)</span></Label>
+                  <Input
+                    id="supplier"
+                    value={formData.supplier}
+                    onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+                    placeholder="Nombre del proveedor"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="assigned_volunteer_id">Voluntario asignado</Label>
+                  <Select
+                    value={formData.assigned_volunteer_id}
+                    onValueChange={(value) => setFormData({ ...formData, assigned_volunteer_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar voluntario" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sin-asignar">Sin asignar</SelectItem>
+                      {volunteers.map((volunteer) => (
+                        <SelectItem key={volunteer.id} value={volunteer.id.toString()}>
+                          {volunteer.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <DialogFooter>
+                  <Button type="submit" className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+                    {editingItem ? "Actualizar" : "Agregar"} Item
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
           </Dialog>
         </div>
       </div>
 
-      {/* Filtros y Ordenamiento */}
+      {/* Filters */}
       {showFilters && (
         <Card className="bg-gray-50 border-gray-200 mx-4 sm:mx-0">
-        <CardHeader className="px-4 sm:px-6">
-          <CardTitle className="flex items-center text-lg">
-            <Filter className="w-5 h-5 mr-2 text-[#4dd0e1]" />
-            Filtros y ordenamiento
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 px-4 sm:px-6">
-          {/* Fila 1: Búsqueda general */}
-          <div className="grid grid-cols-1 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="search">Búsqueda general</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  id="search"
-                  placeholder="Buscar por nombre, categoría, proveedor..."
-                  value={filters.searchTerm}
-                  onChange={(e) => setFilters({...filters, searchTerm: e.target.value})}
-                  className="pl-10"
-                />
+          <CardHeader className="px-4 sm:px-6">
+            <CardTitle className="flex items-center text-lg">
+              <Filter className="w-5 h-5 mr-2 text-[#4dd0e1]" />
+              Filtros y ordenamiento
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 px-4 sm:px-6">
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-2">
+                <Label>Búsqueda general</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    placeholder="Buscar por nombre, categoría, proveedor..."
+                    value={filters.searchTerm}
+                    onChange={(e) => setFilters({ ...filters, searchTerm: e.target.value })}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Categoría</Label>
+                <Select value={filters.category} onValueChange={(value) => setFilters({ ...filters, category: value })}>
+                  <SelectTrigger><SelectValue placeholder="Todas las categorías" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas las categorías</SelectItem>
+                    {categories.map((cat) => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Voluntario</Label>
+                <Select value={filters.volunteer} onValueChange={(value) => setFilters({ ...filters, volunteer: value })}>
+                  <SelectTrigger><SelectValue placeholder="Todos los voluntarios" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos los voluntarios</SelectItem>
+                    <SelectItem value="sin-asignar">Sin asignar</SelectItem>
+                    {volunteers.map((v) => (
+                      <SelectItem key={v.id} value={v.id.toString()}>{v.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="categoria-filter">Categoría</Label>
-              <Select value={filters.categoria} onValueChange={(value) => setFilters({...filters, categoria: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas las categorías" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todas">Todas las categorías</SelectItem>
-                  {categorias.map((categoria) => (
-                    <SelectItem key={categoria} value={categoria}>
-                      {categoria}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label>Estado de stock</Label>
+                <Select value={filters.stockStatus} onValueChange={(value) => setFilters({ ...filters, stockStatus: value })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos los estados</SelectItem>
+                    <SelectItem value="stock-normal">Stock normal</SelectItem>
+                    <SelectItem value="bajo-stock">Bajo stock</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Precio mínimo</Label>
+                <Input type="number" placeholder="0" value={filters.priceMin} onChange={(e) => setFilters({ ...filters, priceMin: e.target.value })} />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Precio máximo</Label>
+                <Input type="number" placeholder="Sin límite" value={filters.priceMax} onChange={(e) => setFilters({ ...filters, priceMax: e.target.value })} />
+              </div>
+
+              <div className="flex items-end">
+                <Button variant="outline" onClick={clearFilters} className="w-full">Limpiar filtros</Button>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="voluntario-filter">Voluntario</Label>
-              <Select value={filters.voluntario} onValueChange={(value) => setFilters({...filters, voluntario: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos los voluntarios" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos los voluntarios</SelectItem>
-                  <SelectItem value="sin-asignar">Sin asignar</SelectItem>
-                  {voluntarios.map((voluntario) => (
-                    <SelectItem key={voluntario.id} value={voluntario.id.toString()}>
-                      {voluntario.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Fila 2: Filtros específicos */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="stock-status">Estado de stock</Label>
-              <Select value={filters.stockStatus} onValueChange={(value) => setFilters({...filters, stockStatus: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos los estados" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos los estados</SelectItem>
-                  <SelectItem value="stock-normal">Stock normal</SelectItem>
-                  <SelectItem value="bajo-stock">Bajo stock</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="space-y-3">
+              <Label>Ordenar por:</Label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { field: "name", label: "Nombre" },
+                  { field: "category", label: "Categoría" },
+                  { field: "quantity", label: "Cantidad" },
+                  { field: "price", label: "Precio" },
+                  { field: "assigned_volunteer_id", label: "Voluntario" },
+                  { field: "totalValue", label: "Valor Total" },
+                ].map(({ field, label }) => (
+                  <Button
+                    key={field}
+                    variant={sortField === field ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleSort(field)}
+                    className={`flex items-center gap-1 ${sortField === field ? "bg-[#4dd0e1] hover:bg-[#3bc0d1]" : ""}`}
+                  >
+                    {label}
+                    {sortField === field ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3" />
+                    )}
+                  </Button>
+                ))}
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="precio-min">Precio mínimo</Label>
-              <Input
-                id="precio-min"
-                type="number"
-                placeholder="0"
-                value={filters.precioMin}
-                onChange={(e) => setFilters({...filters, precioMin: e.target.value})}
-              />
+            <div className="text-sm text-gray-600 pt-2 border-t">
+              Mostrando {filteredInventory.length} de {inventory.length} items
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="precio-max">Precio máximo</Label>
-              <Input
-                id="precio-max"
-                type="number"
-                placeholder="Sin límite"
-                value={filters.precioMax}
-                onChange={(e) => setFilters({...filters, precioMax: e.target.value})}
-              />
-            </div>
-
-            <div className="flex items-end">
-              <Button
-                variant="outline"
-                onClick={clearFilters}
-                className="w-full"
-              >
-                Limpiar filtros
-              </Button>
-            </div>
-          </div>
-
-          {/* Ordenamiento */}
-          <div className="space-y-3">
-            <Label>Ordenar por:</Label>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { field: "nombre", label: "Nombre" },
-                { field: "categoria", label: "Categoría" },
-                { field: "cantidad", label: "Cantidad" },
-                { field: "precio", label: "Precio" },
-                { field: "voluntarioAsignado", label: "Voluntario" },
-                { field: "valorTotal", label: "Valor Total" }
-              ].map(({ field, label }) => (
-                <Button
-                  key={field}
-                  variant={sortField === field ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handleSort(field)}
-                  className={`flex items-center gap-1 ${sortField === field ? 'bg-[#4dd0e1] hover:bg-[#3bc0d1]' : ''}`}
-                >
-                  {label}
-                  {sortField === field && (
-                    sortDirection === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
-                  )}
-                  {sortField !== field && <ArrowUpDown className="w-3 h-3" />}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Información de resultados */}
-          <div className="text-sm text-gray-600 pt-2 border-t">
-            Mostrando {filteredInventario.length} de {inventario.length} items
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Resumen de filtros activos cuando está oculto */}
       {!showFilters && hasActiveFilters && (
         <Card className="bg-blue-50 border-blue-200 mx-4 sm:mx-0">
           <CardContent className="pt-4 px-4 sm:px-6">
@@ -619,15 +539,10 @@ export default function InventarioManager({ user }: { user: any }) {
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-blue-600" />
                 <span className="text-sm text-blue-800">
-                  Filtros activos: {filteredInventario.length} de {inventario.length} items
+                  Filtros activos: {filteredInventory.length} de {inventory.length} items
                 </span>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowFilters(true)}
-                className="text-blue-600 hover:text-blue-800 self-end sm:self-auto"
-              >
+              <Button variant="ghost" size="sm" onClick={() => setShowFilters(true)} className="text-blue-600 hover:text-blue-800 self-end sm:self-auto">
                 Ver filtros
               </Button>
             </div>
@@ -635,14 +550,14 @@ export default function InventarioManager({ user }: { user: any }) {
         </Card>
       )}
 
-      {/* Resumen del Inventario */}
+      {/* Summary */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 px-4 sm:px-0">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Total items</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-[#4dd0e1]">{inventario.length}</div>
+            <div className="text-2xl font-bold text-[#4dd0e1]">{inventory.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -650,23 +565,23 @@ export default function InventarioManager({ user }: { user: any }) {
             <CardTitle className="text-sm font-medium text-gray-600">Items bajo stock</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{itemsBajoStock.length}</div>
+            <div className="text-2xl font-bold text-red-600">{lowStockItems.length}</div>
           </CardContent>
         </Card>
-        {valorTotalInventario > 0 && (
+        {totalInventoryValue > 0 && (
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">Valor total</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">${valorTotalInventario.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-green-600">${totalInventoryValue.toLocaleString()}</div>
             </CardContent>
           </Card>
         )}
       </div>
 
-      {/* Alertas de Stock Bajo */}
-      {itemsBajoStock.length > 1 && (
+      {/* Low stock alerts */}
+      {lowStockItems.length > 1 && (
         <Card className="border-red-200 bg-red-50 mx-4 sm:mx-0">
           <CardHeader className="px-4 sm:px-6">
             <CardTitle className="text-red-800 flex items-center gap-2">
@@ -676,11 +591,11 @@ export default function InventarioManager({ user }: { user: any }) {
           </CardHeader>
           <CardContent className="px-4 sm:px-6">
             <div className="space-y-2">
-              {itemsBajoStock.map((item) => (
+              {lowStockItems.map((item) => (
                 <div key={item.id} className="flex justify-between items-center text-sm">
-                  <span className="font-medium truncate">{item.nombre}</span>
+                  <span className="font-medium truncate">{item.name}</span>
                   <span className="text-red-600 text-xs sm:text-sm">
-                    Stock: {item.cantidad} (Mín: {item.stockMinimo})
+                    Stock: {item.quantity} (Mín: {item.minimum_stock})
                   </span>
                 </div>
               ))}
@@ -689,21 +604,18 @@ export default function InventarioManager({ user }: { user: any }) {
         </Card>
       )}
 
-      {/* Lista de Items */}
+      {/* Item list */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 px-4 sm:px-0">
-        {filteredInventario.map((item) => (
+        {filteredInventory.map((item) => (
           <Card key={item.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div>
-                  <CardTitle className="text-lg">{item.nombre}</CardTitle>
-                  <CardDescription>{item.categoria}</CardDescription>
+                  <CardTitle className="text-lg">{item.name}</CardTitle>
+                  <CardDescription>{item.category}</CardDescription>
                 </div>
-                {/* Cambiado: mostrar "Stock Bajo" solo si esBajoStock(item) */}
-                {esBajoStock(item) && (
-                  <Badge variant="destructive" className="bg-red-500">
-                    Stock bajo
-                  </Badge>
+                {isLowStock(item) && (
+                  <Badge variant="destructive" className="bg-red-500">Stock bajo</Badge>
                 )}
               </div>
             </CardHeader>
@@ -711,51 +623,50 @@ export default function InventarioManager({ user }: { user: any }) {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Cantidad:</span>
-                  <span className="font-medium">{item.cantidad}</span>
+                  <span className="font-medium">{item.quantity}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Stock mínimo:</span>
-                  <span className="font-medium">{item.stockMinimo}</span>
+                  <span className="font-medium">{item.minimum_stock}</span>
                 </div>
-                {item.precio > 0 && (
+                {item.price > 0 && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">Precio unitario:</span>
-                    <span className="font-medium">${item.precio.toLocaleString()}</span>
+                    <span className="font-medium">${item.price.toLocaleString()}</span>
                   </div>
                 )}
-                {item.precio > 0 && (
+                {item.price > 0 && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">Valor total:</span>
-                    <span className="font-medium text-[#4dd0e1]">${(item.cantidad * item.precio).toLocaleString()}</span>
+                    <span className="font-medium text-[#4dd0e1]">${(item.quantity * item.price).toLocaleString()}</span>
                   </div>
                 )}
-                {item.proveedor && (
+                {item.supplier && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">Proveedor:</span>
-                    <span className="font-medium text-xs">{item.proveedor}</span>
+                    <span className="font-medium text-xs">{item.supplier}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
                   <span className="text-gray-600">Voluntario:</span>
-                  <span className={`font-medium text-xs ${item.voluntarioAsignado ? 'text-[#4dd0e1]' : 'text-gray-400'}`}>
-                    {getVoluntarioNombre(item.voluntarioAsignado)}
+                  <span className={`font-medium text-xs ${item.assigned_volunteer_id ? "text-[#4dd0e1]" : "text-gray-400"}`}>
+                    {getVolunteerName(item.assigned_volunteer_id)}
                   </span>
                 </div>
               </div>
 
-              {/* Controles de Stock */}
               <div className="flex items-center gap-2">
                 <Button
-                  onClick={() => actualizarStock(item.id, Math.max(0, item.cantidad - 1))}
+                  onClick={() => updateStock(item.id, Math.max(0, item.quantity - 1))}
                   variant="outline"
                   size="sm"
                   className="flex-1"
-                  disabled={item.cantidad === 0}
+                  disabled={item.quantity === 0}
                 >
                   -1
                 </Button>
                 <Button
-                  onClick={() => actualizarStock(item.id, item.cantidad + 1)}
+                  onClick={() => updateStock(item.id, item.quantity + 1)}
                   variant="outline"
                   size="sm"
                   className="flex-1"
@@ -783,7 +694,7 @@ export default function InventarioManager({ user }: { user: any }) {
         ))}
       </div>
 
-      {filteredInventario.length === 0 && inventario.length > 0 && (
+      {filteredInventory.length === 0 && inventory.length > 0 && (
         <div className="text-center py-12 px-4">
           <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No se encontraron items</h3>
@@ -791,7 +702,7 @@ export default function InventarioManager({ user }: { user: any }) {
         </div>
       )}
 
-      {inventario.length === 0 && (
+      {inventory.length === 0 && (
         <div className="text-center py-12 px-4">
           <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No hay items en el inventario</h3>
@@ -799,12 +710,11 @@ export default function InventarioManager({ user }: { user: any }) {
         </div>
       )}
 
-      {/* Diálogo de confirmación para eliminar */}
       <ConfirmationDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         onConfirm={handleDeleteConfirm}
-        itemName={itemToDelete && typeof itemToDelete === "object" ? (itemToDelete as any).nombre : undefined}
+        itemName={itemToDelete?.name}
         itemType="inventario"
         action="delete"
         loading={deleting}

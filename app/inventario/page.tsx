@@ -17,6 +17,8 @@ export default function InventarioPage() {
     const savedUser = localStorage.getItem("alma_user")
     if (savedUser) {
       setUser(JSON.parse(savedUser))
+      // Asegurar que la cookie esté sincronizada con localStorage
+      document.cookie = "alma_session=1; path=/; SameSite=Strict; max-age=2592000"
     } else {
       // Si no hay usuario, redirigir al login
       router.push("/")
@@ -27,6 +29,7 @@ export default function InventarioPage() {
   const handleLogout = () => {
     setUser(null)
     localStorage.removeItem("alma_user")
+    document.cookie = "alma_session=; path=/; max-age=0"
     router.push("/")
   }
 
@@ -58,7 +61,7 @@ export default function InventarioPage() {
   }
 
   // Permitir acceso a administradores y voluntarios
-  const hasAccess = user.rol === "admin" || user.rol === "voluntario"
+  const hasAccess = user.role === "admin" || user.role === "voluntario"
 
   if (!hasAccess) {
     return (

@@ -1,79 +1,60 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { readData, writeData, getNextId } from "@/lib/data-manager"
+import { getActivities, getUserEnrollments, createEnrollment, updateActivity } from "@/lib/data-manager"
+import { query } from "@/lib/db"
 
 export async function POST(request: NextRequest) {
   try {
-    const { usuarioId, actividadId } = await request.json()
-    const data = readData()
+    const { userId, activityId } = await request.json()
 
-    // Verificar que la actividad existe y tiene cupos
-    const actividad = data.actividades.find((a) => a.id === actividadId)
-    if (!actividad) {
+    // Verify activity exists and has capacity
+    const activities = await getActivities()
+    const activity = activities.find((a) => a.id === activityId)
+    if (!activity) {
       return NextResponse.json({ error: "Actividad no encontrada" }, { status: 404 })
     }
 
-    if (actividad.inscritos >= actividad.cupos) {
+    if (activity.enrolled >= activity.capacity) {
       return NextResponse.json({ error: "No hay cupos disponibles" }, { status: 400 })
     }
 
-    // Verificar que el usuario no esté ya inscrito
-    const usuario = data.usuarios.find((u) => u.id === usuarioId)
-    if (!usuario) {
-      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 })
+    // Verify volunteer exists
+    const volunteers = await query("SELECT id, name, email FROM voluntarios WHERE id = ?", [userId])
+    if (volunteers.length === 0) {
+      return NextResponse.json({ error: "Voluntario no encontrado" }, { status: 404 })
     }
+    const volunteer = volunteers[0] as any
 
-    if (!usuario.inscripciones) {
-      usuario.inscripciones = { talleres: [], grupos: [], actividades: [] }
-    }
-
-    if (usuario.inscripciones.actividades.includes(actividadId)) {
+    // Check if already enrolled
+    const enrollments = await getUserEnrollments(userId)
+    if (enrollments.activities.includes(activityId)) {
       return NextResponse.json({ error: "Ya está inscrito en esta actividad" }, { status: 400 })
     }
 
-    // Realizar la inscripción
-    usuario.inscripciones.actividades.push(actividadId)
-    actividad.inscritos += 1
+    // Create enrollment record
+    const enrollment = await createEnrollment({
+      user_id: userId,
+      type: "actividad",
+      item_id: activityId,
+      enrollment_date: new Date().toISOString().split("T")[0],
+      status: "confirmada",
+    })
 
-    // Crear registro de inscripción
-    const nuevaInscripcion = {
-      id: getNextId(data.inscripciones),
-      usuarioId,
-      tipo: "actividad",
-      itemId: actividadId,
-      fechaInscripcion: new Date().toISOString().split("T")[0],
-      estado: "confirmada",
-    }
-    data.inscripciones.push(nuevaInscripcion)
-    writeData(data)
+    // Increment enrolled count
+    await updateActivity(activityId, { enrolled: activity.enrolled + 1 })
 
-    // Enviar email de confirmación
+    // Send confirmation email
     await fetch("/api/emails", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        to: usuario.email,
+        to: volunteer.email,
         subject: "Confirmación de Inscripción - Actividad",
-        message: `Estimado/a ${usuario.nombre},
-
-Su inscripción a la actividad "${actividad.nombre}" ha sido confirmada exitosamente.
-
-Detalles:
-- Fecha: ${new Date(actividad.fecha).toLocaleDateString("es-ES")}
-- Horario: ${actividad.horario}
-- Lugar: ${actividad.lugar}
-${!actividad.gratuita && actividad.costo ? `- Costo: $${actividad.costo.toLocaleString()}` : "- Actividad gratuita"}
-
-¡Nos vemos en la actividad!
-
-Saludos cordiales,
-Equipo ALMA - Alzheimer Rosario`,
+        message: `Estimado/a ${volunteer.name},\n\nSu inscripción a la actividad "${activity.name}" ha sido confirmada exitosamente.\n\nDetalles:\n- Fecha: ${new Date(activity.date!).toLocaleDateString("es-ES")}\n- Horario: ${activity.schedule}\n- Lugar: ${activity.location}\n${!activity.is_free && activity.cost ? `- Costo: $${activity.cost.toLocaleString()}` : "- Actividad gratuita"}\n\n¡Nos vemos en la actividad!\n\nSaludos cordiales,\nEquipo ALMA - Alzheimer Rosario`,
         type: "confirmacion_inscripcion",
       }),
     })
 
-    return NextResponse.json({ success: true, inscripcion: nuevaInscripcion })
+    return NextResponse.json({ success: true, enrollment })
   } catch (error) {
     console.error("Error en inscripción:", error)
     return NextResponse.json({ error: "Error del servidor" }, { status: 500 })

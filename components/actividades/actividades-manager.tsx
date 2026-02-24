@@ -7,46 +7,61 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Plus, Edit, Trash2, Users, Calendar, Clock, MapPin, DollarSign, CheckCircle } from "lucide-react"
+import { Plus, Edit, Trash2, Activity, Search, Filter, CheckCircle2 } from "lucide-react"
+import ConfirmationDialog from "@/components/ui/confirmation-dialog"
+import { can } from "@/lib/permissions"
 
-export default function ActividadesManager({ user }) {
-  const [actividades, setActividades] = useState([])
+export default function ActividadesManager({ user }: { user: any }) {
+  const [activities, setActivities] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingActividad, setEditingActividad] = useState(null)
+  const [editingActivity, setEditingActivity] = useState<any>(null)
   const [formData, setFormData] = useState({
-    nombre: "",
-    descripcion: "",
-    fecha: "",
-    horario: "",
-    lugar: "",
-    cupos: "",
-    gratuita: true,
-    costo: "",
-    estado: "activo",
+    name: "",
+    description: "",
+    status: "activo",
   })
+  const [searchTerm, setSearchTerm] = useState("")
+  const [filterActive, setFilterActive] = useState(true)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [activityToDelete, setActivityToDelete] = useState<any>(null)
 
-  const isAdmin = user.rol === "admin"
+  // Detail dialog
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [viewingActivity, setViewingActivity] = useState<any>(null)
+
+  // Participant enrollment
+  const isParticipant = user?.role === "participante"
+  const [enrolledIds, setEnrolledIds] = useState<number[]>([])
+  const [enrollingId, setEnrollingId] = useState<number | null>(null)
 
   useEffect(() => {
-    fetchActividades()
+    fetchActivities()
   }, [])
 
-  const fetchActividades = async () => {
+  useEffect(() => {
+    if (isParticipant) {
+      fetch("/api/participantes/inscripciones")
+        .then(r => r.json())
+        .then(data => setEnrolledIds(data.activities || []))
+        .catch(console.error)
+    }
+  }, [isParticipant])
+
+  const fetchActivities = async () => {
     try {
       const response = await fetch("/api/actividades")
       const data = await response.json()
-      setActividades(data)
+      setActivities(data)
     } catch (error) {
       console.error("Error fetching actividades:", error)
     } finally {
@@ -54,25 +69,18 @@ export default function ActividadesManager({ user }) {
     }
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault()
     try {
-      const method = editingActividad ? "PUT" : "POST"
-      const url = editingActividad ? `/api/actividades?id=${editingActividad.id}` : "/api/actividades"
-
+      const method = editingActivity ? "PUT" : "POST"
+      const url = editingActivity ? `/api/actividades?id=${editingActivity.id}` : "/api/actividades"
       const response = await fetch(url, {
         method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...formData,
-          costo: formData.gratuita ? 0 : Number.parseInt(formData.costo) || 0,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
       })
-
       if (response.ok) {
-        fetchActividades()
+        fetchActivities()
         setDialogOpen(false)
         resetForm()
       }
@@ -81,77 +89,70 @@ export default function ActividadesManager({ user }) {
     }
   }
 
-  const handleDelete = async (id) => {
-    if (confirm("¿Estás seguro de que quieres eliminar esta actividad?")) {
-      try {
-        const response = await fetch(`/api/actividades?id=${id}`, {
-          method: "DELETE",
-        })
-        if (response.ok) {
-          fetchActividades()
-        }
-      } catch (error) {
-        console.error("Error deleting actividad:", error)
-      }
-    }
+  const handleDelete = (activity: any) => {
+    setActivityToDelete(activity)
+    setDeleteDialogOpen(true)
   }
 
-  const handleInscripcion = async (actividadId) => {
+  const handleDeleteConfirm = async () => {
+    if (!activityToDelete) return
     try {
-      const response = await fetch("/api/actividades/inscripcion", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          usuarioId: user.id,
-          actividadId: actividadId,
-        }),
-      })
-
-      if (response.ok) {
-        fetchActividades()
-        alert("¡Inscripción exitosa!")
-      }
+      const response = await fetch(`/api/actividades?id=${activityToDelete.id}`, { method: "DELETE" })
+      if (response.ok) fetchActivities()
     } catch (error) {
-      console.error("Error en inscripción:", error)
+      console.error("Error deleting actividad:", error)
+    } finally {
+      setDeleteDialogOpen(false)
+      setActivityToDelete(null)
     }
   }
 
   const resetForm = () => {
-    setFormData({
-      nombre: "",
-      descripcion: "",
-      fecha: "",
-      horario: "",
-      lugar: "",
-      cupos: "",
-      gratuita: true,
-      costo: "",
-      estado: "activo",
-    })
-    setEditingActividad(null)
+    setFormData({ name: "", description: "", status: "activo" })
+    setEditingActivity(null)
   }
 
-  const openEditDialog = (actividad) => {
-    setEditingActividad(actividad)
+  const openEditDialog = (activity: any) => {
+    setEditingActivity(activity)
     setFormData({
-      nombre: actividad.nombre,
-      descripcion: actividad.descripcion,
-      fecha: actividad.fecha,
-      horario: actividad.horario,
-      lugar: actividad.lugar,
-      cupos: actividad.cupos.toString(),
-      gratuita: actividad.gratuita,
-      costo: actividad.costo ? actividad.costo.toString() : "",
-      estado: actividad.estado,
+      name: activity.name,
+      description: activity.description || "",
+      status: activity.status,
     })
     setDialogOpen(true)
   }
 
-  const estaInscrito = (actividadId) => {
-    return user.inscripciones?.actividades?.includes(actividadId) || false
+  const openDetail = (activity: any) => {
+    setViewingActivity(activity)
+    setDetailOpen(true)
   }
+
+  const handleEnrollToggle = async (activity: any) => {
+    const enrolled = enrolledIds.includes(activity.id)
+    setEnrollingId(activity.id)
+    try {
+      await fetch("/api/participantes/inscripciones", {
+        method: enrolled ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "actividad", item_id: activity.id }),
+      })
+      setEnrolledIds(prev =>
+        enrolled ? prev.filter(id => id !== activity.id) : [...prev, activity.id]
+      )
+    } catch (error) {
+      console.error("Error toggling enrollment:", error)
+    } finally {
+      setEnrollingId(null)
+    }
+  }
+
+  const filteredActivities = activities.filter((a) => {
+    const matchesSearch =
+      a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (a.description || "").toLowerCase().includes(searchTerm.toLowerCase())
+    if (filterActive) return matchesSearch && a.status === "activo"
+    return matchesSearch
+  })
 
   if (loading) {
     return <div className="text-center py-8">Cargando actividades...</div>
@@ -159,200 +160,155 @@ export default function ActividadesManager({ user }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Actividades</h2>
-          <p className="text-gray-600">Eventos, charlas y jornadas especiales</p>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900">Actividades</h2>
+          <p className="text-gray-600">Ciclos de charlas, jornadas, eventos y más</p>
         </div>
-        {isAdmin && (
+
+        <div className="flex flex-col sm:flex-row gap-2">
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={resetForm} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
-                <Plus className="w-4 h-4 mr-2" />
-                Nueva Actividad
-              </Button>
-            </DialogTrigger>
+            {can(user, "actividades:create") && (
+              <DialogTrigger asChild>
+                <Button onClick={resetForm} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nueva Actividad
+                </Button>
+              </DialogTrigger>
+            )}
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>{editingActividad ? "Editar Actividad" : "Nueva Actividad"}</DialogTitle>
-                <DialogDescription>
-                  {editingActividad
-                    ? "Modifica los datos de la actividad"
-                    : "Completa la información de la nueva actividad"}
-                </DialogDescription>
+                <DialogTitle>{editingActivity ? "Editar Actividad" : "Nueva Actividad"}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="nombre">Nombre de la Actividad</Label>
+                  <Label htmlFor="name">Nombre de la Actividad</Label>
                   <Input
-                    id="nombre"
-                    value={formData.nombre}
-                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Ej: Ciclo de charlas sobre Alzheimer"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="descripcion">Descripción</Label>
+                  <Label htmlFor="description">Descripción</Label>
                   <Textarea
-                    id="descripcion"
-                    value={formData.descripcion}
-                    onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                    required
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows={3}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lugar">Lugar</Label>
-                  <Input
-                    id="lugar"
-                    value={formData.lugar}
-                    onChange={(e) => setFormData({ ...formData, lugar: e.target.value })}
-                    required
-                  />
+                  <Label htmlFor="status">Estado</Label>
+                  <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="activo">Activo</SelectItem>
+                      <SelectItem value="inactivo">Inactivo</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="fecha">Fecha</Label>
-                    <Input
-                      id="fecha"
-                      type="date"
-                      value={formData.fecha}
-                      onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="horario">Horario</Label>
-                    <Input
-                      id="horario"
-                      value={formData.horario}
-                      onChange={(e) => setFormData({ ...formData, horario: e.target.value })}
-                      placeholder="19:00 - 21:00"
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cupos">Cupos Disponibles</Label>
-                  <Input
-                    id="cupos"
-                    type="number"
-                    value={formData.cupos}
-                    onChange={(e) => setFormData({ ...formData, cupos: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="gratuita"
-                    checked={formData.gratuita}
-                    onCheckedChange={(checked) => setFormData({ ...formData, gratuita: checked })}
-                  />
-                  <Label htmlFor="gratuita">Actividad gratuita</Label>
-                </div>
-                {!formData.gratuita && (
-                  <div className="space-y-2">
-                    <Label htmlFor="costo">Costo ($)</Label>
-                    <Input
-                      id="costo"
-                      type="number"
-                      value={formData.costo}
-                      onChange={(e) => setFormData({ ...formData, costo: e.target.value })}
-                      required={!formData.gratuita}
-                    />
-                  </div>
-                )}
                 <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                    Cancelar
+                  </Button>
                   <Button type="submit" className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
-                    {editingActividad ? "Actualizar" : "Crear"} Actividad
+                    {editingActivity ? "Actualizar" : "Crear"} Actividad
                   </Button>
                 </DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
-        )}
+        </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {actividades.map((actividad) => (
-          <Card key={actividad.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-grow">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+          <Input
+            placeholder="Buscar actividades..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Button
+          variant="outline"
+          className={`flex items-center gap-2 ${filterActive ? "bg-[#4dd0e1] text-white" : ""}`}
+          onClick={() => setFilterActive(!filterActive)}
+        >
+          <Filter size={18} />
+          {filterActive ? "Todos" : "Solo Activas"}
+        </Button>
+      </div>
+
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        {filteredActivities.map((activity) => (
+          <Card key={activity.id} className="hover:shadow-lg transition-shadow">
+            <CardHeader
+              className="cursor-pointer"
+              onClick={() => openDetail(activity)}
+            >
               <div className="flex justify-between items-start">
                 <div>
-                  <CardTitle className="text-lg">{actividad.nombre}</CardTitle>
-                  <CardDescription className="mt-2">{actividad.descripcion}</CardDescription>
+                  <CardTitle className="text-lg hover:text-orange-500 transition-colors">{activity.name}</CardTitle>
+                  <CardDescription className="mt-2 line-clamp-2">{activity.description}</CardDescription>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <Badge
-                    variant={actividad.estado === "activo" ? "default" : "secondary"}
-                    className={actividad.estado === "activo" ? "bg-[#4dd0e1]" : ""}
-                  >
-                    {actividad.estado}
-                  </Badge>
-                  {actividad.gratuita && (
-                    <Badge variant="outline" className="text-green-600 border-green-600">
-                      Gratuita
-                    </Badge>
-                  )}
-                </div>
+                <Badge
+                  variant={activity.status === "activo" ? "default" : "secondary"}
+                  className={activity.status === "activo" ? "bg-orange-400" : ""}
+                >
+                  {activity.status}
+                </Badge>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center text-gray-600">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  {new Date(actividad.fecha).toLocaleDateString("es-ES")}
-                </div>
-                <div className="flex items-center text-gray-600">
-                  <Clock className="w-4 h-4 mr-2" />
-                  {actividad.horario}
-                </div>
-                <div className="flex items-center text-gray-600">
-                  <MapPin className="w-4 h-4 mr-2" />
-                  {actividad.lugar}
-                </div>
-                <div className="flex items-center text-gray-600">
-                  <Users className="w-4 h-4 mr-2" />
-                  Cupos: {actividad.inscritos}/{actividad.cupos}
-                </div>
-                {!actividad.gratuita && (
-                  <div className="flex items-center text-gray-600">
-                    <DollarSign className="w-4 h-4 mr-2" />${actividad.costo?.toLocaleString()}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex gap-2">
-                {!isAdmin && actividad.inscritos < actividad.cupos && (
+            <CardContent>
+              <div className="flex gap-2 flex-wrap">
+                {isParticipant ? (
                   <Button
-                    onClick={() => handleInscripcion(actividad.id)}
-                    className="flex-1 bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
+                    onClick={() => handleEnrollToggle(activity)}
+                    disabled={enrollingId === activity.id}
                     size="sm"
-                    disabled={estaInscrito(actividad.id)}
+                    className={`flex-1 ${
+                      enrolledIds.includes(activity.id)
+                        ? "bg-green-500 hover:bg-green-600 text-white"
+                        : "bg-orange-400 hover:bg-orange-500 text-white"
+                    }`}
                   >
-                    {estaInscrito(actividad.id) ? (
+                    {enrolledIds.includes(activity.id) ? (
                       <>
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Inscrito
+                        <CheckCircle2 className="w-4 h-4 mr-1" />
+                        Anotado
                       </>
                     ) : (
-                      "Inscribirse"
+                      "Quiero participar"
                     )}
                   </Button>
-                )}
-                {isAdmin && (
+                ) : (
                   <>
-                    <Button onClick={() => openEditDialog(actividad)} variant="outline" size="sm" className="flex-1">
-                      <Edit className="w-4 h-4 mr-1" />
-                      Editar
-                    </Button>
-                    <Button
-                      onClick={() => handleDelete(actividad.id)}
-                      variant="outline"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {can(user, "actividades:edit") && (
+                      <Button
+                        onClick={(e) => { e.stopPropagation(); openEditDialog(activity) }}
+                        variant="outline" size="sm" className="flex-1"
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        Editar
+                      </Button>
+                    )}
+                    {can(user, "actividades:delete") && (
+                      <Button
+                        onClick={(e) => { e.stopPropagation(); handleDelete(activity) }}
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </>
                 )}
               </div>
@@ -361,15 +317,65 @@ export default function ActividadesManager({ user }) {
         ))}
       </div>
 
-      {actividades.length === 0 && (
+      {filteredActivities.length === 0 && (
         <div className="text-center py-12">
-          <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No hay actividades disponibles</h3>
-          <p className="text-gray-600">
-            {isAdmin ? "Crea la primera actividad para comenzar." : "Pronto habrá nuevas actividades disponibles."}
-          </p>
+          <p className="text-gray-600">Crea la primera actividad para comenzar.</p>
         </div>
       )}
+
+      {/* Detail dialog */}
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {viewingActivity?.name}
+              <Badge
+                variant={viewingActivity?.status === "activo" ? "default" : "secondary"}
+                className={viewingActivity?.status === "activo" ? "bg-orange-400" : ""}
+              >
+                {viewingActivity?.status}
+              </Badge>
+            </DialogTitle>
+          </DialogHeader>
+          {viewingActivity && (
+            <div className="space-y-4">
+              <p className="text-gray-700 text-sm leading-relaxed">
+                {viewingActivity.description || <span className="italic text-gray-400">Sin descripción.</span>}
+              </p>
+              {isParticipant && (
+                <Button
+                  onClick={() => handleEnrollToggle(viewingActivity)}
+                  disabled={enrollingId === viewingActivity.id}
+                  className={`w-full ${
+                    enrolledIds.includes(viewingActivity.id)
+                      ? "bg-green-500 hover:bg-green-600 text-white"
+                      : "bg-orange-400 hover:bg-orange-500 text-white"
+                  }`}
+                >
+                  {enrolledIds.includes(viewingActivity.id) ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                      Anotado — Salir de la actividad
+                    </>
+                  ) : (
+                    "Quiero participar"
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDeleteConfirm}
+        itemName={activityToDelete?.name}
+        itemType="actividad"
+      />
     </div>
   )
 }

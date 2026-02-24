@@ -1,10 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { readData, writeData, getNextId } from "@/lib/data-manager"
+import { getVolunteers, createVolunteer, updateVolunteer, deleteVolunteer } from "@/lib/data-manager"
 
 export async function GET() {
   try {
-    const data = readData()
-    return NextResponse.json(data.voluntarios)
+    const volunteers = await getVolunteers()
+    return NextResponse.json(volunteers)
   } catch (error) {
     return NextResponse.json({ error: "Error del servidor" }, { status: 500 })
   }
@@ -12,27 +12,24 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const voluntarioData = await request.json()
-    const data = readData()
-    
-    const newVoluntario = {
-      id: getNextId(data.voluntarios),
-      nombre: voluntarioData.nombre,
-      apellido: voluntarioData.apellido || undefined,
-      edad: voluntarioData.edad ? Number.parseInt(voluntarioData.edad) : undefined,
-      sexo: voluntarioData.sexo || undefined,
-      foto: voluntarioData.foto || null,
-      telefono: voluntarioData.telefono || undefined,
-      email: voluntarioData.email || undefined,
-      fechaRegistro: new Date().toISOString().split("T")[0],
-      estado: "activo",
-      especialidades: voluntarioData.especialidades || []
-    }
+    const data = await request.json()
 
-    data.voluntarios.push(newVoluntario)
-    writeData(data)
-    
-    return NextResponse.json(newVoluntario)
+    const volunteer = await createVolunteer({
+      name: data.name,
+      last_name: data.last_name || undefined,
+      age: data.age ? Number.parseInt(data.age) : undefined,
+      gender: data.gender || undefined,
+      photo: data.photo || null,
+      phone: data.phone || undefined,
+      email: data.email || undefined,
+      birth_date: data.birth_date || undefined,
+      registration_date: new Date().toISOString().split("T")[0],
+      status: "activo",
+      specialties: data.specialties || [],
+      is_admin: data.is_admin || false,
+    })
+
+    return NextResponse.json(volunteer)
   } catch (error) {
     return NextResponse.json({ error: "Error del servidor" }, { status: 500 })
   }
@@ -42,22 +39,14 @@ export async function PUT(request: NextRequest) {
   try {
     const url = new URL(request.url)
     const id = Number.parseInt(url.searchParams.get("id") || "0")
-    const voluntarioData = await request.json()
-    const data = readData()
+    const data = await request.json()
 
-    const voluntarioIndex = data.voluntarios.findIndex((v) => v.id === id)
-    if (voluntarioIndex === -1) {
-      return NextResponse.json({ error: "Voluntario no encontrado" }, { status: 404 })
-    }
+    const volunteer = await updateVolunteer(id, {
+      ...data,
+      age: data.age ? Number.parseInt(data.age) : data.age,
+    })
 
-    data.voluntarios[voluntarioIndex] = {
-      ...data.voluntarios[voluntarioIndex],
-      ...voluntarioData,
-      edad: voluntarioData.edad ? Number.parseInt(voluntarioData.edad) : undefined,
-    }
-
-    writeData(data)
-    return NextResponse.json(data.voluntarios[voluntarioIndex])
+    return NextResponse.json(volunteer)
   } catch (error) {
     return NextResponse.json({ error: "Error del servidor" }, { status: 500 })
   }
@@ -67,23 +56,21 @@ export async function DELETE(request: NextRequest) {
   try {
     const url = new URL(request.url)
     const id = Number.parseInt(url.searchParams.get("id") || "0")
-    const data = readData()
 
-    const voluntarioIndex = data.voluntarios.findIndex((v) => v.id === id)
-    if (voluntarioIndex === -1) {
-      return NextResponse.json({ error: "Voluntario no encontrado" }, { status: 404 })
+    // Check if volunteer is assigned to any inventory items
+    const { query } = await import("@/lib/db")
+    const assigned = await query(
+      "SELECT id FROM inventario WHERE assigned_volunteer_id = ? LIMIT 1",
+      [id]
+    )
+    if (assigned.length > 0) {
+      return NextResponse.json(
+        { error: "No se puede eliminar el voluntario porque tiene items asignados en el inventario" },
+        { status: 400 }
+      )
     }
 
-    // Verificar si el voluntario está asignado a algún item del inventario
-    const itemsAsignados = data.inventario.filter(item => item.voluntarioAsignado === id)
-    if (itemsAsignados.length > 0) {
-      return NextResponse.json({ 
-        error: "No se puede eliminar el voluntario porque tiene items asignados en el inventario" 
-      }, { status: 400 })
-    }
-
-    data.voluntarios.splice(voluntarioIndex, 1)
-    writeData(data)
+    await deleteVolunteer(id)
     return NextResponse.json({ success: true })
   } catch (error) {
     return NextResponse.json({ error: "Error del servidor" }, { status: 500 })

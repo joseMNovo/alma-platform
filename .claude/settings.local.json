@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tail:*)",
+      "Bash(cd:*)",
+      "Bash(cd D:\\\\Programacion\\\\Mis Apps\\\\alma-platform:*)",
+      "Bash(head:*)",
+      "Bash(grep:*)",
+      "Bash(python:*)"
+    ]
+  }
+}

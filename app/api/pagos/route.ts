@@ -1,10 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { readData, writeData, getNextId } from "@/lib/data-manager"
+import { getPayments, createPayment, updatePayment, deletePayment } from "@/lib/data-manager"
 
 export async function GET() {
   try {
-    const data = readData()
-    return NextResponse.json(data.pagos)
+    const payments = await getPayments()
+    return NextResponse.json(payments)
   } catch (error) {
     return NextResponse.json({ error: "Error del servidor" }, { status: 500 })
   }
@@ -12,18 +12,18 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const pagoData = await request.json()
-    const data = readData()
-    
-    const newPago = {
-      id: getNextId(data.pagos),
-      ...pagoData,
-      fechaPago: null,
-    }
+    const data = await request.json()
 
-    data.pagos.push(newPago)
-    writeData(data)
-    return NextResponse.json(newPago)
+    const payment = await createPayment({
+      user_id: Number.parseInt(data.user_id),
+      concept: data.concept,
+      amount: Number.parseInt(data.amount),
+      due_date: data.due_date,
+      payment_method: data.payment_method || null,
+      status: data.status || "pendiente",
+    })
+
+    return NextResponse.json(payment)
   } catch (error) {
     return NextResponse.json({ error: "Error del servidor" }, { status: 500 })
   }
@@ -33,21 +33,19 @@ export async function PUT(request: NextRequest) {
   try {
     const url = new URL(request.url)
     const id = Number.parseInt(url.searchParams.get("id") || "0")
-    const pagoData = await request.json()
-    const data = readData()
+    const data = await request.json()
 
-    const pagoIndex = data.pagos.findIndex((p) => p.id === id)
-    if (pagoIndex === -1) {
-      return NextResponse.json({ error: "Pago no encontrado" }, { status: 404 })
-    }
+    const payment = await updatePayment(id, {
+      user_id: data.user_id !== undefined ? Number.parseInt(data.user_id) : undefined,
+      concept: data.concept,
+      amount: data.amount !== undefined ? Number.parseInt(data.amount) : undefined,
+      due_date: data.due_date,
+      payment_method: data.payment_method,
+      status: data.status,
+      payment_date: data.payment_date,
+    })
 
-    data.pagos[pagoIndex] = {
-      ...data.pagos[pagoIndex],
-      ...pagoData,
-    }
-
-    writeData(data)
-    return NextResponse.json(data.pagos[pagoIndex])
+    return NextResponse.json(payment)
   } catch (error) {
     return NextResponse.json({ error: "Error del servidor" }, { status: 500 })
   }
@@ -57,15 +55,8 @@ export async function DELETE(request: NextRequest) {
   try {
     const url = new URL(request.url)
     const id = Number.parseInt(url.searchParams.get("id") || "0")
-    const data = readData()
 
-    const pagoIndex = data.pagos.findIndex((p) => p.id === id)
-    if (pagoIndex === -1) {
-      return NextResponse.json({ error: "Pago no encontrado" }, { status: 404 })
-    }
-
-    data.pagos.splice(pagoIndex, 1)
-    writeData(data)
+    await deletePayment(id)
     return NextResponse.json({ success: true })
   } catch (error) {
     return NextResponse.json({ error: "Error del servidor" }, { status: 500 })

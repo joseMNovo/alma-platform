@@ -11,9 +11,10 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { AlertCircle, Check, Save, RefreshCw, Mail, Building, Palette, Settings, Globe } from "lucide-react"
+import { config } from "@/lib/config"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
-export default function ConfiguracionManager({ user }) {
+export default function ConfiguracionManager({ user }: { user: any }) {
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [activeTab, setActiveTab] = useState("general")
@@ -113,7 +114,7 @@ www.almarosario.org`,
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Configuración del Sistema</h2>
-          <p className="text-gray-600">Personaliza los parámetros de la plataforma ALMA</p>
+          <p className="text-gray-600">Personaliza los parámetros de la plataforma alma</p>
         </div>
         <Button onClick={handleSaveConfig} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white" disabled={saving}>
           {saving ? (
@@ -667,7 +668,7 @@ www.almarosario.org`,
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm font-medium text-gray-500">Versión del Sistema</p>
-                    <p className="text-base">1.0.0</p>
+                    <p className="text-base">{config.app.version}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">Última Actualización</p>

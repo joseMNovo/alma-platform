@@ -1,79 +1,60 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { readData, writeData, getNextId } from "@/lib/data-manager"
+import { getWorkshops, getUserEnrollments, createEnrollment, updateWorkshop } from "@/lib/data-manager"
+import { query } from "@/lib/db"
 
 export async function POST(request: NextRequest) {
   try {
-    const { usuarioId, tallerId } = await request.json()
-    const data = readData()
+    const { userId, workshopId } = await request.json()
 
-    // Verificar que el taller existe y tiene cupos
-    const taller = data.talleres.find((t) => t.id === tallerId)
-    if (!taller) {
+    // Verify workshop exists and has capacity
+    const workshops = await getWorkshops()
+    const workshop = workshops.find((w) => w.id === workshopId)
+    if (!workshop) {
       return NextResponse.json({ error: "Taller no encontrado" }, { status: 404 })
     }
 
-    if (taller.inscritos >= taller.cupos) {
+    if (workshop.enrolled >= workshop.capacity) {
       return NextResponse.json({ error: "No hay cupos disponibles" }, { status: 400 })
     }
 
-    // Verificar que el usuario no esté ya inscrito
-    const usuario = data.usuarios.find((u) => u.id === usuarioId)
-    if (!usuario) {
-      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 })
+    // Verify volunteer exists
+    const volunteers = await query("SELECT id, name, email FROM voluntarios WHERE id = ?", [userId])
+    if (volunteers.length === 0) {
+      return NextResponse.json({ error: "Voluntario no encontrado" }, { status: 404 })
     }
+    const volunteer = volunteers[0] as any
 
-    if (!usuario.inscripciones) {
-      usuario.inscripciones = { talleres: [], grupos: [], actividades: [] }
-    }
-
-    if (usuario.inscripciones.talleres.includes(tallerId)) {
+    // Check if already enrolled
+    const enrollments = await getUserEnrollments(userId)
+    if (enrollments.workshops.includes(workshopId)) {
       return NextResponse.json({ error: "Ya está inscrito en este taller" }, { status: 400 })
     }
 
-    // Realizar la inscripción
-    usuario.inscripciones.talleres.push(tallerId)
-    taller.inscritos += 1
+    // Create enrollment record
+    const enrollment = await createEnrollment({
+      user_id: userId,
+      type: "taller",
+      item_id: workshopId,
+      enrollment_date: new Date().toISOString().split("T")[0],
+      status: "confirmada",
+    })
 
-    // Crear registro de inscripción
-    const nuevaInscripcion = {
-      id: getNextId(data.inscripciones),
-      usuarioId,
-      tipo: "taller",
-      itemId: tallerId,
-      fechaInscripcion: new Date().toISOString().split("T")[0],
-      estado: "confirmada",
-    }
-    data.inscripciones.push(nuevaInscripcion)
-    writeData(data)
+    // Increment enrolled count
+    await updateWorkshop(workshopId, { enrolled: workshop.enrolled + 1 })
 
-    // Enviar email de confirmación
+    // Send confirmation email
     await fetch("/api/emails", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        to: usuario.email,
+        to: volunteer.email,
         subject: "Confirmación de Inscripción - Taller de Memoria",
-        message: `Estimado/a ${usuario.nombre},
-
-Su inscripción al taller "${taller.nombre}" ha sido confirmada exitosamente.
-
-Detalles:
-- Instructor: ${taller.instructor}
-- Fecha: ${new Date(taller.fecha).toLocaleDateString("es-ES")}
-- Horario: ${taller.horario}
-- Costo: $${taller.costo.toLocaleString()}
-
-Nos vemos pronto!
-
-Saludos cordiales,
-Equipo ALMA - Alzheimer Rosario`,
+        message: `Estimado/a ${volunteer.name},\n\nSu inscripción al taller "${workshop.name}" ha sido confirmada exitosamente.\n\nDetalles:\n- Instructor: ${workshop.instructor}\n- Fecha: ${new Date(workshop.date!).toLocaleDateString("es-ES")}\n- Horario: ${workshop.schedule}\n- Costo: $${workshop.cost.toLocaleString()}\n\nNos vemos pronto!\n\nSaludos cordiales,\nEquipo ALMA - Alzheimer Rosario`,
         type: "confirmacion_inscripcion",
       }),
     })
 
-    return NextResponse.json({ success: true, inscripcion: nuevaInscripcion })
+    return NextResponse.json({ success: true, enrollment })
   } catch (error) {
     console.error("Error en inscripción:", error)
     return NextResponse.json({ error: "Error del servidor" }, { status: 500 })

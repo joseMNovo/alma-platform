@@ -18,34 +18,37 @@ import {
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Edit, Trash2, DollarSign, Calendar, AlertTriangle, CheckCircle, Clock } from "lucide-react"
+import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 
-export default function PagosManager({ user }) {
-  const [pagos, setPagos] = useState([])
-  const [usuarios, setUsuarios] = useState([])
+export default function PagosManager({ user }: { user: any }) {
+  const [payments, setPayments] = useState<any[]>([])
+  const [volunteers, setVolunteers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingPago, setEditingPago] = useState(null)
+  const [editingPayment, setEditingPayment] = useState<any>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [paymentToDelete, setPaymentToDelete] = useState<any>(null)
   const [formData, setFormData] = useState({
-    usuarioId: "",
-    concepto: "",
-    monto: "",
-    fechaVencimiento: "",
-    metodoPago: "",
-    estado: "pendiente",
+    user_id: "",
+    concept: "",
+    amount: "",
+    due_date: "",
+    payment_method: "",
+    status: "pendiente",
   })
 
-  const isAdmin = user.rol === "admin"
+  const isAdmin = user.role === "admin"
 
   useEffect(() => {
-    fetchPagos()
-    fetchUsuarios()
+    fetchPayments()
+    fetchVolunteers()
   }, [])
 
-  const fetchPagos = async () => {
+  const fetchPayments = async () => {
     try {
       const response = await fetch("/api/pagos")
       const data = await response.json()
-      setPagos(data)
+      setPayments(data)
     } catch (error) {
       console.error("Error fetching pagos:", error)
     } finally {
@@ -53,36 +56,34 @@ export default function PagosManager({ user }) {
     }
   }
 
-  const fetchUsuarios = async () => {
+  const fetchVolunteers = async () => {
     try {
-      const response = await fetch("/api/auth")
+      const response = await fetch("/api/voluntarios")
       const data = await response.json()
-      setUsuarios(data.usuarios || [])
+      setVolunteers(data)
     } catch (error) {
-      console.error("Error fetching usuarios:", error)
+      console.error("Error fetching voluntarios:", error)
     }
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault()
     try {
-      const method = editingPago ? "PUT" : "POST"
-      const url = editingPago ? `/api/pagos?id=${editingPago.id}` : "/api/pagos"
+      const method = editingPayment ? "PUT" : "POST"
+      const url = editingPayment ? `/api/pagos?id=${editingPayment.id}` : "/api/pagos"
 
       const response = await fetch(url, {
         method,
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          monto: Number.parseInt(formData.monto),
-          usuarioId: Number.parseInt(formData.usuarioId),
+          amount: Number.parseInt(formData.amount),
+          user_id: Number.parseInt(formData.user_id),
         }),
       })
 
       if (response.ok) {
-        fetchPagos()
+        fetchPayments()
         setDialogOpen(false)
         resetForm()
       }
@@ -91,37 +92,37 @@ export default function PagosManager({ user }) {
     }
   }
 
-  const handleDelete = async (id) => {
-    if (confirm("¿Estás seguro de que quieres eliminar este pago?")) {
-      try {
-        const response = await fetch(`/api/pagos?id=${id}`, {
-          method: "DELETE",
-        })
-        if (response.ok) {
-          fetchPagos()
-        }
-      } catch (error) {
-        console.error("Error deleting pago:", error)
-      }
+  const handleDelete = (payment: any) => {
+    setPaymentToDelete(payment)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!paymentToDelete) return
+    try {
+      const response = await fetch(`/api/pagos?id=${paymentToDelete.id}`, { method: "DELETE" })
+      if (response.ok) fetchPayments()
+    } catch (error) {
+      console.error("Error deleting pago:", error)
+    } finally {
+      setDeleteDialogOpen(false)
+      setPaymentToDelete(null)
     }
   }
 
-  const marcarComoPagado = async (pagoId, metodoPago) => {
+  const markAsPaid = async (paymentId: number, paymentMethod: string) => {
     try {
-      const response = await fetch(`/api/pagos?id=${pagoId}`, {
+      const response = await fetch(`/api/pagos?id=${paymentId}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          estado: "pagado",
-          fechaPago: new Date().toISOString().split("T")[0],
-          metodoPago: metodoPago,
+          status: "pagado",
+          payment_date: new Date().toISOString().split("T")[0],
+          payment_method: paymentMethod,
         }),
       })
-
       if (response.ok) {
-        fetchPagos()
+        fetchPayments()
         alert("Pago marcado como realizado")
       }
     } catch (error) {
@@ -130,39 +131,32 @@ export default function PagosManager({ user }) {
   }
 
   const resetForm = () => {
-    setFormData({
-      usuarioId: "",
-      concepto: "",
-      monto: "",
-      fechaVencimiento: "",
-      metodoPago: "",
-      estado: "pendiente",
-    })
-    setEditingPago(null)
+    setFormData({ user_id: "", concept: "", amount: "", due_date: "", payment_method: "", status: "pendiente" })
+    setEditingPayment(null)
   }
 
-  const openEditDialog = (pago) => {
-    setEditingPago(pago)
+  const openEditDialog = (payment: any) => {
+    setEditingPayment(payment)
     setFormData({
-      usuarioId: pago.usuarioId.toString(),
-      concepto: pago.concepto,
-      monto: pago.monto.toString(),
-      fechaVencimiento: pago.fechaVencimiento,
-      metodoPago: pago.metodoPago || "",
-      estado: pago.estado,
+      user_id: payment.user_id.toString(),
+      concept: payment.concept,
+      amount: payment.amount.toString(),
+      due_date: payment.due_date || "",
+      payment_method: payment.payment_method || "",
+      status: payment.status,
     })
     setDialogOpen(true)
   }
 
-  const getUsuarioNombre = (usuarioId) => {
-    const usuario = usuarios.find((u) => u.id === usuarioId)
-    return usuario ? usuario.nombre : "Usuario no encontrado"
+  const getVolunteerName = (userId: number) => {
+    const volunteer = volunteers.find((v) => v.id === userId)
+    return volunteer ? `${volunteer.name}${volunteer.last_name ? " " + volunteer.last_name : ""}` : "Usuario no encontrado"
   }
 
-  const pagosPendientes = pagos.filter((p) => p.estado === "pendiente")
-  const pagosVencidos = pagos.filter((p) => p.estado === "pendiente" && new Date(p.fechaVencimiento) < new Date())
-  const pagosEfectivo = pagos.filter((p) => p.metodoPago === "efectivo" && p.estado === "pagado")
-  const misPagos = pagos.filter((p) => p.usuarioId === user.id)
+  const pendingPayments = payments.filter((p) => p.status === "pendiente")
+  const overduePayments = payments.filter((p) => p.status === "pendiente" && new Date(p.due_date) < new Date())
+  const cashPayments = payments.filter((p) => p.payment_method === "efectivo" && p.status === "pagado")
+  const myPayments = payments.filter((p) => p.user_id === user.id)
 
   if (loading) {
     return <div className="text-center py-8">Cargando información de pagos...</div>
@@ -185,65 +179,65 @@ export default function PagosManager({ user }) {
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>{editingPago ? "Editar Pago" : "Nuevo Pago"}</DialogTitle>
+                <DialogTitle>{editingPayment ? "Editar Pago" : "Nuevo Pago"}</DialogTitle>
                 <DialogDescription>
-                  {editingPago ? "Modifica los datos del pago" : "Registra un nuevo pago o cuota"}
+                  {editingPayment ? "Modifica los datos del pago" : "Registra un nuevo pago o cuota"}
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="usuarioId">Usuario</Label>
+                  <Label htmlFor="user_id">Voluntario</Label>
                   <Select
-                    value={formData.usuarioId}
-                    onValueChange={(value) => setFormData({ ...formData, usuarioId: value })}
+                    value={formData.user_id}
+                    onValueChange={(value) => setFormData({ ...formData, user_id: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar usuario" />
+                      <SelectValue placeholder="Seleccionar voluntario" />
                     </SelectTrigger>
                     <SelectContent>
-                      {usuarios.map((usuario) => (
-                        <SelectItem key={usuario.id} value={usuario.id.toString()}>
-                          {usuario.nombre}
+                      {volunteers.map((volunteer) => (
+                        <SelectItem key={volunteer.id} value={volunteer.id.toString()}>
+                          {volunteer.name}{volunteer.last_name ? " " + volunteer.last_name : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="concepto">Concepto</Label>
+                  <Label htmlFor="concept">Concepto</Label>
                   <Input
-                    id="concepto"
-                    value={formData.concepto}
-                    onChange={(e) => setFormData({ ...formData, concepto: e.target.value })}
+                    id="concept"
+                    value={formData.concept}
+                    onChange={(e) => setFormData({ ...formData, concept: e.target.value })}
                     placeholder="Cuota mensual, taller, etc."
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="monto">Monto ($)</Label>
+                  <Label htmlFor="amount">Monto ($)</Label>
                   <Input
-                    id="monto"
+                    id="amount"
                     type="number"
-                    value={formData.monto}
-                    onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
+                    value={formData.amount}
+                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="fechaVencimiento">Fecha de Vencimiento</Label>
+                  <Label htmlFor="due_date">Fecha de Vencimiento</Label>
                   <Input
-                    id="fechaVencimiento"
+                    id="due_date"
                     type="date"
-                    value={formData.fechaVencimiento}
-                    onChange={(e) => setFormData({ ...formData, fechaVencimiento: e.target.value })}
+                    value={formData.due_date}
+                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="estado">Estado</Label>
+                  <Label htmlFor="status">Estado</Label>
                   <Select
-                    value={formData.estado}
-                    onValueChange={(value) => setFormData({ ...formData, estado: value })}
+                    value={formData.status}
+                    onValueChange={(value) => setFormData({ ...formData, status: value })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -255,12 +249,12 @@ export default function PagosManager({ user }) {
                     </SelectContent>
                   </Select>
                 </div>
-                {formData.estado === "pagado" && (
+                {formData.status === "pagado" && (
                   <div className="space-y-2">
-                    <Label htmlFor="metodoPago">Método de Pago</Label>
+                    <Label htmlFor="payment_method">Método de Pago</Label>
                     <Select
-                      value={formData.metodoPago}
-                      onValueChange={(value) => setFormData({ ...formData, metodoPago: value })}
+                      value={formData.payment_method}
+                      onValueChange={(value) => setFormData({ ...formData, payment_method: value })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccionar método" />
@@ -275,7 +269,7 @@ export default function PagosManager({ user }) {
                 )}
                 <DialogFooter>
                   <Button type="submit" className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
-                    {editingPago ? "Actualizar" : "Crear"} Pago
+                    {editingPayment ? "Actualizar" : "Crear"} Pago
                   </Button>
                 </DialogFooter>
               </form>
@@ -296,17 +290,14 @@ export default function PagosManager({ user }) {
           </TabsTrigger>
           {isAdmin && (
             <>
-              <TabsTrigger
-                value="pendientes"
-                className="data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
-              >
-                Pendientes ({pagosPendientes.length})
+              <TabsTrigger value="pendientes" className="data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white">
+                Pendientes ({pendingPayments.length})
               </TabsTrigger>
               <TabsTrigger value="vencidos" className="data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white">
-                Vencidos ({pagosVencidos.length})
+                Vencidos ({overduePayments.length})
               </TabsTrigger>
               <TabsTrigger value="efectivo" className="data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white">
-                Efectivo ({pagosEfectivo.length})
+                Efectivo ({cashPayments.length})
               </TabsTrigger>
             </>
           )}
@@ -315,49 +306,49 @@ export default function PagosManager({ user }) {
         {isAdmin && (
           <TabsContent value="todos" className="space-y-4">
             <div className="grid gap-4">
-              {pagos.map((pago) => (
-                <Card key={pago.id} className="hover:shadow-md transition-shadow">
+              {payments.map((payment) => (
+                <Card key={payment.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-medium">{getUsuarioNombre(pago.usuarioId)}</h3>
+                          <h3 className="font-medium">{getVolunteerName(payment.user_id)}</h3>
                           <Badge
                             variant={
-                              pago.estado === "pagado"
+                              payment.status === "pagado"
                                 ? "default"
-                                : pago.estado === "vencido"
+                                : payment.status === "vencido"
                                   ? "destructive"
                                   : "secondary"
                             }
                             className={
-                              pago.estado === "pagado"
+                              payment.status === "pagado"
                                 ? "bg-green-500"
-                                : pago.estado === "vencido"
+                                : payment.status === "vencido"
                                   ? "bg-red-500"
                                   : "bg-yellow-500"
                             }
                           >
-                            {pago.estado}
+                            {payment.status}
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-600">{pago.concepto}</p>
+                        <p className="text-sm text-gray-600">{payment.concept}</p>
                         <div className="flex items-center gap-4 text-sm text-gray-500">
                           <span className="flex items-center gap-1">
-                            <DollarSign className="w-4 h-4" />${pago.monto.toLocaleString()}
+                            <DollarSign className="w-4 h-4" />${payment.amount.toLocaleString()}
                           </span>
                           <span className="flex items-center gap-1">
                             <Calendar className="w-4 h-4" />
-                            Vence: {new Date(pago.fechaVencimiento).toLocaleDateString("es-ES")}
+                            Vence: {payment.due_date ? new Date(payment.due_date).toLocaleDateString("es-ES") : "-"}
                           </span>
-                          {pago.metodoPago && <span className="capitalize">Método: {pago.metodoPago}</span>}
+                          {payment.payment_method && <span className="capitalize">Método: {payment.payment_method}</span>}
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        {pago.estado === "pendiente" && (
+                        {payment.status === "pendiente" && (
                           <>
                             <Button
-                              onClick={() => marcarComoPagado(pago.id, "efectivo")}
+                              onClick={() => markAsPaid(payment.id, "efectivo")}
                               size="sm"
                               variant="outline"
                               className="text-green-600 border-green-600 hover:bg-green-50"
@@ -365,7 +356,7 @@ export default function PagosManager({ user }) {
                               Efectivo
                             </Button>
                             <Button
-                              onClick={() => marcarComoPagado(pago.id, "transferencia")}
+                              onClick={() => markAsPaid(payment.id, "transferencia")}
                               size="sm"
                               variant="outline"
                               className="text-blue-600 border-blue-600 hover:bg-blue-50"
@@ -374,11 +365,11 @@ export default function PagosManager({ user }) {
                             </Button>
                           </>
                         )}
-                        <Button onClick={() => openEditDialog(pago)} variant="outline" size="sm">
+                        <Button onClick={() => openEditDialog(payment)} variant="outline" size="sm">
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button
-                          onClick={() => handleDelete(pago.id)}
+                          onClick={() => handleDelete(payment)}
                           variant="outline"
                           size="sm"
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -404,9 +395,9 @@ export default function PagosManager({ user }) {
                 <CardContent>
                   <div className="text-2xl font-bold text-[#4dd0e1]">
                     $
-                    {pagos
-                      .filter((p) => p.estado === "pagado")
-                      .reduce((sum, p) => sum + p.monto, 0)
+                    {payments
+                      .filter((p) => p.status === "pagado")
+                      .reduce((sum, p) => sum + p.amount, 0)
                       .toLocaleString()}
                   </div>
                 </CardContent>
@@ -416,7 +407,7 @@ export default function PagosManager({ user }) {
                   <CardTitle className="text-sm font-medium text-gray-600">Pagos Pendientes</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-yellow-600">{pagosPendientes.length}</div>
+                  <div className="text-2xl font-bold text-yellow-600">{pendingPayments.length}</div>
                 </CardContent>
               </Card>
               <Card>
@@ -424,7 +415,7 @@ export default function PagosManager({ user }) {
                   <CardTitle className="text-sm font-medium text-gray-600">Pagos Vencidos</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-red-600">{pagosVencidos.length}</div>
+                  <div className="text-2xl font-bold text-red-600">{overduePayments.length}</div>
                 </CardContent>
               </Card>
               <Card>
@@ -432,55 +423,55 @@ export default function PagosManager({ user }) {
                   <CardTitle className="text-sm font-medium text-gray-600">Pagos en Efectivo</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">{pagosEfectivo.length}</div>
+                  <div className="text-2xl font-bold text-green-600">{cashPayments.length}</div>
                 </CardContent>
               </Card>
             </div>
           ) : (
             <div className="grid gap-4">
-              {misPagos.map((pago) => (
-                <Card key={pago.id} className="hover:shadow-md transition-shadow">
+              {myPayments.map((payment) => (
+                <Card key={payment.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-medium">{pago.concepto}</h3>
+                          <h3 className="font-medium">{payment.concept}</h3>
                           <Badge
                             variant={
-                              pago.estado === "pagado"
+                              payment.status === "pagado"
                                 ? "default"
-                                : pago.estado === "vencido"
+                                : payment.status === "vencido"
                                   ? "destructive"
                                   : "secondary"
                             }
                             className={
-                              pago.estado === "pagado"
+                              payment.status === "pagado"
                                 ? "bg-green-500"
-                                : pago.estado === "vencido"
+                                : payment.status === "vencido"
                                   ? "bg-red-500"
                                   : "bg-yellow-500"
                             }
                           >
-                            {pago.estado}
+                            {payment.status}
                           </Badge>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-gray-500">
                           <span className="flex items-center gap-1">
-                            <DollarSign className="w-4 h-4" />${pago.monto.toLocaleString()}
+                            <DollarSign className="w-4 h-4" />${payment.amount.toLocaleString()}
                           </span>
                           <span className="flex items-center gap-1">
                             <Calendar className="w-4 h-4" />
-                            Vence: {new Date(pago.fechaVencimiento).toLocaleDateString("es-ES")}
+                            Vence: {payment.due_date ? new Date(payment.due_date).toLocaleDateString("es-ES") : "-"}
                           </span>
-                          {pago.fechaPago && (
+                          {payment.payment_date && (
                             <span className="flex items-center gap-1 text-green-600">
                               <CheckCircle className="w-4 h-4" />
-                              Pagado: {new Date(pago.fechaPago).toLocaleDateString("es-ES")}
+                              Pagado: {new Date(payment.payment_date).toLocaleDateString("es-ES")}
                             </span>
                           )}
                         </div>
                       </div>
-                      {pago.estado === "pendiente" && new Date(pago.fechaVencimiento) < new Date() && (
+                      {payment.status === "pendiente" && payment.due_date && new Date(payment.due_date) < new Date() && (
                         <AlertTriangle className="w-5 h-5 text-red-500" />
                       )}
                     </div>
@@ -495,24 +486,24 @@ export default function PagosManager({ user }) {
           <>
             <TabsContent value="pendientes" className="space-y-4">
               <div className="grid gap-4">
-                {pagosPendientes.map((pago) => (
-                  <Card key={pago.id} className="hover:shadow-md transition-shadow border-yellow-200">
+                {pendingPayments.map((payment) => (
+                  <Card key={payment.id} className="hover:shadow-md transition-shadow border-yellow-200">
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start">
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <Clock className="w-4 h-4 text-yellow-600" />
-                            <h3 className="font-medium">{getUsuarioNombre(pago.usuarioId)}</h3>
+                            <h3 className="font-medium">{getVolunteerName(payment.user_id)}</h3>
                           </div>
-                          <p className="text-sm text-gray-600">{pago.concepto}</p>
+                          <p className="text-sm text-gray-600">{payment.concept}</p>
                           <div className="flex items-center gap-4 text-sm text-gray-500">
-                            <span>${pago.monto.toLocaleString()}</span>
-                            <span>Vence: {new Date(pago.fechaVencimiento).toLocaleDateString("es-ES")}</span>
+                            <span>${payment.amount.toLocaleString()}</span>
+                            <span>Vence: {payment.due_date ? new Date(payment.due_date).toLocaleDateString("es-ES") : "-"}</span>
                           </div>
                         </div>
                         <div className="flex gap-2">
                           <Button
-                            onClick={() => marcarComoPagado(pago.id, "efectivo")}
+                            onClick={() => markAsPaid(payment.id, "efectivo")}
                             size="sm"
                             className="bg-green-600 hover:bg-green-700 text-white"
                           >
@@ -528,27 +519,27 @@ export default function PagosManager({ user }) {
 
             <TabsContent value="vencidos" className="space-y-4">
               <div className="grid gap-4">
-                {pagosVencidos.map((pago) => (
-                  <Card key={pago.id} className="hover:shadow-md transition-shadow border-red-200">
+                {overduePayments.map((payment) => (
+                  <Card key={payment.id} className="hover:shadow-md transition-shadow border-red-200">
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start">
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <AlertTriangle className="w-4 h-4 text-red-600" />
-                            <h3 className="font-medium">{getUsuarioNombre(pago.usuarioId)}</h3>
+                            <h3 className="font-medium">{getVolunteerName(payment.user_id)}</h3>
                             <Badge variant="destructive">Vencido</Badge>
                           </div>
-                          <p className="text-sm text-gray-600">{pago.concepto}</p>
+                          <p className="text-sm text-gray-600">{payment.concept}</p>
                           <div className="flex items-center gap-4 text-sm text-gray-500">
-                            <span>${pago.monto.toLocaleString()}</span>
+                            <span>${payment.amount.toLocaleString()}</span>
                             <span className="text-red-600">
-                              Venció: {new Date(pago.fechaVencimiento).toLocaleDateString("es-ES")}
+                              Venció: {payment.due_date ? new Date(payment.due_date).toLocaleDateString("es-ES") : "-"}
                             </span>
                           </div>
                         </div>
                         <div className="flex gap-2">
                           <Button
-                            onClick={() => marcarComoPagado(pago.id, "efectivo")}
+                            onClick={() => markAsPaid(payment.id, "efectivo")}
                             size="sm"
                             className="bg-green-600 hover:bg-green-700 text-white"
                           >
@@ -571,20 +562,20 @@ export default function PagosManager({ user }) {
 
             <TabsContent value="efectivo" className="space-y-4">
               <div className="grid gap-4">
-                {pagosEfectivo.map((pago) => (
-                  <Card key={pago.id} className="hover:shadow-md transition-shadow border-green-200">
+                {cashPayments.map((payment) => (
+                  <Card key={payment.id} className="hover:shadow-md transition-shadow border-green-200">
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start">
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <DollarSign className="w-4 h-4 text-green-600" />
-                            <h3 className="font-medium">{getUsuarioNombre(pago.usuarioId)}</h3>
+                            <h3 className="font-medium">{getVolunteerName(payment.user_id)}</h3>
                             <Badge className="bg-green-500">Efectivo</Badge>
                           </div>
-                          <p className="text-sm text-gray-600">{pago.concepto}</p>
+                          <p className="text-sm text-gray-600">{payment.concept}</p>
                           <div className="flex items-center gap-4 text-sm text-gray-500">
-                            <span>${pago.monto.toLocaleString()}</span>
-                            <span>Pagado: {new Date(pago.fechaPago).toLocaleDateString("es-ES")}</span>
+                            <span>${payment.amount.toLocaleString()}</span>
+                            <span>Pagado: {payment.payment_date ? new Date(payment.payment_date).toLocaleDateString("es-ES") : "-"}</span>
                           </div>
                         </div>
                       </div>
@@ -597,7 +588,7 @@ export default function PagosManager({ user }) {
         )}
       </Tabs>
 
-      {pagos.length === 0 && (
+      {payments.length === 0 && (
         <div className="text-center py-12">
           <DollarSign className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No hay pagos registrados</h3>
@@ -606,6 +597,14 @@ export default function PagosManager({ user }) {
           </p>
         </div>
       )}
+
+      <ConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDeleteConfirm}
+        itemName={paymentToDelete ? `${getVolunteerName(paymentToDelete.user_id)} — ${paymentToDelete.concept}` : undefined}
+        itemType="pago"
+      />
     </div>
   )
 }

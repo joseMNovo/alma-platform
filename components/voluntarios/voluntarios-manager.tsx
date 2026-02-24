@@ -17,64 +17,71 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
-import { Plus, Edit, Trash2, Users, User, Calendar, Phone, Mail, Heart } from "lucide-react"
+import PersonasTablero from "@/components/voluntarios/personas-tablero"
+import { Plus, Edit, Trash2, Users, User, Calendar, Phone, Mail, Heart, KeyRound } from "lucide-react"
 
-// Interfaces para tipado
-interface User {
+interface CurrentUser {
   id: number
-  nombre: string
+  name: string
   email: string
-  rol: string
-  administrador?: boolean
+  role: string
+  is_admin?: boolean
 }
 
-interface Voluntario {
+interface Volunteer {
   id: number
-  nombre: string
-  apellido: string
-  edad: number | null
-  sexo: string
-  foto: string | null
-  telefono: string
+  name: string
+  last_name: string
+  age: number | null
+  gender: string
+  photo: string | null
+  phone: string
   email: string
-  especialidades: string[]
-  fechaNacimiento: string
-  fechaRegistro: string
-  administrador: boolean
+  specialties: string[]
+  birth_date: string
+  registration_date: string
+  is_admin: boolean
 }
 
-export default function VoluntariosManager({ user }: { user: User }) {
-  const [voluntarios, setVoluntarios] = useState<Voluntario[]>([])
+export default function VoluntariosManager({ user }: { user: CurrentUser }) {
+  const [volunteers, setVolunteers] = useState<Volunteer[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingVoluntario, setEditingVoluntario] = useState<Voluntario | null>(null)
+  const [editingVolunteer, setEditingVolunteer] = useState<Volunteer | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [voluntarioToDelete, setVoluntarioToDelete] = useState<Voluntario | null>(null)
+  const [volunteerToDelete, setVolunteerToDelete] = useState<Volunteer | null>(null)
   const [deleting, setDeleting] = useState(false)
+
+  // PIN management
+  const [pinDialogOpen, setPinDialogOpen] = useState(false)
+  const [pinVolunteer, setPinVolunteer] = useState<Volunteer | null>(null)
+  const [pinValue, setPinValue] = useState("")
+  const [pinLoading, setPinLoading] = useState(false)
+  const [pinMessage, setPinMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null)
   const [formData, setFormData] = useState({
-    nombre: "",
-    apellido: "",
-    edad: "",
-    sexo: "",
-    foto: "",
-    telefono: "",
+    name: "",
+    last_name: "",
+    age: "",
+    gender: "",
+    photo: "",
+    phone: "",
     email: "",
-    especialidades: [] as string[],
-    fechaNacimiento: "",
-    administrador: false
+    specialties: [] as string[],
+    birth_date: "",
+    is_admin: false,
   })
 
   useEffect(() => {
-    fetchVoluntarios()
+    fetchVolunteers()
   }, [])
 
-  const fetchVoluntarios = async () => {
+  const fetchVolunteers = async () => {
     try {
       setLoading(true)
       const response = await fetch("/api/voluntarios")
       if (response.ok) {
         const data = await response.json()
-        setVoluntarios(data)
+        setVolunteers(data)
       }
     } catch (error) {
       console.error("Error fetching voluntarios:", error)
@@ -86,19 +93,17 @@ export default function VoluntariosManager({ user }: { user: User }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const method = editingVoluntario ? "PUT" : "POST"
-      const url = editingVoluntario ? `/api/voluntarios?id=${editingVoluntario.id}` : "/api/voluntarios"
+      const method = editingVolunteer ? "PUT" : "POST"
+      const url = editingVolunteer ? `/api/voluntarios?id=${editingVolunteer.id}` : "/api/voluntarios"
 
       const response = await fetch(url, {
         method,
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       })
 
       if (response.ok) {
-        fetchVoluntarios()
+        fetchVolunteers()
         setDialogOpen(false)
         resetForm()
       }
@@ -107,23 +112,23 @@ export default function VoluntariosManager({ user }: { user: User }) {
     }
   }
 
-  const handleDeleteClick = (voluntario: Voluntario) => {
-    setVoluntarioToDelete(voluntario)
+  const handleDeleteClick = (volunteer: Volunteer) => {
+    setVolunteerToDelete(volunteer)
     setDeleteDialogOpen(true)
   }
 
   const handleDeleteConfirm = async (): Promise<void> => {
-    if (!voluntarioToDelete) return
-    
+    if (!volunteerToDelete) return
+
     setDeleting(true)
     try {
-      const response = await fetch(`/api/voluntarios?id=${voluntarioToDelete.id}`, {
+      const response = await fetch(`/api/voluntarios?id=${volunteerToDelete.id}`, {
         method: "DELETE",
       })
       if (response.ok) {
-        fetchVoluntarios()
+        fetchVolunteers()
         setDeleteDialogOpen(false)
-        setVoluntarioToDelete(null)
+        setVolunteerToDelete(null)
       } else {
         const error = await response.json()
         alert(error.error || "Error al eliminar voluntario")
@@ -138,76 +143,100 @@ export default function VoluntariosManager({ user }: { user: User }) {
 
   const resetForm = () => {
     setFormData({
-      nombre: "",
-      apellido: "",
-      edad: "",
-      sexo: "",
-      foto: "",
-      telefono: "",
+      name: "",
+      last_name: "",
+      age: "",
+      gender: "",
+      photo: "",
+      phone: "",
       email: "",
-      especialidades: [],
-      fechaNacimiento: "",
-      administrador: false
+      specialties: [],
+      birth_date: "",
+      is_admin: false,
     })
-    setEditingVoluntario(null)
+    setEditingVolunteer(null)
   }
 
-  const openEditDialog = (voluntario: Voluntario) => {
-    setEditingVoluntario(voluntario)
+  const openPinDialog = (volunteer: Volunteer) => {
+    setPinVolunteer(volunteer)
+    setPinValue("")
+    setPinMessage(null)
+    setPinDialogOpen(true)
+  }
+
+  const handleSavePin = async () => {
+    if (!/^\d{4}$/.test(pinValue)) {
+      setPinMessage({ type: "error", text: "El PIN debe ser exactamente 4 dígitos numéricos" })
+      return
+    }
+    setPinLoading(true)
+    setPinMessage(null)
+    try {
+      const res = await fetch("/api/voluntarios/pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: pinVolunteer!.id, pin: pinValue }),
+      })
+      if (res.ok) {
+        setPinMessage({ type: "ok", text: "PIN guardado correctamente" })
+        setPinValue("")
+      } else {
+        const data = await res.json()
+        setPinMessage({ type: "error", text: data.error || "Error al guardar el PIN" })
+      }
+    } catch {
+      setPinMessage({ type: "error", text: "Error de conexión" })
+    } finally {
+      setPinLoading(false)
+    }
+  }
+
+  const openEditDialog = (volunteer: Volunteer) => {
+    setEditingVolunteer(volunteer)
     setFormData({
-      nombre: voluntario.nombre || "",
-      apellido: voluntario.apellido || "",
-      edad: voluntario.edad?.toString() || "",
-      sexo: voluntario.sexo || "",
-      foto: voluntario.foto || "",
-      telefono: voluntario.telefono || "",
-      email: voluntario.email || "",
-      especialidades: voluntario.especialidades || [],
-      fechaNacimiento: voluntario.fechaNacimiento || "",
-      administrador: voluntario.administrador || false
+      name: volunteer.name || "",
+      last_name: volunteer.last_name || "",
+      age: volunteer.age?.toString() || "",
+      gender: volunteer.gender || "",
+      photo: volunteer.photo || "",
+      phone: volunteer.phone || "",
+      email: volunteer.email || "",
+      specialties: volunteer.specialties || [],
+      birth_date: volunteer.birth_date || "",
+      is_admin: volunteer.is_admin || false,
     })
     setDialogOpen(true)
   }
 
-  const getSexoIcon = (sexo: string) => {
-    switch (sexo?.toLowerCase()) {
-      case "masculino":
-        return "👨"
-      case "femenino":
-        return "👩"
-      default:
-        return "👤"
+  const getGenderIcon = (gender: string) => {
+    switch (gender?.toLowerCase()) {
+      case "masculino": return "👨"
+      case "femenino": return "👩"
+      default: return "👤"
     }
   }
 
-  const getSexoColor = (sexo: string) => {
-    switch (sexo?.toLowerCase()) {
-      case "masculino":
-        return "bg-blue-100 text-blue-800"
-      case "femenino":
-        return "bg-pink-100 text-pink-800"
-      default:
-        return "bg-gray-100 text-gray-800"
+  const getGenderColor = (gender: string) => {
+    switch (gender?.toLowerCase()) {
+      case "masculino": return "bg-blue-100 text-blue-800"
+      case "femenino": return "bg-pink-100 text-pink-800"
+      default: return "bg-gray-100 text-gray-800"
     }
   }
 
-  const getNombreCompleto = (voluntario: Voluntario) => {
-    if (voluntario.apellido) {
-      return `${voluntario.nombre} ${voluntario.apellido}`
-    }
-    return voluntario.nombre
+  const getFullName = (volunteer: Volunteer) => {
+    if (volunteer.last_name) return `${volunteer.name} ${volunteer.last_name}`
+    return volunteer.name
   }
 
-  // Función para validar solo números en teléfono
-  const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^0-9+\-\s]/g, '')
-    setFormData({...formData, telefono: value})
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^0-9+\-\s]/g, "")
+    setFormData({ ...formData, phone: value })
   }
 
-  // Función para validar solo números en edad
-  const handleEdadChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^0-9]/g, '')
-    setFormData({...formData, edad: value})
+  const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^0-9]/g, "")
+    setFormData({ ...formData, age: value })
   }
 
   if (loading) {
@@ -223,6 +252,9 @@ export default function VoluntariosManager({ user }: { user: User }) {
 
   return (
     <div className="space-y-6 px-4 sm:px-0">
+      {/* Tablero de personas registradas */}
+      <PersonasTablero />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div className="text-center sm:text-left">
@@ -232,14 +264,11 @@ export default function VoluntariosManager({ user }: { user: User }) {
           </h2>
           <p className="text-gray-600 mt-1">Administra los voluntarios de ALMA</p>
         </div>
-        
+
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button 
-              onClick={() => {
-                resetForm()
-                setDialogOpen(true)
-              }}
+            <Button
+              onClick={() => { resetForm(); setDialogOpen(true) }}
               className="w-full sm:w-auto bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -249,54 +278,53 @@ export default function VoluntariosManager({ user }: { user: User }) {
           <DialogContent className="sm:max-w-[500px] mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {editingVoluntario ? "Editar voluntario" : "Agregar nuevo voluntario"}
+                {editingVolunteer ? "Editar voluntario" : "Agregar nuevo voluntario"}
               </DialogTitle>
               <DialogDescription>
-                {editingVoluntario 
-                  ? "Modifica la información del voluntario" 
-                  : "Completa la información del nuevo voluntario"
-                }
+                {editingVolunteer
+                  ? "Modifica la información del voluntario"
+                  : "Completa la información del nuevo voluntario"}
               </DialogDescription>
             </DialogHeader>
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="nombre">Nombre *</Label>
+                  <Label htmlFor="name">Nombre *</Label>
                   <Input
-                    id="nombre"
-                    value={formData.nombre}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, nombre: e.target.value})}
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="Nombre"
                     required
                   />
                 </div>
-                
+
                 <div>
-                  <Label htmlFor="apellido">Apellido</Label>
+                  <Label htmlFor="last_name">Apellido</Label>
                   <Input
-                    id="apellido"
-                    value={formData.apellido}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, apellido: e.target.value})}
+                    id="last_name"
+                    value={formData.last_name}
+                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                     placeholder="Apellido"
                   />
                 </div>
-                
+
                 <div>
-                  <Label htmlFor="edad">Edad</Label>
+                  <Label htmlFor="age">Edad</Label>
                   <Input
-                    id="edad"
+                    id="age"
                     type="text"
-                    value={formData.edad}
-                    onChange={handleEdadChange}
+                    value={formData.age}
+                    onChange={handleAgeChange}
                     placeholder="Edad"
                     maxLength={3}
                   />
                 </div>
-                
+
                 <div>
-                  <Label htmlFor="sexo">Sexo</Label>
-                  <Select value={formData.sexo} onValueChange={(value) => setFormData({...formData, sexo: value})}>
+                  <Label htmlFor="gender">Sexo</Label>
+                  <Select value={formData.gender} onValueChange={(value) => setFormData({ ...formData, gender: value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Seleccionar sexo" />
                     </SelectTrigger>
@@ -307,72 +335,62 @@ export default function VoluntariosManager({ user }: { user: User }) {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
-                  <Label htmlFor="telefono">Teléfono</Label>
+                  <Label htmlFor="phone">Teléfono</Label>
                   <Input
-                    id="telefono"
-                    value={formData.telefono}
-                    onChange={handleTelefonoChange}
+                    id="phone"
+                    value={formData.phone}
+                    onChange={handlePhoneChange}
                     placeholder="+54 11 1234-5678"
                     maxLength={20}
                   />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, email: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="email@ejemplo.com"
                   />
                 </div>
-                
+
                 <div>
-                  <Label htmlFor="fechaNacimiento">Fecha de nacimiento</Label>
+                  <Label htmlFor="birth_date">Fecha de nacimiento</Label>
                   <Input
-                    id="fechaNacimiento"
+                    id="birth_date"
                     type="date"
-                    value={formData.fechaNacimiento}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, fechaNacimiento: e.target.value})}
+                    value={formData.birth_date}
+                    onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
                   />
                 </div>
-                
-                {/* <div className="md:col-span-2">
-                  <Label htmlFor="foto">URL de Foto</Label>
-                  <Input
-                    id="foto"
-                    value={formData.foto}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, foto: e.target.value})}
-                    placeholder="https://ejemplo.com/foto.jpg"
-                  />
-                </div> */}
               </div>
-              
-              {/* Campo Administrador - Solo visible para administradores */}
-              {user.rol === "admin" && (
+
+              {/* Admin checkbox - only visible to admins */}
+              {user.role === "admin" && (
                 <div className="flex items-center space-x-2">
                   <input
                     type="checkbox"
-                    id="administrador"
-                    checked={formData.administrador}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, administrador: e.target.checked})}
+                    id="is_admin"
+                    checked={formData.is_admin}
+                    onChange={(e) => setFormData({ ...formData, is_admin: e.target.checked })}
                     className="rounded border-gray-300 text-[#4dd0e1] focus:ring-[#4dd0e1]"
                   />
-                  <Label htmlFor="administrador" className="text-sm font-medium">
+                  <Label htmlFor="is_admin" className="text-sm font-medium">
                     Administrador
                   </Label>
                 </div>
               )}
-              
+
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
                 <Button type="submit" className="bg-[#4dd0e1] hover:bg-[#3bc0d1]">
-                  {editingVoluntario ? "Actualizar" : "Agregar"}
+                  {editingVolunteer ? "Actualizar" : "Agregar"}
                 </Button>
               </DialogFooter>
             </form>
@@ -380,17 +398,17 @@ export default function VoluntariosManager({ user }: { user: User }) {
         </Dialog>
       </div>
 
-      {/* Lista de Voluntarios */}
+      {/* Volunteer list */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4 sm:px-0">
-        {voluntarios.map((voluntario) => (
-          <Card key={voluntario.id} className="hover:shadow-lg transition-shadow duration-200">
+        {volunteers.map((volunteer) => (
+          <Card key={volunteer.id} className="hover:shadow-lg transition-shadow duration-200">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-3 flex-1 min-w-0">
-                  {voluntario.foto ? (
-                    <img 
-                      src={voluntario.foto} 
-                      alt={getNombreCompleto(voluntario)}
+                  {volunteer.photo ? (
+                    <img
+                      src={volunteer.photo}
+                      alt={getFullName(volunteer)}
                       className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                     />
                   ) : (
@@ -399,17 +417,17 @@ export default function VoluntariosManager({ user }: { user: User }) {
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <CardTitle className="text-lg truncate">{getNombreCompleto(voluntario)}</CardTitle>
+                    <CardTitle className="text-lg truncate">{getFullName(volunteer)}</CardTitle>
                     <div className="flex flex-wrap items-center gap-2 mt-1">
-                      <Badge variant="secondary" className={`text-xs ${getSexoColor(voluntario.sexo)}`}>
-                        {getSexoIcon(voluntario.sexo)} {voluntario.sexo || "No especificado"}
+                      <Badge variant="secondary" className={`text-xs ${getGenderColor(volunteer.gender)}`}>
+                        {getGenderIcon(volunteer.gender)} {volunteer.gender || "No especificado"}
                       </Badge>
-                      {voluntario.edad && (
+                      {volunteer.age && (
                         <Badge variant="outline" className="text-xs">
-                          {voluntario.edad} años
+                          {volunteer.age} años
                         </Badge>
                       )}
-                      {voluntario.administrador && user.rol === "admin" && (
+                      {volunteer.is_admin && user.role === "admin" && (
                         <Badge variant="default" className="text-xs bg-[#4dd0e1] text-white">
                           👑 Administrador
                         </Badge>
@@ -419,64 +437,79 @@ export default function VoluntariosManager({ user }: { user: User }) {
                 </div>
               </div>
             </CardHeader>
-            
+
             <CardContent className="space-y-3">
               <div className="space-y-2">
-                {voluntario.telefono && (
+                {volunteer.phone && (
                   <div className="flex items-center text-sm text-gray-600">
                     <Phone className="w-4 h-4 mr-2 flex-shrink-0" />
-                    <span className="truncate">{voluntario.telefono}</span>
+                    <span className="truncate">{volunteer.phone}</span>
                   </div>
                 )}
-                
-                {voluntario.email && (
+
+                {volunteer.email && (
                   <div className="flex items-center text-sm text-gray-600">
                     <Mail className="w-4 h-4 mr-2 flex-shrink-0" />
-                    <span className="truncate">{voluntario.email}</span>
+                    <span className="truncate">{volunteer.email}</span>
                   </div>
                 )}
-                
-                {voluntario.fechaNacimiento && (
+
+                {volunteer.birth_date && (
                   <div className="flex items-center text-sm text-gray-600">
                     <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
-                    <span className="text-xs sm:text-sm">Nacimiento: {new Date(voluntario.fechaNacimiento).toLocaleDateString("es-ES")}</span>
+                    <span className="text-xs sm:text-sm">
+                      Nacimiento: {new Date(volunteer.birth_date).toLocaleDateString("es-ES")}
+                    </span>
                   </div>
                 )}
-                
+
                 <div className="flex items-center text-sm text-gray-600">
                   <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
-                  <span className="text-xs sm:text-sm">Registrado: {new Date(voluntario.fechaRegistro).toLocaleDateString("es-ES")}</span>
+                  <span className="text-xs sm:text-sm">
+                    Registrado: {new Date(volunteer.registration_date).toLocaleDateString("es-ES")}
+                  </span>
                 </div>
               </div>
-              
-              {voluntario.especialidades && voluntario.especialidades.length > 0 && (
+
+              {volunteer.specialties && volunteer.specialties.length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center text-sm font-medium text-gray-700">
                     <Heart className="w-4 h-4 mr-2 flex-shrink-0" />
                     <span className="text-xs sm:text-sm">Especialidades:</span>
                   </div>
                   <div className="flex flex-wrap gap-1">
-                    {voluntario.especialidades.map((especialidad, index) => (
+                    {volunteer.specialties.map((specialty, index) => (
                       <Badge key={index} variant="outline" className="text-xs">
-                        {especialidad}
+                        {specialty}
                       </Badge>
                     ))}
                   </div>
                 </div>
               )}
-              
+
               <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t">
-                <Button 
-                  onClick={() => openEditDialog(voluntario)} 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  onClick={() => openEditDialog(volunteer)}
+                  variant="outline"
+                  size="sm"
                   className="flex-1"
                 >
                   <Edit className="w-4 h-4 mr-1" />
                   Editar
                 </Button>
+                {user.role === "admin" && (
+                  <Button
+                    onClick={() => openPinDialog(volunteer)}
+                    variant="outline"
+                    size="sm"
+                    className="text-[#4dd0e1] border-[#4dd0e1] hover:bg-[#e0f7fa]"
+                    title="Asignar PIN"
+                  >
+                    <KeyRound className="w-4 h-4" />
+                  </Button>
+                )}
                 <Button
-                  onClick={() => handleDeleteClick(voluntario)}
+                  onClick={() => handleDeleteClick(volunteer)}
                   variant="outline"
                   size="sm"
                   className="text-red-600 hover:text-red-700 hover:bg-red-50 sm:w-auto"
@@ -489,7 +522,7 @@ export default function VoluntariosManager({ user }: { user: User }) {
         ))}
       </div>
 
-      {voluntarios.length === 0 && (
+      {volunteers.length === 0 && (
         <div className="text-center py-12 px-4">
           <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No hay voluntarios registrados</h3>
@@ -497,18 +530,68 @@ export default function VoluntariosManager({ user }: { user: User }) {
         </div>
       )}
 
-      {/* Diálogo de confirmación para eliminar */}
       <ConfirmationDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         onConfirm={handleDeleteConfirm}
-        itemName={voluntarioToDelete?.nombre}
+        itemName={volunteerToDelete?.name}
         itemType="general"
         action="delete"
         loading={deleting}
         title="¿Eliminar voluntario?"
         description="Esta acción eliminará permanentemente al voluntario del sistema. Si tiene items asignados en el inventario, no se podrá eliminar."
       />
+
+      {/* PIN Dialog */}
+      <Dialog open={pinDialogOpen} onOpenChange={(open) => { setPinDialogOpen(open); if (!open) setPinMessage(null) }}>
+        <DialogContent className="sm:max-w-[360px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-[#4dd0e1]" />
+              Asignar PIN
+            </DialogTitle>
+            <DialogDescription>
+              {pinVolunteer ? `Establecer PIN de acceso para ${pinVolunteer.name}${pinVolunteer.last_name ? " " + pinVolunteer.last_name : ""}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="pin-input">PIN (4 dígitos numéricos)</Label>
+              <Input
+                id="pin-input"
+                type="password"
+                inputMode="numeric"
+                value={pinValue}
+                onChange={(e) => setPinValue(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="••••"
+                maxLength={4}
+                className="tracking-widest text-center text-lg"
+                onKeyDown={(e) => { if (e.key === "Enter") handleSavePin() }}
+              />
+            </div>
+
+            {pinMessage && (
+              <p className={`text-sm font-medium ${pinMessage.type === "ok" ? "text-green-600" : "text-red-600"}`}>
+                {pinMessage.type === "ok" ? "✓ " : "✗ "}{pinMessage.text}
+              </p>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPinDialogOpen(false)}>
+              Cerrar
+            </Button>
+            <Button
+              className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
+              onClick={handleSavePin}
+              disabled={pinLoading || pinValue.length !== 4}
+            >
+              {pinLoading ? "Guardando..." : "Guardar PIN"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

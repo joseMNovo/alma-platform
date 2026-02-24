@@ -19,28 +19,25 @@ export default function HomePage() {
     if (savedUser) {
       const userData = JSON.parse(savedUser)
       setUser(userData)
-      
-      // Si es admin, ir directo a inventario
-      if (userData.rol === "admin") {
-        router.push('/inventario')
-      }
+      // Sincronizar cookie por si ya tenían sesión en localStorage sin cookie
+      document.cookie = "alma_session=1; path=/; SameSite=Strict; max-age=2592000"
+      router.push("/calendarios")
     }
     setLoading(false)
   }, [router])
 
-  const handleLogin = (userData) => {
+  const handleLogin = (userData: any) => {
     setUser(userData)
     localStorage.setItem("alma_user", JSON.stringify(userData))
-    
-    // Después del login, redirigir a inventario
-    if (userData.rol === "admin") {
-      router.push('/inventario')
-    }
+    // Marcar sesión en cookie para que el middleware pueda proteger rutas server-side
+    document.cookie = "alma_session=1; path=/; SameSite=Strict; max-age=2592000"
+    router.push("/calendarios")
   }
 
   const handleLogout = () => {
     setUser(null)
     localStorage.removeItem("alma_user")
+    document.cookie = "alma_session=; path=/; max-age=0"
   }
 
   if (loading) {

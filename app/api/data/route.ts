@@ -1,10 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { readData } from "@/lib/data-manager"
+import { getAllData, getVolunteers, getPendingTasks, savePendingTasks } from "@/lib/data-manager"
 
 export async function GET() {
   try {
-    const data = readData()
-    return NextResponse.json(data)
+    const [volunteers, pending_tasks] = await Promise.all([
+      getVolunteers(),
+      getPendingTasks(),
+    ])
+    return NextResponse.json({ volunteers, pendientes: pending_tasks })
   } catch (error) {
     return NextResponse.json({ error: "Error del servidor" }, { status: 500 })
   }
@@ -12,29 +15,15 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const updatedData = await request.json()
-    
-    // Leer datos actuales
-    const data = readData()
-    
-    // Actualizar datos específicos según lo que se envíe
-    const newData = {
-      ...data,
-      ...updatedData
+    const body = await request.json()
+
+    if (body.pendientes !== undefined) {
+      await savePendingTasks(body.pendientes)
     }
-    
-    // Guardar datos
-    const { writeData } = await import("@/lib/data-manager")
-    writeData(newData)
-    
-    return NextResponse.json({ 
-      success: true, 
-      message: "Datos actualizados exitosamente" 
-    })
+
+    return NextResponse.json({ success: true, message: "Datos actualizados exitosamente" })
   } catch (error) {
     console.error("Error updating data:", error)
-    return NextResponse.json({ 
-      error: "Error al actualizar datos" 
-    }, { status: 500 })
+    return NextResponse.json({ error: "Error al actualizar datos" }, { status: 500 })
   }
 }

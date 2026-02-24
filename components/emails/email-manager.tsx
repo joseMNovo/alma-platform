@@ -21,9 +21,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Mail, Send, Clock, CheckCircle, AlertCircle, Plus } from "lucide-react"
 
-export default function EmailManager({ user }) {
-  const [usuarios, setUsuarios] = useState([])
-  const [emailHistory, setEmailHistory] = useState([])
+export default function EmailManager({ user }: { user: any }) {
+  const [volunteers, setVolunteers] = useState<any[]>([])
+  const [emailHistory, setEmailHistory] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [sending, setSending] = useState(false)
@@ -91,17 +91,17 @@ Equipo ALMA - Alzheimer Rosario`,
   }
 
   useEffect(() => {
-    fetchUsuarios()
+    fetchVolunteers()
     fetchEmailHistory()
   }, [])
 
-  const fetchUsuarios = async () => {
+  const fetchVolunteers = async () => {
     try {
-      const response = await fetch("/api/auth")
+      const response = await fetch("/api/voluntarios")
       const data = await response.json()
-      setUsuarios(data.usuarios || [])
+      setVolunteers(data)
     } catch (error) {
-      console.error("Error fetching usuarios:", error)
+      console.error("Error fetching voluntarios:", error)
     } finally {
       setLoading(false)
     }
@@ -137,9 +137,9 @@ Equipo ALMA - Alzheimer Rosario`,
     }
   }
 
-  const handleSelectAll = (checked) => {
+  const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedUsers(usuarios.map((u) => u.id))
+      setSelectedUsers(volunteers.map((v) => v.id))
     } else {
       setSelectedUsers([])
     }
@@ -148,21 +148,22 @@ Equipo ALMA - Alzheimer Rosario`,
   const enviarEmails = async () => {
     setSending(true)
     try {
-      let destinatarios = []
+      let destinatarios: any[] = []
 
       if (formData.destinatarios === "todos") {
-        destinatarios = usuarios.filter((u) => u.rol === "usuario")
+        destinatarios = volunteers.filter((v) => !v.is_admin)
       } else if (formData.destinatarios === "seleccionados") {
-        destinatarios = usuarios.filter((u) => selectedUsers.includes(u.id))
+        destinatarios = volunteers.filter((v) => selectedUsers.includes(v.id))
       }
 
-      const promises = destinatarios.map((usuario) => {
+      const promises = destinatarios.map((volunteer) => {
         let mensaje = formData.mensaje
         let asunto = formData.asunto
 
         // Reemplazar variables en el mensaje
-        mensaje = mensaje.replace(/{nombre}/g, usuario.nombre)
-        asunto = asunto.replace(/{nombre}/g, usuario.nombre)
+        const fullName = `${volunteer.name}${volunteer.last_name ? " " + volunteer.last_name : ""}`
+        mensaje = mensaje.replace(/{nombre}/g, fullName)
+        asunto = asunto.replace(/{nombre}/g, fullName)
 
         return fetch("/api/emails", {
           method: "POST",
@@ -170,7 +171,7 @@ Equipo ALMA - Alzheimer Rosario`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            to: usuario.email,
+            to: volunteer.email,
             subject: asunto,
             message: mensaje,
             type: formData.tipo,
@@ -265,24 +266,24 @@ Equipo ALMA - Alzheimer Rosario`,
                     <div className="flex items-center space-x-2 mb-2 pb-2 border-b">
                       <Checkbox
                         id="select-all"
-                        checked={selectedUsers.length === usuarios.length}
+                        checked={selectedUsers.length === volunteers.length}
                         onCheckedChange={handleSelectAll}
                       />
                       <Label htmlFor="select-all" className="font-medium">
                         Seleccionar todos
                       </Label>
                     </div>
-                    {usuarios
-                      .filter((u) => u.rol === "usuario")
-                      .map((usuario) => (
-                        <div key={usuario.id} className="flex items-center space-x-2 py-1">
+                    {volunteers
+                      .filter((v) => !v.is_admin)
+                      .map((volunteer) => (
+                        <div key={volunteer.id} className="flex items-center space-x-2 py-1">
                           <Checkbox
-                            id={`user-${usuario.id}`}
-                            checked={selectedUsers.includes(usuario.id)}
-                            onCheckedChange={(checked) => handleUserSelection(usuario.id, checked)}
+                            id={`user-${volunteer.id}`}
+                            checked={selectedUsers.includes(volunteer.id)}
+                            onCheckedChange={(checked) => handleUserSelection(volunteer.id, checked)}
                           />
-                          <Label htmlFor={`user-${usuario.id}`} className="text-sm">
-                            {usuario.nombre} ({usuario.email})
+                          <Label htmlFor={`user-${volunteer.id}`} className="text-sm">
+                            {volunteer.name}{volunteer.last_name ? " " + volunteer.last_name : ""} ({volunteer.email})
                           </Label>
                         </div>
                       ))}
@@ -380,7 +381,7 @@ Equipo ALMA - Alzheimer Rosario`,
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-[#4dd0e1]">
-                  {usuarios.filter((u) => u.rol === "usuario").length}
+                  {volunteers.filter((v) => !v.is_admin).length}
                 </div>
               </CardContent>
             </Card>

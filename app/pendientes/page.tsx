@@ -17,8 +17,8 @@ export default function PendientesPage() {
     const savedUser = localStorage.getItem("alma_user")
     if (savedUser) {
       setUser(JSON.parse(savedUser))
+      document.cookie = "alma_session=1; path=/; SameSite=Strict; max-age=2592000"
     } else {
-      // Si no hay usuario, redirigir al login
       router.push("/")
     }
     setLoading(false)
@@ -27,6 +27,7 @@ export default function PendientesPage() {
   const handleLogout = () => {
     setUser(null)
     localStorage.removeItem("alma_user")
+    document.cookie = "alma_session=; path=/; max-age=0"
     router.push("/")
   }
 
@@ -58,7 +59,7 @@ export default function PendientesPage() {
   }
 
   // Permitir acceso a administradores y voluntarios
-  const hasAccess = user.rol === "admin" || user.rol === "voluntario"
+  const hasAccess = user.role === "admin" || user.role === "voluntario"
 
   if (!hasAccess) {
     return (

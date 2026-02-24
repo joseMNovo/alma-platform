@@ -30,3 +30,13 @@ next-env.d.ts
 # .json
 lib/data.json
 .json
+
+# database
+database.sql
+
+# AI files
+*.md
+
+# logs
+/logs/
+logs/

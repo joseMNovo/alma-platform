@@ -57,10 +57,9 @@ export default function AjustesPage() {
     return null // Se está redirigiendo
   }
 
-  const isAdmin = user && user.rol === "admin"
-  const isJose = user && user.email === "jose@alma.com"
+  const isAdmin = user && user.role === "admin"
 
-  if (!isAdmin || !isJose) {
+  if (!isAdmin) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

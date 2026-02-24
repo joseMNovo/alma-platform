@@ -7,80 +7,76 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Users, DollarSign, Download, Activity, AlertTriangle } from "lucide-react"
 
-// Interfaces para tipado
-interface User {
+interface Volunteer {
   id: number
-  nombre: string
+  name: string
   email: string
-  rol: string
-  estado?: string
+  role: string
+  status?: string
 }
 
-interface Taller {
+interface Workshop {
   id: number
-  nombre: string
-  cupos: number
-  inscritos: number
-  dia: string
-  horario: string
-  estado?: string
+  name: string
+  capacity: number
+  enrolled: number
+  day: string
+  schedule: string
+  status?: string
 }
 
-interface Grupo {
+interface Group {
   id: number
-  nombre: string
-  participantes: number
-  inscritos: number
-  estado?: string
-  dia?: string
-  horario?: string
+  name: string
+  participants: number
+  status?: string
+  day?: string
+  schedule?: string
 }
 
-interface Actividad {
+interface Activity {
   id: number
-  nombre: string
-  participantes: number
-  inscritos: number
-  estado?: string
+  name: string
+  capacity: number
+  enrolled: number
+  status?: string
 }
 
-interface Pago {
+interface Payment {
   id: number
-  concepto: string
-  monto: number
-  estado: string
-  metodoPago: string
-  fechaVencimiento?: string
+  concept: string
+  amount: number
+  status: string
+  payment_method: string
+  due_date?: string
 }
 
-interface InventarioItem {
+interface InventoryItem {
   id: number
-  nombre: string
-  categoria: string
-  cantidad: number
-  stockMinimo: number
-  precio: number
+  name: string
+  category: string
+  quantity: number
+  minimum_stock: number
+  price: number
 }
 
 interface Data {
-  usuarios: User[]
-  talleres: Taller[]
-  grupos: Grupo[]
-  actividades: Actividad[]
-  pagos: Pago[]
-  inventario: InventarioItem[]
-  inscripciones: any[]
+  volunteers: Volunteer[]
+  workshops: Workshop[]
+  groups: Group[]
+  activities: Activity[]
+  payments: Payment[]
+  inventory: InventoryItem[]
 }
 
-export default function ReportesManager({ user }: { user: User }) {
+export default function ReportesManager({ user }: { user: Volunteer }) {
   const [data, setData] = useState<Data>({
-    usuarios: [],
-    talleres: [],
-    grupos: [],
-    actividades: [],
-    pagos: [],
-    inventario: [],
-    inscripciones: [],
+    volunteers: [],
+    workshops: [],
+    groups: [],
+    activities: [],
+    payments: [],
+    inventory: [],
   })
   const [loading, setLoading] = useState(true)
   const [selectedPeriod, setSelectedPeriod] = useState("mes")
@@ -91,7 +87,7 @@ export default function ReportesManager({ user }: { user: User }) {
 
   const fetchAllData = async () => {
     try {
-      const [usuarios, talleres, grupos, actividades, pagos, inventario] = await Promise.all([
+      const [volunteersRes, workshops, groups, activities, payments, inventory] = await Promise.all([
         fetch("/api/auth").then((r) => r.json()),
         fetch("/api/talleres").then((r) => r.json()),
         fetch("/api/grupos").then((r) => r.json()),
@@ -101,13 +97,12 @@ export default function ReportesManager({ user }: { user: User }) {
       ])
 
       setData({
-        usuarios: usuarios.usuarios || [],
-        talleres,
-        grupos,
-        actividades,
-        pagos,
-        inventario,
-        inscripciones: [], // Se obtendría de una API de inscripciones
+        volunteers: volunteersRes.volunteers || [],
+        workshops,
+        groups,
+        activities,
+        payments,
+        inventory,
       })
     } catch (error) {
       console.error("Error fetching data:", error)
@@ -116,48 +111,46 @@ export default function ReportesManager({ user }: { user: User }) {
     }
   }
 
-  // Cálculos de estadísticas
   const stats = {
-    totalUsuarios: data.usuarios.length,
-    usuariosActivos: data.usuarios.filter((u) => u.rol === "usuario").length,
-    totalTalleres: data.talleres.length,
-    talleresActivos: data.talleres.filter((t) => t.estado === "activo").length,
-    totalGrupos: data.grupos.length,
-    gruposActivos: data.grupos.filter((g) => g.estado === "activo").length,
-    totalActividades: data.actividades.length,
-    actividadesActivas: data.actividades.filter((a) => a.estado === "activo").length,
-    ingresosTotales: data.pagos.filter((p) => p.estado === "pagado").reduce((sum, p) => sum + p.monto, 0),
-    pagosPendientes: data.pagos.filter((p) => p.estado === "pendiente").length,
-    pagosVencidos: data.pagos.filter((p) => p.estado === "pendiente" && p.fechaVencimiento && new Date(p.fechaVencimiento) < new Date())
-      .length,
-    inventarioTotal: data.inventario.length,
-    itemsBajoStock: data.inventario.filter((i) => i.cantidad <= i.stockMinimo).length,
-    valorInventario: data.inventario.reduce((sum, i) => sum + i.cantidad * i.precio, 0),
+    totalVolunteers: data.volunteers.length,
+    activeVolunteers: data.volunteers.filter((v) => v.role !== "admin").length,
+    totalWorkshops: data.workshops.length,
+    activeWorkshops: data.workshops.filter((w) => w.status === "activo").length,
+    totalGroups: data.groups.length,
+    activeGroups: data.groups.filter((g) => g.status === "activo").length,
+    totalActivities: data.activities.length,
+    activeActivities: data.activities.filter((a) => a.status === "activo").length,
+    totalIncome: data.payments.filter((p) => p.status === "pagado").reduce((sum, p) => sum + p.amount, 0),
+    pendingPayments: data.payments.filter((p) => p.status === "pendiente").length,
+    overduePayments: data.payments.filter(
+      (p) => p.status === "pendiente" && p.due_date && new Date(p.due_date) < new Date()
+    ).length,
+    totalInventory: data.inventory.length,
+    lowStockItems: data.inventory.filter((i) => i.quantity <= i.minimum_stock).length,
+    inventoryValue: data.inventory.reduce((sum, i) => sum + i.quantity * i.price, 0),
   }
 
-  // Datos para gráficos (simulados)
   const chartData = {
-    ingresosMensuales: [
-      { mes: "Ene", ingresos: 45000 },
-      { mes: "Feb", ingresos: 52000 },
-      { mes: "Mar", ingresos: 48000 },
-      { mes: "Abr", ingresos: 61000 },
-      { mes: "May", ingresos: 55000 },
-      { mes: "Jun", ingresos: 67000 },
+    monthlyIncome: [
+      { month: "Ene", income: 45000 },
+      { month: "Feb", income: 52000 },
+      { month: "Mar", income: 48000 },
+      { month: "Abr", income: 61000 },
+      { month: "May", income: 55000 },
+      { month: "Jun", income: 67000 },
     ],
-    inscripcionesPorMes: [
-      { mes: "Ene", talleres: 12, grupos: 8, actividades: 15 },
-      { mes: "Feb", talleres: 15, grupos: 10, actividades: 18 },
-      { mes: "Mar", talleres: 18, grupos: 12, actividades: 22 },
-      { mes: "Abr", talleres: 22, grupos: 15, actividades: 25 },
-      { mes: "May", talleres: 20, grupos: 13, actividades: 20 },
-      { mes: "Jun", talleres: 25, grupos: 18, actividades: 30 },
+    enrollmentsByMonth: [
+      { month: "Ene", workshops: 12, groups: 8, activities: 15 },
+      { month: "Feb", workshops: 15, groups: 10, activities: 18 },
+      { month: "Mar", workshops: 18, groups: 12, activities: 22 },
+      { month: "Abr", workshops: 22, groups: 15, activities: 25 },
+      { month: "May", workshops: 20, groups: 13, activities: 20 },
+      { month: "Jun", workshops: 25, groups: 18, activities: 30 },
     ],
   }
 
-  const exportarReporte = (tipo: string): void => {
-    // Simulación de exportación
-    alert(`Exportando reporte de ${tipo}...`)
+  const exportReport = (type: string): void => {
+    alert(`Exportando reporte de ${type}...`)
   }
 
   if (loading) {
@@ -169,7 +162,7 @@ export default function ReportesManager({ user }: { user: User }) {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Reportes y Estadísticas</h2>
-          <p className="text-gray-600">Análisis completo de la plataforma ALMA</p>
+          <p className="text-gray-600">Análisis completo de la plataforma alma</p>
         </div>
         <div className="flex gap-2">
           <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
@@ -183,7 +176,7 @@ export default function ReportesManager({ user }: { user: User }) {
               <SelectItem value="año">Este año</SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={() => exportarReporte("general")} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+          <Button onClick={() => exportReport("general")} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
             <Download className="w-4 h-4 mr-2" />
             Exportar
           </Button>
@@ -207,15 +200,14 @@ export default function ReportesManager({ user }: { user: User }) {
         </TabsList>
 
         <TabsContent value="resumen" className="space-y-6">
-          {/* KPIs Principales */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Usuarios</CardTitle>
+                <CardTitle className="text-sm font-medium">Total Voluntarios</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-[#4dd0e1]">{stats.totalUsuarios}</div>
+                <div className="text-2xl font-bold text-[#4dd0e1]">{stats.totalVolunteers}</div>
                 <p className="text-xs text-muted-foreground">
                   <span className="text-green-600">+12%</span> vs mes anterior
                 </p>
@@ -228,7 +220,7 @@ export default function ReportesManager({ user }: { user: User }) {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">${stats.ingresosTotales.toLocaleString()}</div>
+                <div className="text-2xl font-bold text-green-600">${stats.totalIncome.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">
                   <span className="text-green-600">+8%</span> vs mes anterior
                 </p>
@@ -242,7 +234,7 @@ export default function ReportesManager({ user }: { user: User }) {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-[#4dd0e1]">
-                  {stats.talleresActivos + stats.gruposActivos + stats.actividadesActivas}
+                  {stats.activeWorkshops + stats.activeGroups + stats.activeActivities}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   <span className="text-green-600">+5%</span> vs mes anterior
@@ -256,13 +248,12 @@ export default function ReportesManager({ user }: { user: User }) {
                 <AlertTriangle className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">{stats.pagosVencidos + stats.itemsBajoStock}</div>
+                <div className="text-2xl font-bold text-red-600">{stats.overduePayments + stats.lowStockItems}</div>
                 <p className="text-xs text-muted-foreground">Pagos vencidos + Stock bajo</p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Gráfico de Ingresos */}
           <Card>
             <CardHeader>
               <CardTitle>Ingresos por Mes</CardTitle>
@@ -270,23 +261,22 @@ export default function ReportesManager({ user }: { user: User }) {
             </CardHeader>
             <CardContent>
               <div className="h-64 flex items-end justify-between gap-2 p-4">
-                {chartData.ingresosMensuales.map((item, index) => (
+                {chartData.monthlyIncome.map((item, index) => (
                   <div key={index} className="flex flex-col items-center flex-1">
                     <div
                       className="bg-[#4dd0e1] w-full rounded-t"
                       style={{
-                        height: `${(item.ingresos / Math.max(...chartData.ingresosMensuales.map((i) => i.ingresos))) * 200}px`,
+                        height: `${(item.income / Math.max(...chartData.monthlyIncome.map((i) => i.income))) * 200}px`,
                       }}
                     />
-                    <span className="text-xs mt-2 text-gray-600">{item.mes}</span>
-                    <span className="text-xs text-gray-500">${(item.ingresos / 1000).toFixed(0)}k</span>
+                    <span className="text-xs mt-2 text-gray-600">{item.month}</span>
+                    <span className="text-xs text-gray-500">${(item.income / 1000).toFixed(0)}k</span>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
 
-          {/* Distribución de Actividades */}
           <div className="grid gap-6 md:grid-cols-3">
             <Card>
               <CardHeader>
@@ -295,15 +285,15 @@ export default function ReportesManager({ user }: { user: User }) {
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Total:</span>
-                  <span className="font-medium">{stats.totalTalleres}</span>
+                  <span className="font-medium">{stats.totalWorkshops}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Activos:</span>
-                  <span className="font-medium text-green-600">{stats.talleresActivos}</span>
+                  <span className="font-medium text-green-600">{stats.activeWorkshops}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Inscritos:</span>
-                  <span className="font-medium">{data.talleres.reduce((sum, t) => sum + t.inscritos, 0)}</span>
+                  <span className="font-medium">{data.workshops.reduce((sum, w) => sum + (w.enrolled || 0), 0)}</span>
                 </div>
               </CardContent>
             </Card>
@@ -315,15 +305,15 @@ export default function ReportesManager({ user }: { user: User }) {
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Total:</span>
-                  <span className="font-medium">{stats.totalGrupos}</span>
+                  <span className="font-medium">{stats.totalGroups}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Activos:</span>
-                  <span className="font-medium text-green-600">{stats.gruposActivos}</span>
+                  <span className="font-medium text-green-600">{stats.activeGroups}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Participantes:</span>
-                  <span className="font-medium">{data.grupos.reduce((sum, g) => sum + g.participantes, 0)}</span>
+                  <span className="font-medium">{data.groups.reduce((sum, g) => sum + (g.participants || 0), 0)}</span>
                 </div>
               </CardContent>
             </Card>
@@ -335,15 +325,15 @@ export default function ReportesManager({ user }: { user: User }) {
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Total:</span>
-                  <span className="font-medium">{stats.totalActividades}</span>
+                  <span className="font-medium">{stats.totalActivities}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Activas:</span>
-                  <span className="font-medium text-green-600">{stats.actividadesActivas}</span>
+                  <span className="font-medium text-green-600">{stats.activeActivities}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Inscritos:</span>
-                  <span className="font-medium">{data.actividades.reduce((sum, a) => sum + a.inscritos, 0)}</span>
+                  <span className="font-medium">{data.activities.reduce((sum, a) => sum + (a.enrolled || 0), 0)}</span>
                 </div>
               </CardContent>
             </Card>
@@ -360,21 +350,21 @@ export default function ReportesManager({ user }: { user: User }) {
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Pagos Realizados:</span>
                   <span className="font-medium text-green-600">
-                    {data.pagos.filter((p) => p.estado === "pagado").length}
+                    {data.payments.filter((p) => p.status === "pagado").length}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Pagos Pendientes:</span>
-                  <span className="font-medium text-yellow-600">{stats.pagosPendientes}</span>
+                  <span className="font-medium text-yellow-600">{stats.pendingPayments}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Pagos Vencidos:</span>
-                  <span className="font-medium text-red-600">{stats.pagosVencidos}</span>
+                  <span className="font-medium text-red-600">{stats.overduePayments}</span>
                 </div>
                 <div className="border-t pt-2">
                   <div className="flex justify-between items-center">
                     <span className="font-medium">Total Ingresos:</span>
-                    <span className="font-bold text-[#4dd0e1]">${stats.ingresosTotales.toLocaleString()}</span>
+                    <span className="font-bold text-[#4dd0e1]">${stats.totalIncome.toLocaleString()}</span>
                   </div>
                 </div>
               </CardContent>
@@ -387,17 +377,17 @@ export default function ReportesManager({ user }: { user: User }) {
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Efectivo:</span>
-                  <span className="font-medium">{data.pagos.filter((p) => p.metodoPago === "efectivo").length}</span>
+                  <span className="font-medium">{data.payments.filter((p) => p.payment_method === "efectivo").length}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Transferencia:</span>
                   <span className="font-medium">
-                    {data.pagos.filter((p) => p.metodoPago === "transferencia").length}
+                    {data.payments.filter((p) => p.payment_method === "transferencia").length}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Tarjeta:</span>
-                  <span className="font-medium">{data.pagos.filter((p) => p.metodoPago === "tarjeta").length}</span>
+                  <span className="font-medium">{data.payments.filter((p) => p.payment_method === "tarjeta").length}</span>
                 </div>
               </CardContent>
             </Card>
@@ -409,23 +399,23 @@ export default function ReportesManager({ user }: { user: User }) {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {["Cuota Mensual", "Taller", "Actividad"].map((concepto) => {
-                  const pagosConcepto = data.pagos.filter(
-                    (p) => p.concepto.toLowerCase().includes(concepto.toLowerCase()) && p.estado === "pagado",
+                {["Cuota Mensual", "Taller", "Actividad"].map((concept) => {
+                  const conceptPayments = data.payments.filter(
+                    (p) => p.concept.toLowerCase().includes(concept.toLowerCase()) && p.status === "pagado",
                   )
-                  const totalConcepto = pagosConcepto.reduce((sum, p) => sum + p.monto, 0)
-                  const porcentaje = stats.ingresosTotales > 0 ? (totalConcepto / stats.ingresosTotales) * 100 : 0
+                  const conceptTotal = conceptPayments.reduce((sum, p) => sum + p.amount, 0)
+                  const percentage = stats.totalIncome > 0 ? (conceptTotal / stats.totalIncome) * 100 : 0
 
                   return (
-                    <div key={concepto} className="space-y-1">
+                    <div key={concept} className="space-y-1">
                       <div className="flex justify-between text-sm">
-                        <span>{concepto}</span>
-                        <span className="font-medium">${totalConcepto.toLocaleString()}</span>
+                        <span>{concept}</span>
+                        <span className="font-medium">${conceptTotal.toLocaleString()}</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div className="bg-[#4dd0e1] h-2 rounded-full" style={{ width: `${porcentaje}%` }} />
+                        <div className="bg-[#4dd0e1] h-2 rounded-full" style={{ width: `${percentage}%` }} />
                       </div>
-                      <div className="text-xs text-gray-500">{porcentaje.toFixed(1)}% del total</div>
+                      <div className="text-xs text-gray-500">{percentage.toFixed(1)}% del total</div>
                     </div>
                   )
                 })}
@@ -442,25 +432,25 @@ export default function ReportesManager({ user }: { user: User }) {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {data.talleres.slice(0, 5).map((taller) => {
-                    const ocupacion = taller.cupos > 0 ? (taller.inscritos / taller.cupos) * 100 : 0
+                  {data.workshops.slice(0, 5).map((workshop) => {
+                    const occupancy = workshop.capacity > 0 ? (workshop.enrolled / workshop.capacity) * 100 : 0
                     return (
-                      <div key={taller.id} className="space-y-1">
+                      <div key={workshop.id} className="space-y-1">
                         <div className="flex justify-between text-sm">
-                          <span className="truncate">{taller.nombre}</span>
+                          <span className="truncate">{workshop.name}</span>
                           <span className="font-medium">
-                            {taller.inscritos}/{taller.cupos}
+                            {workshop.enrolled}/{workshop.capacity}
                           </span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div
                             className={`h-2 rounded-full ${
-                              ocupacion >= 80 ? "bg-red-500" : ocupacion >= 60 ? "bg-yellow-500" : "bg-green-500"
+                              occupancy >= 80 ? "bg-red-500" : occupancy >= 60 ? "bg-yellow-500" : "bg-green-500"
                             }`}
-                            style={{ width: `${ocupacion}%` }}
+                            style={{ width: `${occupancy}%` }}
                           />
                         </div>
-                        <div className="text-xs text-gray-500">{ocupacion.toFixed(1)}% ocupado</div>
+                        <div className="text-xs text-gray-500">{occupancy.toFixed(1)}% ocupado</div>
                       </div>
                     )
                   })}
@@ -474,16 +464,16 @@ export default function ReportesManager({ user }: { user: User }) {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {data.grupos.map((grupo) => (
-                    <div key={grupo.id} className="flex justify-between items-center">
+                  {data.groups.map((group) => (
+                    <div key={group.id} className="flex justify-between items-center">
                       <div>
-                        <div className="font-medium text-sm">{grupo.nombre}</div>
+                        <div className="font-medium text-sm">{group.name}</div>
                         <div className="text-xs text-gray-500">
-                          {grupo.dia} - {grupo.horario}
+                          {group.day} - {group.schedule}
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-medium text-[#4dd0e1]">{grupo.participantes}</div>
+                        <div className="font-medium text-[#4dd0e1]">{group.participants}</div>
                         <div className="text-xs text-gray-500">participantes</div>
                       </div>
                     </div>
@@ -500,29 +490,14 @@ export default function ReportesManager({ user }: { user: User }) {
             </CardHeader>
             <CardContent>
               <div className="h-64 flex items-end justify-between gap-4 p-4">
-                {chartData.inscripcionesPorMes.map((item, index) => (
+                {chartData.enrollmentsByMonth.map((item, index) => (
                   <div key={index} className="flex flex-col items-center flex-1">
                     <div className="flex flex-col w-full gap-1">
-                      <div
-                        className="bg-blue-500 w-full rounded-t"
-                        style={{
-                          height: `${(item.talleres / 30) * 60}px`,
-                        }}
-                      />
-                      <div
-                        className="bg-green-500 w-full"
-                        style={{
-                          height: `${(item.grupos / 30) * 60}px`,
-                        }}
-                      />
-                      <div
-                        className="bg-[#4dd0e1] w-full"
-                        style={{
-                          height: `${(item.actividades / 30) * 60}px`,
-                        }}
-                      />
+                      <div className="bg-blue-500 w-full rounded-t" style={{ height: `${(item.workshops / 30) * 60}px` }} />
+                      <div className="bg-green-500 w-full" style={{ height: `${(item.groups / 30) * 60}px` }} />
+                      <div className="bg-[#4dd0e1] w-full" style={{ height: `${(item.activities / 30) * 60}px` }} />
                     </div>
-                    <span className="text-xs mt-2 text-gray-600">{item.mes}</span>
+                    <span className="text-xs mt-2 text-gray-600">{item.month}</span>
                   </div>
                 ))}
               </div>
@@ -553,15 +528,15 @@ export default function ReportesManager({ user }: { user: User }) {
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Total Items:</span>
-                  <span className="font-medium">{stats.inventarioTotal}</span>
+                  <span className="font-medium">{stats.totalInventory}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Bajo Stock:</span>
-                  <span className="font-medium text-red-600">{stats.itemsBajoStock}</span>
+                  <span className="font-medium text-red-600">{stats.lowStockItems}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Valor Total:</span>
-                  <span className="font-medium text-[#4dd0e1]">${stats.valorInventario.toLocaleString()}</span>
+                  <span className="font-medium text-[#4dd0e1]">${stats.inventoryValue.toLocaleString()}</span>
                 </div>
               </CardContent>
             </Card>
@@ -571,11 +546,11 @@ export default function ReportesManager({ user }: { user: User }) {
                 <CardTitle className="text-lg">Por Categoría</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {["Material Didáctico", "Material Terapéutico", "Mobiliario", "Merchandising"].map((categoria) => {
-                  const items = data.inventario.filter((i) => i.categoria === categoria)
+                {["Material Didáctico", "Material Terapéutico", "Mobiliario", "Merchandising"].map((category) => {
+                  const items = data.inventory.filter((i) => i.category === category)
                   return (
-                    <div key={categoria} className="flex justify-between">
-                      <span className="text-sm text-gray-600">{categoria}:</span>
+                    <div key={category} className="flex justify-between">
+                      <span className="text-sm text-gray-600">{category}:</span>
                       <span className="font-medium">{items.length}</span>
                     </div>
                   )
@@ -588,19 +563,19 @@ export default function ReportesManager({ user }: { user: User }) {
                 <CardTitle className="text-lg">Alertas de Stock</CardTitle>
               </CardHeader>
               <CardContent>
-                {stats.itemsBajoStock > 0 ? (
+                {stats.lowStockItems > 0 ? (
                   <div className="space-y-2">
-                    {data.inventario
-                      .filter((i) => i.cantidad <= i.stockMinimo)
+                    {data.inventory
+                      .filter((i) => i.quantity <= i.minimum_stock)
                       .slice(0, 3)
                       .map((item) => (
                         <div key={item.id} className="flex justify-between text-sm">
-                          <span className="truncate">{item.nombre}</span>
-                          <span className="text-red-600">{item.cantidad}</span>
+                          <span className="truncate">{item.name}</span>
+                          <span className="text-red-600">{item.quantity}</span>
                         </div>
                       ))}
-                    {stats.itemsBajoStock > 3 && (
-                      <div className="text-xs text-gray-500">+{stats.itemsBajoStock - 3} más...</div>
+                    {stats.lowStockItems > 3 && (
+                      <div className="text-xs text-gray-500">+{stats.lowStockItems - 3} más...</div>
                     )}
                   </div>
                 ) : (
@@ -616,20 +591,20 @@ export default function ReportesManager({ user }: { user: User }) {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {data.inventario
-                  .sort((a, b) => b.cantidad * b.precio - a.cantidad * a.precio)
+                {data.inventory
+                  .sort((a, b) => b.quantity * b.price - a.quantity * a.price)
                   .slice(0, 5)
                   .map((item) => (
                     <div key={item.id} className="flex justify-between items-center">
                       <div>
-                        <div className="font-medium text-sm">{item.nombre}</div>
+                        <div className="font-medium text-sm">{item.name}</div>
                         <div className="text-xs text-gray-500">
-                          {item.cantidad} unidades × ${item.precio.toLocaleString()}
+                          {item.quantity} unidades × ${item.price.toLocaleString()}
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="font-medium text-[#4dd0e1]">
-                          ${(item.cantidad * item.precio).toLocaleString()}
+                          ${(item.quantity * item.price).toLocaleString()}
                         </div>
                         <div className="text-xs text-gray-500">valor total</div>
                       </div>

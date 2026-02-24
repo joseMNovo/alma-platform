@@ -51,8 +51,8 @@ export default function AjustesManager({ user }: { user: any }) {
   }
 
   const validateJsonStructure = (data: any): boolean => {
-    const requiredKeys = ["usuarios", "talleres", "grupos", "actividades", "pagos", "inventario", "voluntarios", "inscripciones"]
-    
+    const requiredKeys = ["volunteers", "workshops", "groups", "activities", "payments", "inventory", "enrollments", "pending_tasks"]
+
     // Verificar que tenga todas las claves requeridas
     for (const key of requiredKeys) {
       if (!(key in data)) {
@@ -65,13 +65,11 @@ export default function AjustesManager({ user }: { user: any }) {
       }
     }
 
-    // Verificar estructura básica de usuarios
-    if (data.usuarios.length > 0) {
-      const user = data.usuarios[0]
-      if (!user.id || !user.nombre || !user.email || !user.rol) {
-        setImportError("Los usuarios deben tener id, nombre, email y rol")
-        return false
-      }
+    // Verificar que exista al menos un voluntario administrador
+    const hasAdmin = data.volunteers?.some((v: any) => v.is_admin === true || v.is_admin === 1)
+    if (!hasAdmin) {
+      setImportError("Debe existir al menos un voluntario administrador en el archivo")
+      return false
     }
 
     return true
@@ -254,9 +252,9 @@ export default function AjustesManager({ user }: { user: any }) {
           <div className="space-y-2">
             <h4 className="font-medium text-gray-900">Formato del archivo JSON:</h4>
             <ul className="text-sm text-gray-600 space-y-1 ml-4">
-              <li>• Debe contener las claves: usuarios, talleres, grupos, actividades, pagos, inventario, voluntarios, inscripciones</li>
+              <li>• Debe contener las claves: volunteers, workshops, groups, activities, payments, inventory, enrollments, pending_tasks</li>
               <li>• Cada clave debe ser un array de objetos</li>
-              <li>• Los usuarios deben tener: id, nombre, email, rol</li>
+              <li>• Debe existir al menos un voluntario con is_admin: true</li>
               <li>• El archivo debe ser válido JSON</li>
             </ul>
           </div>

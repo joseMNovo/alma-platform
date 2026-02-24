@@ -1,74 +1,56 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { readData, writeData, getNextId } from "@/lib/data-manager"
+import { getGroups, getUserEnrollments, createEnrollment, updateGroup } from "@/lib/data-manager"
+import { query } from "@/lib/db"
 
 export async function POST(request: NextRequest) {
   try {
-    const { usuarioId, grupoId } = await request.json()
-    const data = readData()
+    const { userId, groupId } = await request.json()
 
-    // Verificar que el grupo existe
-    const grupo = data.grupos.find((g) => g.id === grupoId)
-    if (!grupo) {
+    // Verify group exists
+    const groups = await getGroups()
+    const group = groups.find((g) => g.id === groupId)
+    if (!group) {
       return NextResponse.json({ error: "Grupo no encontrado" }, { status: 404 })
     }
 
-    // Verificar que el usuario no esté ya inscrito
-    const usuario = data.usuarios.find((u) => u.id === usuarioId)
-    if (!usuario) {
-      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 })
+    // Verify volunteer exists
+    const volunteers = await query("SELECT id, name, email FROM voluntarios WHERE id = ?", [userId])
+    if (volunteers.length === 0) {
+      return NextResponse.json({ error: "Voluntario no encontrado" }, { status: 404 })
     }
+    const volunteer = volunteers[0] as any
 
-    if (!usuario.inscripciones) {
-      usuario.inscripciones = { talleres: [], grupos: [], actividades: [] }
-    }
-
-    if (usuario.inscripciones.grupos.includes(grupoId)) {
+    // Check if already enrolled
+    const enrollments = await getUserEnrollments(userId)
+    if (enrollments.groups.includes(groupId)) {
       return NextResponse.json({ error: "Ya está inscrito en este grupo" }, { status: 400 })
     }
 
-    // Realizar la inscripción
-    usuario.inscripciones.grupos.push(grupoId)
-    grupo.participantes += 1
+    // Create enrollment record
+    const enrollment = await createEnrollment({
+      user_id: userId,
+      type: "grupo",
+      item_id: groupId,
+      enrollment_date: new Date().toISOString().split("T")[0],
+      status: "confirmada",
+    })
 
-    // Crear registro de inscripción
-    const nuevaInscripcion = {
-      id: getNextId(data.inscripciones),
-      usuarioId,
-      tipo: "grupo",
-      itemId: grupoId,
-      fechaInscripcion: new Date().toISOString().split("T")[0],
-      estado: "confirmada",
-    }
-    data.inscripciones.push(nuevaInscripcion)
-    writeData(data)
+    // Increment participants count
+    await updateGroup(groupId, { participants: group.participants + 1 })
 
-    // Enviar email de confirmación
+    // Send confirmation email
     await fetch("/api/emails", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        to: usuario.email,
+        to: volunteer.email,
         subject: "Confirmación de Inscripción - Grupo de Apoyo",
-        message: `Estimado/a ${usuario.nombre},
-
-Su inscripción al grupo "${grupo.nombre}" ha sido confirmada exitosamente.
-
-Detalles:
-- Coordinador: ${grupo.coordinador}
-- Día: ${grupo.dia}
-- Horario: ${grupo.horario}
-
-¡Esperamos verle pronto en nuestro grupo de apoyo!
-
-Saludos cordiales,
-Equipo ALMA - Alzheimer Rosario`,
+        message: `Estimado/a ${volunteer.name},\n\nSu inscripción al grupo "${group.name}" ha sido confirmada exitosamente.\n\nDetalles:\n- Coordinador: ${group.coordinator}\n- Día: ${group.day}\n- Horario: ${group.schedule}\n\n¡Esperamos verle pronto en nuestro grupo de apoyo!\n\nSaludos cordiales,\nEquipo ALMA - Alzheimer Rosario`,
         type: "confirmacion_inscripcion",
       }),
     })
 
-    return NextResponse.json({ success: true, inscripcion: nuevaInscripcion })
+    return NextResponse.json({ success: true, enrollment })
   } catch (error) {
     console.error("Error en inscripción:", error)
     return NextResponse.json({ error: "Error del servidor" }, { status: 500 })
