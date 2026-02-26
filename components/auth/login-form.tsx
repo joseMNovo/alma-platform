@@ -100,18 +100,20 @@ export default function LoginForm({ onLogin }: { onLogin: (user: any) => void })
           {/* Columna izquierda — identidad */}
           <div className="flex-1 flex flex-col items-center md:items-start gap-6 text-center md:text-left">
 
-            {/* Logo placeholder */}
-            <div className="border-2 border-dashed border-white/60 bg-white/15 rounded-2xl px-8 py-6 flex items-center justify-center">
-              <span className="text-white/70 text-sm font-medium tracking-wide">
-                Logo de alma buena calidad
-              </span>
+            {/* Logo de Alma */}
+            <div className="w-full max-w-[390px]">
+              <img
+                src="/images/alma_blanco.png"
+                alt="Alma Alzheimer Rosario"
+                className="w-full h-auto object-contain"
+              />
             </div>
 
             {/* Headline */}
             <div className="space-y-3">
               <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight" style={{ textShadow: "0 1px 8px rgba(0,0,0,0.15)" }}>
                 Bienvenido a la<br />
-                plataforma alma
+                plataforma ALMA
               </h1>
               {/* Subtítulo: más opaco y peso normal para mejor legibilidad */}
               <p className="text-white/95 text-lg md:text-xl font-normal" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.12)" }}>
