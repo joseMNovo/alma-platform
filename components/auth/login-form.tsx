@@ -65,7 +65,7 @@ export default function LoginForm({ onLogin }: { onLogin: (user: any) => void })
 
   return (
     <div
-      className="min-h-screen flex flex-col bg-gradient-to-br from-[#4dd0e1] to-white relative overflow-hidden"
+      className="min-h-screen flex flex-col bg-gradient-to-br from-[#4dd0e1] to-[#9a8bc2] relative overflow-hidden"
       style={{ fontFamily: "'Gotham Rounded', system-ui, sans-serif" }}
     >
       {/* Flores decorativas */}
