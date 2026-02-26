@@ -18,6 +18,8 @@ yarn-error.log*
 
 # env files
 .env.local
+.env
+.env*.local
 
 # vercel
 .vercel
@@ -28,14 +30,23 @@ next-env.d.ts
 
 # .json
 lib/data.json
-.json
 
 # database
 database.sql
 
-# AI files
-*.md
+# AI files (CLAUDE.md, MEMORY.md, etc — not README)
+CLAUDE.md
+MEMORY.md
+AI_*.md
 
-# logs
-/logs/
-logs/
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+
+# pnpm lockfile (project uses npm)
+pnpm-lock.yaml
+
+# logs (ignora contenido, mantiene estructura via .gitkeep)
+logs/*
+!logs/.gitkeep
