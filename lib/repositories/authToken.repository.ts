@@ -1,12 +1,12 @@
-import { query } from "@/lib/db"
+import { api } from '@/lib/api-client'
 
 export interface AuthToken {
   id: number
   auth_user_id: number
   token_hash: string
-  expires_at: Date
-  used_at: Date | null
-  created_at: Date
+  expires_at: string
+  used_at: string | null
+  created_at: string
 }
 
 export async function createToken(data: {
@@ -14,30 +14,27 @@ export async function createToken(data: {
   token_hash: string
   expires_at: Date
 }): Promise<void> {
-  await query(
-    "INSERT INTO email_verification_tokens (auth_user_id, token_hash, expires_at) VALUES (?, ?, ?)",
-    [data.auth_user_id, data.token_hash, data.expires_at]
-  )
+  await api.post('/auth/verification-tokens', {
+    auth_user_id: data.auth_user_id,
+    token_hash: data.token_hash,
+    expires_at: data.expires_at.toISOString(),
+  })
 }
 
 export async function findValidToken(token_hash: string): Promise<AuthToken | null> {
-  const rows = await query<AuthToken>(
-    "SELECT * FROM email_verification_tokens WHERE token_hash = ? LIMIT 1",
-    [token_hash]
-  )
-  return rows[0] ?? null
+  try {
+    return await api.get<AuthToken>(
+      `/auth/verification-tokens/by-hash/${encodeURIComponent(token_hash)}`
+    )
+  } catch {
+    return null
+  }
 }
 
 export async function markUsed(id: number): Promise<void> {
-  await query(
-    "UPDATE email_verification_tokens SET used_at = NOW() WHERE id = ?",
-    [id]
-  )
+  await api.put(`/auth/verification-tokens/${id}`, {})
 }
 
 export async function deleteExpiredByUser(auth_user_id: number): Promise<void> {
-  await query(
-    "DELETE FROM email_verification_tokens WHERE auth_user_id = ? AND (expires_at < NOW() OR used_at IS NOT NULL)",
-    [auth_user_id]
-  )
+  await api.delete(`/auth/verification-tokens/expired/${auth_user_id}`)
 }

@@ -4,12 +4,18 @@ import { getSessionUser } from "@/lib/serverAuth"
 import { can } from "@/lib/permissions"
 import { logInfo, logWarn, logError } from "@/lib/logger"
 
+function toOptionalInt(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === "") return undefined
+  const parsed = Number.parseInt(String(value), 10)
+  return Number.isNaN(parsed) ? undefined : parsed
+}
+
 export async function GET() {
   try {
     const workshops = await getWorkshops()
     return NextResponse.json(workshops)
   } catch (error) {
-    logError("Error al obtener talleres", { module: "talleres", action: "list" })
+    logError("Error al obtener talleres", { module: "talleres", action: "list", error })
     return NextResponse.json({ error: "Error del servidor" }, { status: 500 })
   }
 }
@@ -24,14 +30,17 @@ export async function POST(request: NextRequest) {
 
   try {
     const data = await request.json()
+    const capacity = toOptionalInt(data.capacity) ?? 0
+    const cost = toOptionalInt(data.cost) ?? 0
+
     const workshop = await createWorkshop({
       name: data.name,
       description: data.description || undefined,
       instructor: data.instructor || undefined,
       date: data.date || undefined,
       schedule: data.schedule || undefined,
-      capacity: Number.parseInt(data.capacity),
-      cost: Number.parseInt(data.cost),
+      capacity,
+      cost,
       status: data.status || "activo",
     })
     logInfo("Taller creado", { module: "talleres", action: "create_workshop", user: session.id, meta: { id: workshop.id, name: workshop.name } })
@@ -54,14 +63,17 @@ export async function PUT(request: NextRequest) {
     const url = new URL(request.url)
     const id = Number.parseInt(url.searchParams.get("id") || "0")
     const data = await request.json()
+    const capacity = toOptionalInt(data.capacity)
+    const cost = toOptionalInt(data.cost)
+
     const workshop = await updateWorkshop(id, {
       name: data.name,
       description: data.description,
       instructor: data.instructor,
       date: data.date,
       schedule: data.schedule,
-      capacity: data.capacity !== undefined ? Number.parseInt(data.capacity) : undefined,
-      cost: data.cost !== undefined ? Number.parseInt(data.cost) : undefined,
+      capacity,
+      cost,
       enrolled: data.enrolled,
       status: data.status,
     })

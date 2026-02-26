@@ -1,4 +1,4 @@
-import { query } from "@/lib/db"
+import { api } from '@/lib/api-client'
 
 export async function logEvent(data: {
   auth_user_id: number | null
@@ -8,16 +8,12 @@ export async function logEvent(data: {
   ip_address: string
   user_agent: string
 }): Promise<void> {
-  await query(
-    `INSERT INTO auth_login_events (auth_user_id, email, success, failure_reason, ip_address, user_agent)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [
-      data.auth_user_id,
-      data.email,
-      data.success ? 1 : 0,
-      data.failure_reason ?? null,
-      data.ip_address,
-      data.user_agent,
-    ]
-  )
+  await api.post('/auth/login-events', {
+    auth_user_id: data.auth_user_id,
+    email: data.email,
+    success: data.success,
+    failure_reason: data.failure_reason ?? null,
+    ip_address: data.ip_address,
+    user_agent: data.user_agent,
+  })
 }

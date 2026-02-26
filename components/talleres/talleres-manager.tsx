@@ -61,10 +61,14 @@ export default function TalleresManager({ user }: { user: any }) {
   const fetchWorkshops = async () => {
     try {
       const response = await fetch("/api/talleres")
+      if (!response.ok) {
+        throw new Error(`Error al obtener talleres (${response.status})`)
+      }
       const data = await response.json()
-      setWorkshops(data)
+      setWorkshops(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Error fetching talleres:", error)
+      setWorkshops([])
     } finally {
       setLoading(false)
     }
@@ -149,7 +153,7 @@ export default function TalleresManager({ user }: { user: any }) {
     }
   }
 
-  const filteredWorkshops = workshops.filter((workshop) => {
+  const filteredWorkshops = (Array.isArray(workshops) ? workshops : []).filter((workshop) => {
     const matchesSearch =
       workshop.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (workshop.description || "").toLowerCase().includes(searchTerm.toLowerCase())

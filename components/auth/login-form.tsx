@@ -202,7 +202,7 @@ export default function LoginForm({ onLogin }: { onLogin: (user: any) => void })
         </div>
       </div>
 
-      <AlmaFooter />
+      <AlmaFooter floating />
     </div>
   )
 }
