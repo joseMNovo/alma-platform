@@ -53,3 +53,5 @@ logs/*
 
 # markdown files
 *.md
+
+.claude/
