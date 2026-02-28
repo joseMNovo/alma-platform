@@ -165,6 +165,14 @@ export async function getVolunteers(): Promise<Volunteer[]> {
   return api.get<Volunteer[]>('/voluntarios/?limit=1000')
 }
 
+export async function getVolunteerById(id: number): Promise<Volunteer | null> {
+  try {
+    return await api.get<Volunteer>(`/voluntarios/${id}`)
+  } catch {
+    return null
+  }
+}
+
 export async function getVolunteerByEmail(email: string): Promise<Volunteer | null> {
   try {
     return await api.get<Volunteer>(`/voluntarios/by-email/${encodeURIComponent(email)}`)

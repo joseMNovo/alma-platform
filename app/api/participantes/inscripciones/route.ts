@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSessionUser } from '@/lib/serverAuth'
-import { query } from '@/lib/db'
+import { api } from '@/lib/api-client'
+
+interface BackendEnrollment {
+  id: number
+  participant_id: number
+  type: string
+  item_id: number
+  enrolled_at?: string | null
+}
 
 export async function GET(req: NextRequest) {
   const session = getSessionUser(req)
@@ -9,10 +17,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const rows = await query(
-      'SELECT type, item_id FROM participant_program_enrollments WHERE participant_id = ?',
-      [session.id]
-    ) as any[]
+    const rows = await api.get<BackendEnrollment[]>(`/participants/${session.id}/enrollments`)
 
     return NextResponse.json({
       workshops: rows.filter(r => r.type === 'taller').map(r => r.item_id),
@@ -36,12 +41,17 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await query(
-      'INSERT IGNORE INTO participant_program_enrollments (participant_id, type, item_id) VALUES (?, ?, ?)',
-      [session.id, type, item_id]
-    )
+    await api.post<BackendEnrollment>(`/participants/${session.id}/enrollments`, {
+      participant_id: session.id,
+      type,
+      item_id,
+    })
     return NextResponse.json({ ok: true })
   } catch (err: any) {
+    // Ignore duplicate enrollment errors (integrity constraint)
+    if (err.message?.includes('409') || err.message?.includes('already') || err.message?.includes('Integrity')) {
+      return NextResponse.json({ ok: true })
+    }
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
@@ -58,10 +68,12 @@ export async function DELETE(req: NextRequest) {
   }
 
   try {
-    await query(
-      'DELETE FROM participant_program_enrollments WHERE participant_id = ? AND type = ? AND item_id = ?',
-      [session.id, type, item_id]
-    )
+    const rows = await api.get<BackendEnrollment[]>(`/participants/${session.id}/enrollments`)
+    const enrollment = rows.find(r => r.type === type && r.item_id === item_id)
+    if (!enrollment) {
+      return NextResponse.json({ ok: true })
+    }
+    await api.delete(`/participants/${session.id}/enrollments/${enrollment.id}`)
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })

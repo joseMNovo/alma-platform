@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getActivities, getUserEnrollments, createEnrollment, updateActivity } from "@/lib/data-manager"
-import { query } from "@/lib/db"
+import { getActivities, getUserEnrollments, createEnrollment, updateActivity, getVolunteerById } from "@/lib/data-manager"
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,11 +17,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify volunteer exists
-    const volunteers = await query("SELECT id, name, email FROM voluntarios WHERE id = ?", [userId])
-    if (volunteers.length === 0) {
+    const volunteer = await getVolunteerById(userId)
+    if (!volunteer) {
       return NextResponse.json({ error: "Voluntario no encontrado" }, { status: 404 })
     }
-    const volunteer = volunteers[0] as any
 
     // Check if already enrolled
     const enrollments = await getUserEnrollments(userId)
