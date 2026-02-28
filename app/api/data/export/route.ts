@@ -1,7 +1,15 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { getAllData } from "@/lib/data-manager"
+import { getSessionUser } from "@/lib/serverAuth"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const session = getSessionUser(request)
+  if (!session) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+  }
+  if (!session.is_admin) {
+    return NextResponse.json({ error: "Acceso denegado" }, { status: 403 })
+  }
   try {
     const data = await getAllData()
     const jsonString = JSON.stringify(data, null, 2)

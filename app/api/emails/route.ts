@@ -1,73 +1,36 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-// Configuración hardcodeada del servidor de email
-const EMAIL_CONFIG = {
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: "alma.rosario@gmail.com",
-    pass: "alma_password_2024",
-  },
-}
-
 export async function POST(request: NextRequest) {
   try {
     const { to, subject, message, type } = await request.json()
 
-    // Simulación de envío de email con configuración hardcodeada
-    console.log("Configuración de email:", EMAIL_CONFIG)
-    console.log("Enviando email:", {
-      from: EMAIL_CONFIG.auth.user,
+    if (!to || !subject || !message) {
+      return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 })
+    }
+
+    // TODO: integrar con Resend (ya configurado en el proyecto via RESEND_API_KEY)
+    // o con Nodemailer usando SMTP_HOST, SMTP_USER, SMTP_PASS desde variables de entorno.
+    // Por ahora el envío de email no está implementado.
+    console.log("Email pendiente de envío:", {
       to,
       subject,
-      message,
       type,
       timestamp: new Date().toISOString(),
     })
 
-    // Simular delay de envío
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    // Aquí se integraría con un servicio real de email como SendGrid, Nodemailer, etc.
-    // Ejemplo con Nodemailer:
-    /*
-    const nodemailer = require('nodemailer');
-    
-    const transporter = nodemailer.createTransporter({
-      host: EMAIL_CONFIG.host,
-      port: EMAIL_CONFIG.port,
-      secure: EMAIL_CONFIG.secure,
-      auth: EMAIL_CONFIG.auth
-    });
-
-    await transporter.sendMail({
-      from: EMAIL_CONFIG.auth.user,
-      to: to,
-      subject: subject,
-      text: message,
-      html: message.replace(/\n/g, '<br>')
-    });
-    */
-
     return NextResponse.json({
       success: true,
-      message: "Email enviado correctamente",
+      message: "Email registrado para envío",
       emailId: Math.random().toString(36).substr(2, 9),
-      config: {
-        server: EMAIL_CONFIG.host,
-        from: EMAIL_CONFIG.auth.user,
-      },
     })
   } catch (error) {
-    console.error("Error al enviar email:", error)
+    console.error("Error al procesar email:", error)
     return NextResponse.json({ error: "Error al enviar email" }, { status: 500 })
   }
 }
 
 export async function GET() {
   try {
-    // Simulación de historial de emails enviados con más datos
     const emailHistory = [
       {
         id: 1,

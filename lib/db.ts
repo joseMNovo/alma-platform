@@ -12,6 +12,16 @@ const pool = mysql.createPool({
 })
 
 export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> {
+  // En producción, verificar que las variables de entorno de DB estén configuradas.
+  // Se valida al momento de hacer queries (no al importar) para no romper el build.
+  if (process.env.NODE_ENV === 'production') {
+    const required = ['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD']
+    for (const key of required) {
+      if (!process.env[key]) {
+        throw new Error(`Variable de entorno requerida no encontrada: ${key}`)
+      }
+    }
+  }
   const [rows] = await pool.execute(sql, params)
   return rows as T[]
 }

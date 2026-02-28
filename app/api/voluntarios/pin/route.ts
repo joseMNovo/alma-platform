@@ -1,8 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { setVolunteerPin } from "@/lib/data-manager"
 import { hashPassword } from "@/lib/utils/password"
+import { getSessionUser } from "@/lib/serverAuth"
 
 export async function POST(request: NextRequest) {
+  const session = getSessionUser(request)
+  if (!session) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+  }
+  if (!session.is_admin) {
+    return NextResponse.json({ error: "Acceso denegado" }, { status: 403 })
+  }
   try {
     const { id, pin } = await request.json()
 

@@ -1,7 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getAllData, getVolunteers, getPendingTasks, savePendingTasks } from "@/lib/data-manager"
+import { getVolunteers, getPendingTasks, savePendingTasks } from "@/lib/data-manager"
+import { getSessionUser } from "@/lib/serverAuth"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const session = getSessionUser(request)
+  if (!session) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+  }
   try {
     const [volunteers, pending_tasks] = await Promise.all([
       getVolunteers(),
@@ -14,6 +19,10 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const session = getSessionUser(request)
+  if (!session) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+  }
   try {
     const body = await request.json()
 
