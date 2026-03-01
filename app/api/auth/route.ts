@@ -26,7 +26,8 @@ function makeAuthResponse(user: any) {
     sameSite: "strict",
     maxAge: COOKIE_MAX_AGE,
     path: "/",
-    secure: process.env.NODE_ENV === "production",
+    //secure: process.env.NODE_ENV === "production",
+    secure: process.env.HTTPS_ENABLED === "true",
   })
   return response
 }
