@@ -65,7 +65,7 @@ export default function SuccessDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="sm:max-w-[425px] border-0 shadow-2xl bg-gradient-to-br from-white to-green-50">
+      <AlertDialogContent className="sm:max-w-[425px] mx-4 sm:mx-auto border-0 shadow-2xl bg-gradient-to-br from-white to-green-50">
         <AlertDialogHeader className="text-center">
           <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-green-50 to-green-100 shadow-lg">
             <CheckCircle className="h-10 w-10 text-green-600 drop-shadow-sm" />

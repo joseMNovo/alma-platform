@@ -34,7 +34,7 @@ export default function PersonasTablero() {
           <div>
             {loading
               ? <div className={skeletonClass} />
-              : <p className="text-3xl font-bold text-[#0099b0] leading-none">{counts?.volunteers ?? "—"}</p>
+              : <p className="text-2xl sm:text-3xl font-bold text-[#0099b0] leading-none">{counts?.volunteers ?? "—"}</p>
             }
             <p className="text-xs text-gray-500 mt-1 font-medium">Voluntarios activos</p>
           </div>
@@ -50,7 +50,7 @@ export default function PersonasTablero() {
           <div>
             {loading
               ? <div className={skeletonClass} />
-              : <p className="text-3xl font-bold text-orange-500 leading-none">{counts?.participants ?? "—"}</p>
+              : <p className="text-2xl sm:text-3xl font-bold text-orange-500 leading-none">{counts?.participants ?? "—"}</p>
             }
             <p className="text-xs text-gray-500 mt-1 font-medium">Participantes registrados</p>
           </div>

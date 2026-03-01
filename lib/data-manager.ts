@@ -48,6 +48,13 @@ export interface Activity {
   id: number
   name: string
   description?: string
+  date?: string
+  schedule?: string
+  location?: string
+  capacity: number
+  enrolled: number
+  is_free?: boolean
+  cost?: number
   status: string
 }
 

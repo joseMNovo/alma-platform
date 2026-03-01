@@ -47,7 +47,7 @@ export default function ProfileCompletionModal({ user }: ProfileCompletionModalP
 
   return (
     <Dialog open={open} onOpenChange={(val) => { if (!val) handleClose() }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md mx-4 sm:mx-0">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Heart className="w-6 h-6 text-[#4dd0e1]" />

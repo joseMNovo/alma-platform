@@ -660,12 +660,12 @@ export default function InventarioManager({ user }: { user: any }) {
                 {item.supplier && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">Proveedor:</span>
-                    <span className="font-medium text-xs">{item.supplier}</span>
+                    <span className="font-medium text-sm">{item.supplier}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
                   <span className="text-gray-600">Voluntario:</span>
-                  <span className={`font-medium text-xs ${item.assigned_volunteer_id ? "text-[#4dd0e1]" : "text-gray-400"}`}>
+                  <span className={`font-medium text-sm ${item.assigned_volunteer_id ? "text-[#4dd0e1]" : "text-gray-400"}`}>
                     {getVolunteerName(item.assigned_volunteer_id)}
                   </span>
                 </div>

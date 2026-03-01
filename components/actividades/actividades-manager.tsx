@@ -178,7 +178,7 @@ export default function ActividadesManager({ user }: { user: any }) {
                 </Button>
               </DialogTrigger>
             )}
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md mx-4 sm:mx-0">
               <DialogHeader>
                 <DialogTitle>{editingActivity ? "Editar Actividad" : "Nueva Actividad"}</DialogTitle>
               </DialogHeader>
@@ -332,7 +332,7 @@ export default function ActividadesManager({ user }: { user: any }) {
 
       {/* Detail dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md mx-4 sm:mx-0">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {viewingActivity?.name}

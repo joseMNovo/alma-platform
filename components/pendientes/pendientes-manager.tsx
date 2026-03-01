@@ -340,7 +340,7 @@ export default function PendientesManager({ user }: { user: any }) {
                 Agregar
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-md mx-4 sm:mx-0">
               <DialogHeader>
                 <DialogTitle>Nueva Categoría</DialogTitle>
               </DialogHeader>
@@ -385,7 +385,7 @@ export default function PendientesManager({ user }: { user: any }) {
 
           {/* Edit Modal */}
           <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-md mx-4 sm:mx-0">
               <DialogHeader>
                 <DialogTitle>
                   {editingItem?.type === 'category' ? 'Editar Categoría' : 'Editar Sub-categoría'}
@@ -449,7 +449,7 @@ export default function PendientesManager({ user }: { user: any }) {
 
           {/* Sub-category Modal */}
           <Dialog open={isSubCategoryModalOpen} onOpenChange={setIsSubCategoryModalOpen}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-md mx-4 sm:mx-0">
               <DialogHeader>
                 <DialogTitle>Nueva Sub-categoría</DialogTitle>
               </DialogHeader>

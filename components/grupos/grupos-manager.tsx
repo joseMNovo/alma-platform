@@ -154,21 +154,21 @@ export default function GruposManager({ user }: { user: any }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Grupos de Apoyo</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Grupos de Apoyo</h2>
           <p className="text-gray-600">Espacios de contención y apoyo emocional</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           {can(user, "grupos:create") && (
             <DialogTrigger asChild>
-              <Button onClick={resetForm} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+              <Button onClick={resetForm} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white w-full sm:w-auto">
                 <Plus className="w-4 h-4 mr-2" />
                 Nuevo Grupo
               </Button>
             </DialogTrigger>
           )}
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md mx-4 sm:mx-0">
             <DialogHeader>
               <DialogTitle>{editingGroup ? "Editar Grupo" : "Nuevo Grupo"}</DialogTitle>
             </DialogHeader>
@@ -219,7 +219,7 @@ export default function GruposManager({ user }: { user: any }) {
         </Dialog>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {groups.map((group) => (
           <Card key={group.id} className="hover:shadow-lg transition-shadow">
             <CardHeader
@@ -308,7 +308,7 @@ export default function GruposManager({ user }: { user: any }) {
 
       {/* Detail dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md mx-4 sm:mx-0">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {viewingGroup?.name}

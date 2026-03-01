@@ -186,7 +186,7 @@ export default function TalleresManager({ user }: { user: any }) {
                 </Button>
               </DialogTrigger>
             )}
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md mx-4 sm:mx-0">
               <DialogHeader>
                 <DialogTitle>{editingWorkshop ? "Editar Taller" : "Nuevo Taller"}</DialogTitle>
                 <DialogDescription>
@@ -342,7 +342,7 @@ export default function TalleresManager({ user }: { user: any }) {
 
       {/* Detail dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md mx-4 sm:mx-0">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {viewingWorkshop?.name}

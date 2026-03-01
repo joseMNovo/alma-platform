@@ -349,7 +349,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         ) : (
           // ── Vista Voluntario / Admin ───────────────────────────────────
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-            <TabsList className="hidden md:grid w-full grid-cols-2 lg:grid-cols-8 bg-white border border-gray-200 p-1 rounded-lg">
+            <TabsList className="hidden md:grid w-full grid-cols-4 xl:grid-cols-8 bg-white border border-gray-200 p-1 rounded-lg">
               <TabsTrigger value="calendarios" className={tabTriggerClass}>
                 <CalendarDays className="w-4 h-4" />
                 <span className="hidden sm:inline">Calendarios</span>

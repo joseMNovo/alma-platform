@@ -115,7 +115,7 @@ export default function RegisterForm() {
               />
             </div>
             <div className="space-y-3">
-              <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight" style={{ textShadow: "0 1px 8px rgba(0,0,0,0.15)" }}>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-tight" style={{ textShadow: "0 1px 8px rgba(0,0,0,0.15)" }}>
                 Creá tu cuenta<br />
                 en ALMA
               </h1>

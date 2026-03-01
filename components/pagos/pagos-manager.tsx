@@ -180,7 +180,7 @@ export default function PagosManager({ user }: { user: any }) {
                 Nuevo Pago
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editingPayment ? "Editar Pago" : "Nuevo Pago"}</DialogTitle>
                 <DialogDescription>
@@ -295,7 +295,7 @@ export default function PagosManager({ user }: { user: any }) {
       </div>
 
       <Tabs defaultValue={isAdmin ? "todos" : "mis-pagos"} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 bg-white border border-gray-200 p-1 rounded-lg">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-5 bg-white border border-gray-200 p-1 rounded-lg">
           {isAdmin && (
             <TabsTrigger value="todos" className="data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white">
               Todos los Pagos
@@ -325,74 +325,64 @@ export default function PagosManager({ user }: { user: any }) {
               {payments.map((payment) => (
                 <Card key={payment.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-medium">{getVolunteerName(payment.user_id)}</h3>
-                          <Badge
-                            variant={
-                              payment.status === "pagado"
-                                ? "default"
-                                : payment.status === "vencido"
-                                  ? "destructive"
-                                  : "secondary"
-                            }
-                            className={
-                              payment.status === "pagado"
-                                ? "bg-green-500"
-                                : payment.status === "vencido"
-                                  ? "bg-red-500"
-                                  : "bg-yellow-500"
-                            }
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-medium">{getVolunteerName(payment.user_id)}</h3>
+                            <Badge
+                              variant={payment.status === "pagado" ? "default" : payment.status === "vencido" ? "destructive" : "secondary"}
+                              className={payment.status === "pagado" ? "bg-green-500" : payment.status === "vencido" ? "bg-red-500" : "bg-yellow-500"}
+                            >
+                              {payment.status}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600 truncate">{payment.concept}</p>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                            <span className="flex items-center gap-1">
+                              <DollarSign className="w-3 h-3" />${payment.amount.toLocaleString()}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              Vence: {payment.due_date ? new Date(payment.due_date).toLocaleDateString("es-ES") : "-"}
+                            </span>
+                            {payment.payment_method && <span className="capitalize">Método: {payment.payment_method}</span>}
+                          </div>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <Button onClick={() => openEditDialog(payment)} variant="outline" size="sm">
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            onClick={() => handleDelete(payment)}
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
                           >
-                            {payment.status}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-600">{payment.concept}</p>
-                        <div className="flex items-center gap-4 text-sm text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <DollarSign className="w-4 h-4" />${payment.amount.toLocaleString()}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            Vence: {payment.due_date ? new Date(payment.due_date).toLocaleDateString("es-ES") : "-"}
-                          </span>
-                          {payment.payment_method && <span className="capitalize">Método: {payment.payment_method}</span>}
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        {payment.status === "pendiente" && (
-                          <>
-                            <Button
-                              onClick={() => markAsPaid(payment.id, "efectivo")}
-                              size="sm"
-                              variant="outline"
-                              className="text-green-600 border-green-600 hover:bg-green-50"
-                            >
-                              Efectivo
-                            </Button>
-                            <Button
-                              onClick={() => markAsPaid(payment.id, "transferencia")}
-                              size="sm"
-                              variant="outline"
-                              className="text-blue-600 border-blue-600 hover:bg-blue-50"
-                            >
-                              Transferencia
-                            </Button>
-                          </>
-                        )}
-                        <Button onClick={() => openEditDialog(payment)} variant="outline" size="sm">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          onClick={() => handleDelete(payment)}
-                          variant="outline"
-                          size="sm"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                      {payment.status === "pendiente" && (
+                        <div className="flex gap-2 pt-1">
+                          <Button
+                            onClick={() => markAsPaid(payment.id, "efectivo")}
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 text-green-600 border-green-600 hover:bg-green-50"
+                          >
+                            Efectivo
+                          </Button>
+                          <Button
+                            onClick={() => markAsPaid(payment.id, "transferencia")}
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 text-blue-600 border-blue-600 hover:bg-blue-50"
+                          >
+                            Transferencia
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -403,7 +393,7 @@ export default function PagosManager({ user }: { user: any }) {
 
         <TabsContent value="mis-pagos" className="space-y-4">
           {isAdmin ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-gray-600">Total Ingresos</CardTitle>
@@ -448,48 +438,46 @@ export default function PagosManager({ user }: { user: any }) {
               {myPayments.map((payment) => (
                 <Card key={payment.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-medium">{payment.concept}</h3>
-                          <Badge
-                            variant={
-                              payment.status === "pagado"
-                                ? "default"
-                                : payment.status === "vencido"
-                                  ? "destructive"
-                                  : "secondary"
-                            }
-                            className={
-                              payment.status === "pagado"
-                                ? "bg-green-500"
-                                : payment.status === "vencido"
-                                  ? "bg-red-500"
-                                  : "bg-yellow-500"
-                            }
-                          >
-                            {payment.status}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <DollarSign className="w-4 h-4" />${payment.amount.toLocaleString()}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            Vence: {payment.due_date ? new Date(payment.due_date).toLocaleDateString("es-ES") : "-"}
-                          </span>
-                          {payment.payment_date && (
-                            <span className="flex items-center gap-1 text-green-600">
-                              <CheckCircle className="w-4 h-4" />
-                              Pagado: {new Date(payment.payment_date).toLocaleDateString("es-ES")}
-                            </span>
-                          )}
-                        </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-medium">{payment.concept}</h3>
+                        <Badge
+                          variant={
+                            payment.status === "pagado"
+                              ? "default"
+                              : payment.status === "vencido"
+                                ? "destructive"
+                                : "secondary"
+                          }
+                          className={
+                            payment.status === "pagado"
+                              ? "bg-green-500"
+                              : payment.status === "vencido"
+                                ? "bg-red-500"
+                                : "bg-yellow-500"
+                          }
+                        >
+                          {payment.status}
+                        </Badge>
+                        {payment.status === "pendiente" && payment.due_date && new Date(payment.due_date) < new Date() && (
+                          <AlertTriangle className="w-4 h-4 text-red-500" />
+                        )}
                       </div>
-                      {payment.status === "pendiente" && payment.due_date && new Date(payment.due_date) < new Date() && (
-                        <AlertTriangle className="w-5 h-5 text-red-500" />
-                      )}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <DollarSign className="w-3 h-3" />${payment.amount.toLocaleString()}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          Vence: {payment.due_date ? new Date(payment.due_date).toLocaleDateString("es-ES") : "-"}
+                        </span>
+                        {payment.payment_date && (
+                          <span className="flex items-center gap-1 text-green-600">
+                            <CheckCircle className="w-3 h-3" />
+                            Pagado: {new Date(payment.payment_date).toLocaleDateString("es-ES")}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -505,27 +493,25 @@ export default function PagosManager({ user }: { user: any }) {
                 {pendingPayments.map((payment) => (
                   <Card key={payment.id} className="hover:shadow-md transition-shadow border-yellow-200">
                     <CardContent className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-yellow-600" />
+                      <div className="space-y-3">
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Clock className="w-4 h-4 text-yellow-600 shrink-0" />
                             <h3 className="font-medium">{getVolunteerName(payment.user_id)}</h3>
                           </div>
-                          <p className="text-sm text-gray-600">{payment.concept}</p>
-                          <div className="flex items-center gap-4 text-sm text-gray-500">
+                          <p className="text-sm text-gray-600 truncate">{payment.concept}</p>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
                             <span>${payment.amount.toLocaleString()}</span>
                             <span>Vence: {payment.due_date ? new Date(payment.due_date).toLocaleDateString("es-ES") : "-"}</span>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() => markAsPaid(payment.id, "efectivo")}
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700 text-white"
-                          >
-                            Marcar Pagado
-                          </Button>
-                        </div>
+                        <Button
+                          onClick={() => markAsPaid(payment.id, "efectivo")}
+                          size="sm"
+                          className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          Marcar Pagado
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -538,33 +524,33 @@ export default function PagosManager({ user }: { user: any }) {
                 {overduePayments.map((payment) => (
                   <Card key={payment.id} className="hover:shadow-md transition-shadow border-red-200">
                     <CardContent className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <AlertTriangle className="w-4 h-4 text-red-600" />
+                      <div className="space-y-3">
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
                             <h3 className="font-medium">{getVolunteerName(payment.user_id)}</h3>
                             <Badge variant="destructive">Vencido</Badge>
                           </div>
-                          <p className="text-sm text-gray-600">{payment.concept}</p>
-                          <div className="flex items-center gap-4 text-sm text-gray-500">
+                          <p className="text-sm text-gray-600 truncate">{payment.concept}</p>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
                             <span>${payment.amount.toLocaleString()}</span>
                             <span className="text-red-600">
                               Venció: {payment.due_date ? new Date(payment.due_date).toLocaleDateString("es-ES") : "-"}
                             </span>
                           </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                           <Button
                             onClick={() => markAsPaid(payment.id, "efectivo")}
                             size="sm"
-                            className="bg-green-600 hover:bg-green-700 text-white"
+                            className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white"
                           >
                             Marcar Pagado
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-blue-600 border-blue-600 hover:bg-blue-50 bg-transparent"
+                            className="flex-1 sm:flex-none text-blue-600 border-blue-600 hover:bg-blue-50 bg-transparent"
                           >
                             Enviar Recordatorio
                           </Button>
@@ -581,18 +567,16 @@ export default function PagosManager({ user }: { user: any }) {
                 {cashPayments.map((payment) => (
                   <Card key={payment.id} className="hover:shadow-md transition-shadow border-green-200">
                     <CardContent className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <DollarSign className="w-4 h-4 text-green-600" />
-                            <h3 className="font-medium">{getVolunteerName(payment.user_id)}</h3>
-                            <Badge className="bg-green-500">Efectivo</Badge>
-                          </div>
-                          <p className="text-sm text-gray-600">{payment.concept}</p>
-                          <div className="flex items-center gap-4 text-sm text-gray-500">
-                            <span>${payment.amount.toLocaleString()}</span>
-                            <span>Pagado: {payment.payment_date ? new Date(payment.payment_date).toLocaleDateString("es-ES") : "-"}</span>
-                          </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <DollarSign className="w-4 h-4 text-green-600 shrink-0" />
+                          <h3 className="font-medium">{getVolunteerName(payment.user_id)}</h3>
+                          <Badge className="bg-green-500">Efectivo</Badge>
+                        </div>
+                        <p className="text-sm text-gray-600 truncate">{payment.concept}</p>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                          <span>${payment.amount.toLocaleString()}</span>
+                          <span>Pagado: {payment.payment_date ? new Date(payment.payment_date).toLocaleDateString("es-ES") : "-"}</span>
                         </div>
                       </div>
                     </CardContent>
