@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -15,6 +15,7 @@ import {
   CheckSquare,
   CalendarDays,
   UserCircle,
+  LayoutGrid,
 } from "lucide-react"
 import TalleresManager from "@/components/talleres/talleres-manager"
 import GruposManager from "@/components/grupos/grupos-manager"
@@ -38,6 +39,8 @@ const ROLE_LABELS: Record<string, string> = {
   participante: "Participante",
 }
 
+const ESPACIOS_TABS = ["grupos", "talleres", "actividades"]
+
 export default function Dashboard({ user, onLogout }: { user: any, onLogout: () => void }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const router = useRouter()
@@ -47,33 +50,45 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   const isParticipant = user.role === "participante"
   const roleLabel = ROLE_LABELS[user.role] ?? user.role
 
-  // Tabs available for participants (read-only modules + Mis datos)
-  const participantTabs = ["calendarios", "talleres", "grupos", "actividades", "mis-datos"]
-
   const getActiveTab = () => {
     if (pathname.includes('/inventario')) return 'inventario'
     if (pathname.includes('/voluntarios')) return 'voluntarios'
     if (pathname.includes('/pendientes')) return 'pendientes'
     if (pathname.includes('/calendarios')) return 'calendarios'
-    if (pathname.includes('/talleres')) return 'talleres'
-    if (pathname.includes('/grupos')) return 'grupos'
-    if (pathname.includes('/actividades')) return 'actividades'
+    if (pathname.includes('/talleres')) return 'espacios'
+    if (pathname.includes('/grupos')) return 'espacios'
+    if (pathname.includes('/actividades')) return 'espacios'
     if (pathname.includes('/pagos')) return 'pagos'
     if (pathname.includes('/mis-datos')) return 'mis-datos'
     return 'calendarios'
   }
 
+  const getEspaciosSubTab = () => {
+    if (pathname.includes('/talleres')) return 'talleres'
+    if (pathname.includes('/grupos')) return 'grupos'
+    if (pathname.includes('/actividades')) return 'actividades'
+    return 'talleres'
+  }
+
   const activeTab = getActiveTab()
+  const espaciosSubTab = getEspaciosSubTab()
 
   const handleTabChange = (value: string) => {
-    router.push(`/${value}`)
+    if (value === "espacios") {
+      router.push(`/${espaciosSubTab}`)
+    } else {
+      router.push(`/${value}`)
+    }
     setMobileMenuOpen(false)
   }
 
   const tabTriggerClass = "flex items-center space-x-2 data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
+  const subTabTriggerClass = "flex items-center space-x-2 data-[state=active]:bg-[#4dd0e1]/15 data-[state=active]:text-[#4dd0e1] data-[state=active]:font-semibold"
 
   // Tabs que muestran la flor arriba a la derecha; el resto la muestran abajo a la derecha
-  const flowerTop = ['voluntarios', 'talleres', 'grupos', 'actividades', 'pendientes'].includes(activeTab)
+  const flowerTop = ['voluntarios', 'espacios', 'pendientes'].includes(activeTab)
+
+  const espaciosLabel = espaciosSubTab.charAt(0).toUpperCase() + espaciosSubTab.slice(1)
 
   return (
     <div className="min-h-screen bg-gray-50 relative overflow-hidden">
@@ -157,7 +172,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                     <div className="flex-1 overflow-auto p-4">
                       <nav className="space-y-2">
                         {isParticipant ? (
-                          // Participante: solo ve calendarios, talleres, grupos, actividades y mis datos
+                          // Participante: calendarios, espacios (grupos/talleres/actividades), mis datos
                           <>
                             <Button
                               variant={activeTab === "calendarios" ? "default" : "ghost"}
@@ -167,30 +182,34 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                               <CalendarDays className="w-5 h-5 mr-3" />
                               Calendarios
                             </Button>
-                            <Button
-                              variant={activeTab === "talleres" ? "default" : "ghost"}
-                              className={`w-full justify-start ${activeTab === "talleres" ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange("talleres")}
-                            >
-                              <Calendar className="w-5 h-5 mr-3" />
-                              Talleres
-                            </Button>
-                            <Button
-                              variant={activeTab === "grupos" ? "default" : "ghost"}
-                              className={`w-full justify-start ${activeTab === "grupos" ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange("grupos")}
-                            >
-                              <Users className="w-5 h-5 mr-3" />
-                              Grupos
-                            </Button>
-                            <Button
-                              variant={activeTab === "actividades" ? "default" : "ghost"}
-                              className={`w-full justify-start ${activeTab === "actividades" ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange("actividades")}
-                            >
-                              <Activity className="w-5 h-5 mr-3" />
-                              Actividades
-                            </Button>
+                            {/* Espacios group */}
+                            <div>
+                              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1">Espacios</p>
+                              <Button
+                                variant={activeTab === "espacios" && espaciosSubTab === "talleres" ? "default" : "ghost"}
+                                className={`w-full justify-start pl-8 ${activeTab === "espacios" && espaciosSubTab === "talleres" ? "bg-[#4dd0e1] text-white" : ""}`}
+                                onClick={() => { router.push("/talleres"); setMobileMenuOpen(false) }}
+                              >
+                                <Calendar className="w-5 h-5 mr-3" />
+                                Talleres
+                              </Button>
+                              <Button
+                                variant={activeTab === "espacios" && espaciosSubTab === "grupos" ? "default" : "ghost"}
+                                className={`w-full justify-start pl-8 ${activeTab === "espacios" && espaciosSubTab === "grupos" ? "bg-[#4dd0e1] text-white" : ""}`}
+                                onClick={() => { router.push("/grupos"); setMobileMenuOpen(false) }}
+                              >
+                                <Users className="w-5 h-5 mr-3" />
+                                Grupos
+                              </Button>
+                              <Button
+                                variant={activeTab === "espacios" && espaciosSubTab === "actividades" ? "default" : "ghost"}
+                                className={`w-full justify-start pl-8 ${activeTab === "espacios" && espaciosSubTab === "actividades" ? "bg-[#4dd0e1] text-white" : ""}`}
+                                onClick={() => { router.push("/actividades"); setMobileMenuOpen(false) }}
+                              >
+                                <Activity className="w-5 h-5 mr-3" />
+                                Actividades
+                              </Button>
+                            </div>
                             <Button
                               variant={activeTab === "mis-datos" ? "default" : "ghost"}
                               className={`w-full justify-start ${activeTab === "mis-datos" ? "bg-[#4dd0e1] text-white" : ""}`}
@@ -235,30 +254,34 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                               <Heart className="w-5 h-5 mr-3" />
                               Voluntarios
                             </Button>
-                            <Button
-                              variant={activeTab === "talleres" ? "default" : "ghost"}
-                              className={`w-full justify-start ${activeTab === "talleres" ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange("talleres")}
-                            >
-                              <Calendar className="w-5 h-5 mr-3" />
-                              Talleres
-                            </Button>
-                            <Button
-                              variant={activeTab === "grupos" ? "default" : "ghost"}
-                              className={`w-full justify-start ${activeTab === "grupos" ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange("grupos")}
-                            >
-                              <Users className="w-5 h-5 mr-3" />
-                              Grupos
-                            </Button>
-                            <Button
-                              variant={activeTab === "actividades" ? "default" : "ghost"}
-                              className={`w-full justify-start ${activeTab === "actividades" ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange("actividades")}
-                            >
-                              <Activity className="w-5 h-5 mr-3" />
-                              Actividades
-                            </Button>
+                            {/* Espacios group */}
+                            <div>
+                              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1">Espacios</p>
+                              <Button
+                                variant={activeTab === "espacios" && espaciosSubTab === "talleres" ? "default" : "ghost"}
+                                className={`w-full justify-start pl-8 ${activeTab === "espacios" && espaciosSubTab === "talleres" ? "bg-[#4dd0e1] text-white" : ""}`}
+                                onClick={() => { router.push("/talleres"); setMobileMenuOpen(false) }}
+                              >
+                                <Calendar className="w-5 h-5 mr-3" />
+                                Talleres
+                              </Button>
+                              <Button
+                                variant={activeTab === "espacios" && espaciosSubTab === "grupos" ? "default" : "ghost"}
+                                className={`w-full justify-start pl-8 ${activeTab === "espacios" && espaciosSubTab === "grupos" ? "bg-[#4dd0e1] text-white" : ""}`}
+                                onClick={() => { router.push("/grupos"); setMobileMenuOpen(false) }}
+                              >
+                                <Users className="w-5 h-5 mr-3" />
+                                Grupos
+                              </Button>
+                              <Button
+                                variant={activeTab === "espacios" && espaciosSubTab === "actividades" ? "default" : "ghost"}
+                                className={`w-full justify-start pl-8 ${activeTab === "espacios" && espaciosSubTab === "actividades" ? "bg-[#4dd0e1] text-white" : ""}`}
+                                onClick={() => { router.push("/actividades"); setMobileMenuOpen(false) }}
+                              >
+                                <Activity className="w-5 h-5 mr-3" />
+                                Actividades
+                              </Button>
+                            </div>
                             <Button
                               variant={activeTab === "pagos" ? "default" : "ghost"}
                               className={`w-full justify-start ${activeTab === "pagos" ? "bg-[#4dd0e1] text-white" : ""}`}
@@ -292,22 +315,14 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         {isParticipant ? (
           // ── Vista Participante ─────────────────────────────────────────
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-            <TabsList className="hidden md:grid w-full grid-cols-5 bg-white border border-gray-200 p-1 rounded-lg">
+            <TabsList className="hidden md:grid w-full grid-cols-3 bg-white border border-gray-200 p-1 rounded-lg">
               <TabsTrigger value="calendarios" className={tabTriggerClass}>
                 <CalendarDays className="w-4 h-4" />
                 <span className="hidden sm:inline">Calendarios</span>
               </TabsTrigger>
-              <TabsTrigger value="talleres" className={tabTriggerClass}>
-                <Calendar className="w-4 h-4" />
-                <span className="hidden sm:inline">Talleres</span>
-              </TabsTrigger>
-              <TabsTrigger value="grupos" className={tabTriggerClass}>
-                <Users className="w-4 h-4" />
-                <span className="hidden sm:inline">Grupos</span>
-              </TabsTrigger>
-              <TabsTrigger value="actividades" className={tabTriggerClass}>
-                <Activity className="w-4 h-4" />
-                <span className="hidden sm:inline">Actividades</span>
+              <TabsTrigger value="espacios" className={tabTriggerClass}>
+                <LayoutGrid className="w-4 h-4" />
+                <span className="hidden sm:inline">Espacios</span>
               </TabsTrigger>
               <TabsTrigger value="mis-datos" className={tabTriggerClass}>
                 <UserCircle className="w-4 h-4" />
@@ -318,26 +333,46 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
             {/* Mobile breadcrumb */}
             <div className="md:hidden bg-white p-3 rounded-lg shadow-sm mb-4">
               <h2 className="text-lg font-medium flex items-center">
-                {activeTab === "talleres" && <Calendar className="w-5 h-5 mr-2" />}
-                {activeTab === "grupos" && <Users className="w-5 h-5 mr-2" />}
-                {activeTab === "actividades" && <Activity className="w-5 h-5 mr-2" />}
-                {activeTab === "calendarios" && <CalendarDays className="w-5 h-5 mr-2" />}
-                {activeTab === "mis-datos" && <UserCircle className="w-5 h-5 mr-2" />}
-                {activeTab === "mis-datos" ? "Mis datos" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                {activeTab === "espacios" ? (
+                  <>
+                    {espaciosSubTab === "talleres" && <Calendar className="w-5 h-5 mr-2" />}
+                    {espaciosSubTab === "grupos" && <Users className="w-5 h-5 mr-2" />}
+                    {espaciosSubTab === "actividades" && <Activity className="w-5 h-5 mr-2" />}
+                    {espaciosLabel}
+                  </>
+                ) : (
+                  <>
+                    {activeTab === "calendarios" && <CalendarDays className="w-5 h-5 mr-2" />}
+                    {activeTab === "mis-datos" && <UserCircle className="w-5 h-5 mr-2" />}
+                    {activeTab === "mis-datos" ? "Mis datos" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                  </>
+                )}
               </h2>
             </div>
 
             <TabsContent value="calendarios" className="space-y-6">
               <CalendariosManager user={user} />
             </TabsContent>
-            <TabsContent value="talleres" className="space-y-6">
-              <TalleresManager user={user} />
-            </TabsContent>
-            <TabsContent value="grupos" className="space-y-6">
-              <GruposManager user={user} />
-            </TabsContent>
-            <TabsContent value="actividades" className="space-y-6">
-              <ActividadesManager user={user} />
+            <TabsContent value="espacios" className="space-y-4">
+              <Tabs value={espaciosSubTab} onValueChange={(v) => router.push(`/${v}`)} className="space-y-4">
+                <TabsList className="bg-white border border-gray-200 p-1 rounded-lg w-auto">
+                  <TabsTrigger value="talleres" className={subTabTriggerClass}>
+                    <Calendar className="w-4 h-4" />
+                    <span>Talleres</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="grupos" className={subTabTriggerClass}>
+                    <Users className="w-4 h-4" />
+                    <span>Grupos</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="actividades" className={subTabTriggerClass}>
+                    <Activity className="w-4 h-4" />
+                    <span>Actividades</span>
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="talleres">{espaciosSubTab === "talleres" && <TalleresManager user={user} />}</TabsContent>
+                <TabsContent value="grupos">{espaciosSubTab === "grupos" && <GruposManager user={user} />}</TabsContent>
+                <TabsContent value="actividades">{espaciosSubTab === "actividades" && <ActividadesManager user={user} />}</TabsContent>
+              </Tabs>
             </TabsContent>
             <TabsContent value="mis-datos" className="space-y-6">
               <MisDatos user={user} />
@@ -346,7 +381,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         ) : (
           // ── Vista Voluntario / Admin ───────────────────────────────────
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-            <TabsList className="hidden md:grid w-full grid-cols-4 xl:grid-cols-9 bg-white border border-gray-200 p-1 rounded-lg">
+            <TabsList className="hidden md:grid w-full grid-cols-4 xl:grid-cols-7 bg-white border border-gray-200 p-1 rounded-lg">
               <TabsTrigger value="calendarios" className={tabTriggerClass}>
                 <CalendarDays className="w-4 h-4" />
                 <span className="hidden sm:inline">Calendarios</span>
@@ -363,17 +398,9 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                 <Heart className="w-4 h-4" />
                 <span className="hidden sm:inline">Voluntarios</span>
               </TabsTrigger>
-              <TabsTrigger value="talleres" className={tabTriggerClass}>
-                <Calendar className="w-4 h-4" />
-                <span className="hidden sm:inline">Talleres</span>
-              </TabsTrigger>
-              <TabsTrigger value="grupos" className={tabTriggerClass}>
-                <Users className="w-4 h-4" />
-                <span className="hidden sm:inline">Grupos</span>
-              </TabsTrigger>
-              <TabsTrigger value="actividades" className={tabTriggerClass}>
-                <Activity className="w-4 h-4" />
-                <span className="hidden sm:inline">Actividades</span>
+              <TabsTrigger value="espacios" className={tabTriggerClass}>
+                <LayoutGrid className="w-4 h-4" />
+                <span className="hidden sm:inline">Espacios</span>
               </TabsTrigger>
               <TabsTrigger value="pagos" className={tabTriggerClass}>
                 <CreditCard className="w-4 h-4" />
@@ -388,25 +415,27 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
             {/* Mobile breadcrumb */}
             <div className="md:hidden bg-white p-3 rounded-lg shadow-sm mb-4">
               <h2 className="text-lg font-medium flex items-center">
-                {activeTab === "talleres" && <Calendar className="w-5 h-5 mr-2" />}
-                {activeTab === "grupos" && <Users className="w-5 h-5 mr-2" />}
-                {activeTab === "actividades" && <Activity className="w-5 h-5 mr-2" />}
-                {activeTab === "pagos" && <CreditCard className="w-5 h-5 mr-2" />}
-                {activeTab === "inventario" && <Package className="w-5 h-5 mr-2" />}
-                {activeTab === "voluntarios" && <Heart className="w-5 h-5 mr-2" />}
-                {activeTab === "pendientes" && <CheckSquare className="w-5 h-5 mr-2" />}
-                {activeTab === "calendarios" && <CalendarDays className="w-5 h-5 mr-2" />}
-                {activeTab === "mis-datos" && <UserCircle className="w-5 h-5 mr-2" />}
-                {activeTab === "mis-datos" ? "Mis datos" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                {activeTab === "espacios" ? (
+                  <>
+                    {espaciosSubTab === "talleres" && <Calendar className="w-5 h-5 mr-2" />}
+                    {espaciosSubTab === "grupos" && <Users className="w-5 h-5 mr-2" />}
+                    {espaciosSubTab === "actividades" && <Activity className="w-5 h-5 mr-2" />}
+                    {espaciosLabel}
+                  </>
+                ) : (
+                  <>
+                    {activeTab === "pagos" && <CreditCard className="w-5 h-5 mr-2" />}
+                    {activeTab === "inventario" && <Package className="w-5 h-5 mr-2" />}
+                    {activeTab === "voluntarios" && <Heart className="w-5 h-5 mr-2" />}
+                    {activeTab === "pendientes" && <CheckSquare className="w-5 h-5 mr-2" />}
+                    {activeTab === "calendarios" && <CalendarDays className="w-5 h-5 mr-2" />}
+                    {activeTab === "mis-datos" && <UserCircle className="w-5 h-5 mr-2" />}
+                    {activeTab === "mis-datos" ? "Mis datos" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                  </>
+                )}
               </h2>
             </div>
 
-            <TabsContent value="talleres" className="space-y-6">
-              <TalleresManager user={user} />
-            </TabsContent>
-            <TabsContent value="grupos" className="space-y-6">
-              <GruposManager user={user} />
-            </TabsContent>
             <TabsContent value="inventario" className="space-y-6">
               <InventarioManager user={user} />
             </TabsContent>
@@ -419,8 +448,26 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
             <TabsContent value="calendarios" className="space-y-6">
               <CalendariosManager user={user} />
             </TabsContent>
-            <TabsContent value="actividades" className="space-y-6">
-              <ActividadesManager user={user} />
+            <TabsContent value="espacios" className="space-y-4">
+              <Tabs value={espaciosSubTab} onValueChange={(v) => router.push(`/${v}`)} className="space-y-4">
+                <TabsList className="bg-white border border-gray-200 p-1 rounded-lg w-auto">
+                  <TabsTrigger value="talleres" className={subTabTriggerClass}>
+                    <Calendar className="w-4 h-4" />
+                    <span>Talleres</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="grupos" className={subTabTriggerClass}>
+                    <Users className="w-4 h-4" />
+                    <span>Grupos</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="actividades" className={subTabTriggerClass}>
+                    <Activity className="w-4 h-4" />
+                    <span>Actividades</span>
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="talleres">{espaciosSubTab === "talleres" && <TalleresManager user={user} />}</TabsContent>
+                <TabsContent value="grupos">{espaciosSubTab === "grupos" && <GruposManager user={user} />}</TabsContent>
+                <TabsContent value="actividades">{espaciosSubTab === "actividades" && <ActividadesManager user={user} />}</TabsContent>
+              </Tabs>
             </TabsContent>
             <TabsContent value="pagos" className="space-y-6">
               <PagosManager user={user} />

@@ -172,7 +172,7 @@ export default function TalleresManager({ user }: { user: any }) {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <div>
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900">Talleres de Memoria</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900">Talleres</h2>
           <p className="text-gray-600">Gestiona los tipos de talleres de estimulación cognitiva</p>
         </div>
 

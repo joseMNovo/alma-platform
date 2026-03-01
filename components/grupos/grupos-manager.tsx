@@ -60,9 +60,10 @@ export default function GruposManager({ user }: { user: any }) {
     try {
       const response = await fetch("/api/grupos")
       const data = await response.json()
-      setGroups(data)
+      setGroups(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Error fetching grupos:", error)
+      setGroups([])
     } finally {
       setLoading(false)
     }
@@ -156,7 +157,7 @@ export default function GruposManager({ user }: { user: any }) {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Grupos de Apoyo</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Grupos</h2>
           <p className="text-gray-600">Espacios de contención y apoyo emocional</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

@@ -62,9 +62,10 @@ export default function ActividadesManager({ user }: { user: any }) {
     try {
       const response = await fetch("/api/actividades")
       const data = await response.json()
-      setActivities(data)
+      setActivities(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Error fetching actividades:", error)
+      setActivities([])
     } finally {
       setLoading(false)
     }
