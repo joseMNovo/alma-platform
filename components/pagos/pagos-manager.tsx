@@ -38,6 +38,8 @@ export default function PagosManager({ user }: { user: any }) {
   })
 
   const isAdmin = user.role === "admin"
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const touch = (f: string) => setTouched(t => ({ ...t, [f]: true }))
 
   useEffect(() => {
     fetchPayments()
@@ -133,6 +135,7 @@ export default function PagosManager({ user }: { user: any }) {
   const resetForm = () => {
     setFormData({ user_id: "", concept: "", amount: "", due_date: "", payment_method: "", status: "pendiente" })
     setEditingPayment(null)
+    setTouched({})
   }
 
   const openEditDialog = (payment: any) => {
@@ -184,7 +187,7 @@ export default function PagosManager({ user }: { user: any }) {
                   {editingPayment ? "Modifica los datos del pago" : "Registra un nuevo pago o cuota"}
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} noValidate className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="user_id">Voluntario</Label>
                   <Select
@@ -209,9 +212,12 @@ export default function PagosManager({ user }: { user: any }) {
                     id="concept"
                     value={formData.concept}
                     onChange={(e) => setFormData({ ...formData, concept: e.target.value })}
+                    onBlur={() => touch("concept")}
                     placeholder="Cuota mensual, taller, etc."
-                    required
                   />
+                  {touched.concept && !formData.concept.trim() && (
+                    <p className="text-xs text-red-500">El concepto es requerido</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="amount">Monto ($)</Label>
@@ -220,8 +226,11 @@ export default function PagosManager({ user }: { user: any }) {
                     type="number"
                     value={formData.amount}
                     onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    required
+                    onBlur={() => touch("amount")}
                   />
+                  {touched.amount && !formData.amount && (
+                    <p className="text-xs text-red-500">El monto es requerido</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="due_date">Fecha de Vencimiento</Label>
@@ -230,8 +239,11 @@ export default function PagosManager({ user }: { user: any }) {
                     type="date"
                     value={formData.due_date}
                     onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                    required
+                    onBlur={() => touch("due_date")}
                   />
+                  {touched.due_date && !formData.due_date && (
+                    <p className="text-xs text-red-500">La fecha de vencimiento es requerida</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="status">Estado</Label>
@@ -268,7 +280,11 @@ export default function PagosManager({ user }: { user: any }) {
                   </div>
                 )}
                 <DialogFooter>
-                  <Button type="submit" className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+                  <Button
+                    type="submit"
+                    disabled={!formData.user_id || !formData.concept.trim() || !formData.amount || !formData.due_date}
+                    className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white disabled:opacity-50"
+                  >
                     {editingPayment ? "Actualizar" : "Crear"} Pago
                   </Button>
                 </DialogFooter>

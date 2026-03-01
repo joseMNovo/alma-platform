@@ -32,6 +32,7 @@ export default function ActividadesManager({ user }: { user: any }) {
   })
   const [searchTerm, setSearchTerm] = useState("")
   const [filterActive, setFilterActive] = useState(true)
+  const [nameTouched, setNameTouched] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [activityToDelete, setActivityToDelete] = useState<any>(null)
 
@@ -110,6 +111,7 @@ export default function ActividadesManager({ user }: { user: any }) {
   const resetForm = () => {
     setFormData({ name: "", description: "", status: "activo" })
     setEditingActivity(null)
+    setNameTouched(false)
   }
 
   const openEditDialog = (activity: any) => {
@@ -180,16 +182,19 @@ export default function ActividadesManager({ user }: { user: any }) {
               <DialogHeader>
                 <DialogTitle>{editingActivity ? "Editar Actividad" : "Nueva Actividad"}</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} noValidate className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nombre de la Actividad</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onBlur={() => setNameTouched(true)}
                     placeholder="Ej: Ciclo de charlas sobre Alzheimer"
-                    required
                   />
+                  {nameTouched && !formData.name.trim() && (
+                    <p className="text-xs text-red-500">El nombre es requerido</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="description">Descripción</Label>
@@ -216,7 +221,7 @@ export default function ActividadesManager({ user }: { user: any }) {
                   <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                     Cancelar
                   </Button>
-                  <Button type="submit" className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+                  <Button type="submit" disabled={!formData.name.trim()} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white disabled:opacity-50">
                     {editingActivity ? "Actualizar" : "Crear"} Actividad
                   </Button>
                 </DialogFooter>

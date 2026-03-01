@@ -986,7 +986,7 @@ export default function CalendariosManager({ user }: { user: any }) {
               </Button>
             )}
             {can(user, "calendar:create") && (
-              <Button size="sm" className="bg-[#4dd0e1] hover:bg-[#26c6da] text-white" onClick={openNewInstance}>
+              <Button size="sm" className="bg-[#4dd0e1] hover:bg-[#26c6da] text-white" onClick={() => openNewInstance()}>
                 <Plus className="h-4 w-4 mr-1" />
                 Nuevo evento
               </Button>
@@ -2027,6 +2027,8 @@ export default function CalendariosManager({ user }: { user: any }) {
               disabled={
                 saving ||
                 !instanceForm.date_from ||
+                !instanceForm.start_time ||
+                !instanceForm.end_time ||
                 (!editingInstance && !instanceForm.is_single_day && !instanceForm.date_to)
               }
             >

@@ -32,6 +32,7 @@ export default function GruposManager({ user }: { user: any }) {
     description: "",
     status: "activo",
   })
+  const [nameTouched, setNameTouched] = useState(false)
 
   // Detail dialog
   const [detailOpen, setDetailOpen] = useState(false)
@@ -110,6 +111,7 @@ export default function GruposManager({ user }: { user: any }) {
   const resetForm = () => {
     setFormData({ name: "", description: "", status: "activo" })
     setEditingGroup(null)
+    setNameTouched(false)
   }
 
   const openEditDialog = (group: any) => {
@@ -170,15 +172,18 @@ export default function GruposManager({ user }: { user: any }) {
             <DialogHeader>
               <DialogTitle>{editingGroup ? "Editar Grupo" : "Nuevo Grupo"}</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Nombre del Grupo</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
+                  onBlur={() => setNameTouched(true)}
                 />
+                {nameTouched && !formData.name.trim() && (
+                  <p className="text-xs text-red-500">El nombre es requerido</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">Descripción</Label>
@@ -205,7 +210,7 @@ export default function GruposManager({ user }: { user: any }) {
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+                <Button type="submit" disabled={!formData.name.trim()} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white disabled:opacity-50">
                   {editingGroup ? "Actualizar" : "Crear"} Grupo
                 </Button>
               </DialogFooter>

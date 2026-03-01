@@ -27,6 +27,7 @@ import CalendariosManager from "@/components/calendarios/calendarios-manager"
 import MisDatos from "@/components/participantes/mis-datos"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import AlmaFooter from "@/components/ui/alma-footer"
+import ProfileCompletionModal from "@/components/auth/profile-completion-modal"
 import { Menu } from "lucide-react"
 
 // Human-readable role labels (UI)
@@ -427,6 +428,8 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       </main>
 
       <AlmaFooter borderTop />
+
+      <ProfileCompletionModal user={user} />
     </div>
   )
 }

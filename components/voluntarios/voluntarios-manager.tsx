@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -18,7 +19,7 @@ import {
 } from "@/components/ui/dialog"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 import PersonasTablero from "@/components/voluntarios/personas-tablero"
-import { Plus, Edit, Trash2, Users, User, Calendar, Phone, Mail, Heart, KeyRound } from "lucide-react"
+import { Plus, Edit, Trash2, Users, User, Calendar, Phone, Mail, Heart, KeyRound, X } from "lucide-react"
 
 interface CurrentUser {
   id: number
@@ -43,7 +44,9 @@ interface Volunteer {
   is_admin: boolean
 }
 
-export default function VoluntariosManager({ user }: { user: CurrentUser }) {
+function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const [volunteers, setVolunteers] = useState<Volunteer[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -58,6 +61,8 @@ export default function VoluntariosManager({ user }: { user: CurrentUser }) {
   const [pinValue, setPinValue] = useState("")
   const [pinLoading, setPinLoading] = useState(false)
   const [pinMessage, setPinMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null)
+  const [specialtyInput, setSpecialtyInput] = useState("")
+  const [nameTouched, setNameTouched] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
     last_name: "",
@@ -74,6 +79,17 @@ export default function VoluntariosManager({ user }: { user: CurrentUser }) {
   useEffect(() => {
     fetchVolunteers()
   }, [])
+
+  // Abrir modal de edición propio si viene ?editSelf=true
+  useEffect(() => {
+    if (searchParams.get("editSelf") === "true" && volunteers.length > 0) {
+      const myRecord = volunteers.find((v) => v.email === user.email)
+      if (myRecord) {
+        openEditDialog(myRecord)
+        router.replace("/voluntarios", { scroll: false })
+      }
+    }
+  }, [searchParams, volunteers])
 
   const fetchVolunteers = async () => {
     try {
@@ -155,6 +171,30 @@ export default function VoluntariosManager({ user }: { user: CurrentUser }) {
       is_admin: false,
     })
     setEditingVolunteer(null)
+    setSpecialtyInput("")
+    setNameTouched(false)
+  }
+
+  const addSpecialty = () => {
+    const trimmed = specialtyInput.trim()
+    if (trimmed && !formData.specialties.includes(trimmed)) {
+      setFormData({ ...formData, specialties: [...formData.specialties, trimmed] })
+    }
+    setSpecialtyInput("")
+  }
+
+  const removeSpecialty = (index: number) => {
+    setFormData({
+      ...formData,
+      specialties: formData.specialties.filter((_, i) => i !== index),
+    })
+  }
+
+  const handleSpecialtyKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault()
+      addSpecialty()
+    }
   }
 
   const openPinDialog = (volunteer: Volunteer) => {
@@ -287,7 +327,7 @@ export default function VoluntariosManager({ user }: { user: CurrentUser }) {
               </DialogDescription>
             </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="name">Nombre *</Label>
@@ -295,9 +335,12 @@ export default function VoluntariosManager({ user }: { user: CurrentUser }) {
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onBlur={() => setNameTouched(true)}
                     placeholder="Nombre"
-                    required
                   />
+                  {nameTouched && !formData.name.trim() && (
+                    <p className="text-xs text-red-500 mt-1">El nombre es requerido</p>
+                  )}
                 </div>
 
                 <div>
@@ -331,7 +374,7 @@ export default function VoluntariosManager({ user }: { user: CurrentUser }) {
                     <SelectContent>
                       <SelectItem value="Masculino">Masculino</SelectItem>
                       <SelectItem value="Femenino">Femenino</SelectItem>
-                      <SelectItem value="Otro">Otro</SelectItem>
+                      <SelectItem value="Prefiero no decirlo">Prefiero no decirlo</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -385,11 +428,43 @@ export default function VoluntariosManager({ user }: { user: CurrentUser }) {
                 </div>
               )}
 
+              {/* Especialidades */}
+              <div className="space-y-2">
+                <Label>Especialidades</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={specialtyInput}
+                    onChange={(e) => setSpecialtyInput(e.target.value)}
+                    onKeyDown={handleSpecialtyKeyDown}
+                    placeholder="Ej: Música, Arte... (Enter para agregar)"
+                    className="flex-1"
+                  />
+                  <Button type="button" variant="outline" onClick={addSpecialty} disabled={!specialtyInput.trim()}>
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                {formData.specialties.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {formData.specialties.map((s, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1 bg-[#e0f7fa] text-[#00838f] text-xs font-medium px-2.5 py-1 rounded-full"
+                      >
+                        {s}
+                        <button type="button" onClick={() => removeSpecialty(i)} className="hover:text-red-500 transition-colors">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" className="bg-[#4dd0e1] hover:bg-[#3bc0d1]">
+                <Button type="submit" disabled={!formData.name.trim()} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] disabled:opacity-50">
                   {editingVolunteer ? "Actualizar" : "Agregar"}
                 </Button>
               </DialogFooter>
@@ -419,9 +494,6 @@ export default function VoluntariosManager({ user }: { user: CurrentUser }) {
                   <div className="min-w-0 flex-1">
                     <CardTitle className="text-lg truncate">{getFullName(volunteer)}</CardTitle>
                     <div className="flex flex-wrap items-center gap-2 mt-1">
-                      <Badge variant="secondary" className={`text-xs ${getGenderColor(volunteer.gender)}`}>
-                        {getGenderIcon(volunteer.gender)} {volunteer.gender || "No especificado"}
-                      </Badge>
                       {volunteer.age && (
                         <Badge variant="outline" className="text-xs">
                           {volunteer.age} años
@@ -593,5 +665,13 @@ export default function VoluntariosManager({ user }: { user: CurrentUser }) {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+export default function VoluntariosManager({ user }: { user: CurrentUser }) {
+  return (
+    <Suspense fallback={null}>
+      <VoluntariosManagerInner user={user} />
+    </Suspense>
   )
 }

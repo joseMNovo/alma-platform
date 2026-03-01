@@ -56,6 +56,8 @@ export default function InventarioManager({ user }: { user: any }) {
   })
 
   const categories = ["Material Didáctico", "Material Terapéutico", "Mobiliario", "Tecnología", "Oficina", "Limpieza", "Merchandising"]
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const touch = (f: string) => setTouched(t => ({ ...t, [f]: true }))
 
   useEffect(() => {
     fetchInventory()
@@ -165,6 +167,7 @@ export default function InventarioManager({ user }: { user: any }) {
       assigned_volunteer_id: "sin-asignar",
     })
     setEditingItem(null)
+    setTouched({})
   }
 
   const openEditDialog = (item: any) => {
@@ -323,15 +326,18 @@ export default function InventarioManager({ user }: { user: any }) {
                   {editingItem ? "Modifica los datos del item" : "Agrega un nuevo item al inventario"}
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} noValidate className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nombre del item</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
+                    onBlur={() => touch("name")}
                   />
+                  {touched.name && !formData.name.trim() && (
+                    <p className="text-xs text-red-500">El nombre es requerido</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="category">Categoría</Label>
@@ -354,8 +360,11 @@ export default function InventarioManager({ user }: { user: any }) {
                       type="number"
                       value={formData.quantity}
                       onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                      required
+                      onBlur={() => touch("quantity")}
                     />
+                    {touched.quantity && formData.quantity === "" && (
+                      <p className="text-xs text-red-500">La cantidad es requerida</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="minimum_stock">Stock mínimo</Label>
@@ -364,8 +373,11 @@ export default function InventarioManager({ user }: { user: any }) {
                       type="number"
                       value={formData.minimum_stock}
                       onChange={(e) => setFormData({ ...formData, minimum_stock: e.target.value })}
-                      required
+                      onBlur={() => touch("minimum_stock")}
                     />
+                    {touched.minimum_stock && formData.minimum_stock === "" && (
+                      <p className="text-xs text-red-500">El stock mínimo es requerido</p>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -408,7 +420,11 @@ export default function InventarioManager({ user }: { user: any }) {
                   </Select>
                 </div>
                 <DialogFooter>
-                  <Button type="submit" className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+                  <Button
+                    type="submit"
+                    disabled={!formData.name.trim() || !formData.category || formData.quantity === "" || formData.minimum_stock === ""}
+                    className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white disabled:opacity-50"
+                  >
                     {editingItem ? "Actualizar" : "Agregar"} Item
                   </Button>
                 </DialogFooter>

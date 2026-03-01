@@ -136,6 +136,14 @@ export default function LoginForm({ onLogin }: { onLogin: (user: any) => void })
               {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
             </Button>
 
+            {/* Link de registro — siempre visible */}
+            <p className="text-white/80 text-sm text-center">
+              ¿No tenés cuenta?{" "}
+              <a href="/registro" className="text-white font-semibold underline hover:text-white/90">
+                Registrate
+              </a>
+            </p>
+
             {/* Accordion form */}
             <div
               className={`w-full overflow-hidden transition-all duration-300 ease-in-out ${
@@ -145,6 +153,7 @@ export default function LoginForm({ onLogin }: { onLogin: (user: any) => void })
               {/* Card del formulario — blanco sólido, borde con tinte teal, sombra fuerte */}
               <form
                 onSubmit={handleSubmit}
+                noValidate
                 className="bg-white rounded-2xl shadow-2xl p-6 space-y-4 text-left border border-[#b2ebf2]"
               >
                 <div className="space-y-1.5">
