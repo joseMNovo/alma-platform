@@ -315,7 +315,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
               Agregar voluntario
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px] mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingVolunteer ? "Editar voluntario" : "Agregar nuevo voluntario"}
@@ -616,7 +616,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
 
       {/* PIN Dialog */}
       <Dialog open={pinDialogOpen} onOpenChange={(open) => { setPinDialogOpen(open); if (!open) setPinMessage(null) }}>
-        <DialogContent className="sm:max-w-[360px] mx-4 sm:mx-0">
+        <DialogContent className="sm:max-w-[360px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <KeyRound className="w-5 h-5 text-[#4dd0e1]" />

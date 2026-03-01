@@ -180,7 +180,7 @@ export default function PagosManager({ user }: { user: any }) {
                 Nuevo Pago
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editingPayment ? "Editar Pago" : "Nuevo Pago"}</DialogTitle>
                 <DialogDescription>

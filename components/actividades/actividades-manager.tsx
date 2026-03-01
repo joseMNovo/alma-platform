@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Plus, Edit, Trash2, Activity, Search, Filter, CheckCircle2 } from "lucide-react"
+import { Plus, Edit, Trash2, Activity, Search, Filter, CheckCircle2, User } from "lucide-react"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 import { can } from "@/lib/permissions"
 
@@ -178,7 +178,7 @@ export default function ActividadesManager({ user }: { user: any }) {
                 </Button>
               </DialogTrigger>
             )}
-            <DialogContent className="max-w-md mx-4 sm:mx-0">
+            <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>{editingActivity ? "Editar Actividad" : "Nueva Actividad"}</DialogTitle>
               </DialogHeader>
@@ -272,6 +272,12 @@ export default function ActividadesManager({ user }: { user: any }) {
               </div>
             </CardHeader>
             <CardContent>
+              {activity.created_by_name && (
+                <p className="text-xs text-gray-400 mb-3 flex items-center gap-1">
+                  <User className="w-3 h-3" />
+                  {activity.created_by_name}
+                </p>
+              )}
               <div className="flex gap-2 flex-wrap">
                 {isParticipant ? (
                   <Button
@@ -332,7 +338,7 @@ export default function ActividadesManager({ user }: { user: any }) {
 
       {/* Detail dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-md mx-4 sm:mx-0">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {viewingActivity?.name}
@@ -349,6 +355,12 @@ export default function ActividadesManager({ user }: { user: any }) {
               <p className="text-gray-700 text-sm leading-relaxed">
                 {viewingActivity.description || <span className="italic text-gray-400">Sin descripción.</span>}
               </p>
+              {viewingActivity.created_by_name && (
+                <p className="text-xs text-gray-400 flex items-center gap-1">
+                  <User className="w-3 h-3" />
+                  Creado por {viewingActivity.created_by_name}
+                </p>
+              )}
               {isParticipant && (
                 <Button
                   onClick={() => handleEnrollToggle(viewingActivity)}

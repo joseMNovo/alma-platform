@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
       name: data.name,
       description: data.description || undefined,
       status: data.status || "activo",
+      created_by_volunteer_id: session.id,
     })
     logInfo("Actividad creada", { module: "actividades", action: "create_activity", user: session.id, meta: { id: activity.id, name: activity.name } })
     return NextResponse.json(activity)

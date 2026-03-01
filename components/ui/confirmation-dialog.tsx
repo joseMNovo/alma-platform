@@ -81,7 +81,7 @@ export default function ConfirmationDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="sm:max-w-[425px] mx-4 sm:mx-auto border-0 shadow-2xl bg-gradient-to-br from-white to-gray-50">
+      <AlertDialogContent className="sm:max-w-[425px] border-0 shadow-2xl bg-gradient-to-br from-white to-gray-50">
         <AlertDialogHeader className="text-center">
           <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-red-50 to-red-100 shadow-lg">
             <IconComponent className="h-10 w-10 text-red-600 drop-shadow-sm" />

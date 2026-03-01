@@ -55,6 +55,7 @@ export default function LoginForm({ onLogin }: { onLogin: (user: any) => void })
         onLogin(data.user)
       } else {
         setError(data.error || "Credenciales inválidas")
+        setPin("")
       }
     } catch {
       setError("Error de conexión")
@@ -133,7 +134,7 @@ export default function LoginForm({ onLogin }: { onLogin: (user: any) => void })
               disabled={loading}
               className="w-full bg-white hover:bg-[#f0fdff] active:scale-[0.98] text-[#0099b0] font-semibold rounded-full px-8 py-3 text-base transition-all shadow-lg hover:shadow-xl border-0 disabled:opacity-60"
             >
-              {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
+              {loading ? "Iniciando sesión..." : "Iniciar sesión"}
             </Button>
 
             {/* Link de registro — siempre visible */}

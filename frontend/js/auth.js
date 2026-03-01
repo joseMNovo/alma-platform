@@ -186,7 +186,7 @@ function renderLoginForm(container) {
       className: "btn btn-primary w-full",
       id: "login-button",
     },
-    "Iniciar Sesión",
+    "Iniciar sesión",
   )
 
   loginForm.appendChild(emailGroup)
@@ -230,7 +230,7 @@ function renderLoginForm(container) {
 
       // Restaurar botón
       submitButton.disabled = false
-      submitButton.innerHTML = "Iniciar Sesión"
+      submitButton.innerHTML = "Iniciar sesión"
     }
   })
 }

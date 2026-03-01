@@ -58,9 +58,11 @@ export function can(user: { role: string } | null, action: Action): boolean {
     case "talleres:edit":
       return true
 
-    // Actividades: admin only for all mutations
+    // Actividades: all non-participants can create/edit; only admin can delete
     case "actividades:create":
     case "actividades:edit":
+      return true
+
     case "actividades:delete":
       return isAdmin
 

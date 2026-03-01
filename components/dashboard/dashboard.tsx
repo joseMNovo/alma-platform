@@ -25,7 +25,8 @@ import VoluntariosManager from "@/components/voluntarios/voluntarios-manager"
 import PendientesManager from "@/components/pendientes/pendientes-manager"
 import CalendariosManager from "@/components/calendarios/calendarios-manager"
 import MisDatos from "@/components/participantes/mis-datos"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import MisDatosVoluntario from "@/components/voluntarios/mis-datos-voluntario"
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import AlmaFooter from "@/components/ui/alma-footer"
 import ProfileCompletionModal from "@/components/auth/profile-completion-modal"
 import { Menu } from "lucide-react"
@@ -71,34 +72,21 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
 
   const tabTriggerClass = "flex items-center space-x-2 data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
 
+  // Tabs que muestran la flor arriba a la derecha; el resto la muestran abajo a la derecha
+  const flowerTop = ['voluntarios', 'talleres', 'grupos', 'actividades', 'pendientes'].includes(activeTab)
+
   return (
     <div className="min-h-screen bg-gray-50 relative overflow-hidden">
-      {/* Flores decorativas de fondo distribuidas aleatoriamente */}
-      <div className="absolute top-10 left-10 w-32 h-32 opacity-[0.01] pointer-events-none">
+      {/* Flor decorativa — solo desktop, fixed en el viewport, alterna posición por módulo */}
+      <div className={`hidden md:block fixed top-0 right-0 w-[700px] h-[700px] pointer-events-none select-none translate-x-1/3 -translate-y-1/3 -rotate-[20deg] transition-opacity duration-700 ${flowerTop ? 'opacity-[0.07]' : 'opacity-0'}`}>
         <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
       </div>
-      <div className="absolute top-32 right-20 w-24 h-24 opacity-[0.005] pointer-events-none">
-        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
-      </div>
-      <div className="absolute top-1/3 left-1/4 w-40 h-40 opacity-[0.015] pointer-events-none">
-        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
-      </div>
-      <div className="absolute bottom-20 right-10 w-28 h-28 opacity-[0.01] pointer-events-none">
-        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
-      </div>
-      <div className="absolute bottom-1/3 right-1/3 w-36 h-36 opacity-[0.005] pointer-events-none">
-        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
-      </div>
-      <div className="absolute top-1/2 left-1/2 w-20 h-20 opacity-[0.015] pointer-events-none">
-        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
-      </div>
-      <div className="absolute top-20 right-1/2 w-32 h-32 opacity-[0.01] pointer-events-none">
-        <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
-      </div>
-      <div className="absolute bottom-10 left-1/3 w-24 h-24 opacity-[0.005] pointer-events-none">
+      <div className={`hidden md:block fixed bottom-0 right-0 w-[700px] h-[700px] pointer-events-none select-none translate-x-1/3 translate-y-1/3 rotate-[20deg] transition-opacity duration-700 ${!flowerTop ? 'opacity-[0.07]' : 'opacity-0'}`}>
         <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
       </div>
 
+      {/* Todo el contenido por encima de la flor */}
+      <div className="relative z-[1]">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -139,6 +127,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="w-[80%] sm:w-[350px] p-0">
+                  <SheetTitle className="sr-only">Menú de navegación</SheetTitle>
                   <div className="flex flex-col h-full">
                     <div className="p-4 border-b">
                       <div className="flex items-center space-x-3">
@@ -278,6 +267,14 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                               <CreditCard className="w-5 h-5 mr-3" />
                               Pagos
                             </Button>
+                            <Button
+                              variant={activeTab === "mis-datos" ? "default" : "ghost"}
+                              className={`w-full justify-start ${activeTab === "mis-datos" ? "bg-[#4dd0e1] text-white" : ""}`}
+                              onClick={() => handleTabChange("mis-datos")}
+                            >
+                              <UserCircle className="w-5 h-5 mr-3" />
+                              Mis datos
+                            </Button>
                           </>
                         )}
                       </nav>
@@ -349,7 +346,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         ) : (
           // ── Vista Voluntario / Admin ───────────────────────────────────
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-            <TabsList className="hidden md:grid w-full grid-cols-4 xl:grid-cols-8 bg-white border border-gray-200 p-1 rounded-lg">
+            <TabsList className="hidden md:grid w-full grid-cols-4 xl:grid-cols-9 bg-white border border-gray-200 p-1 rounded-lg">
               <TabsTrigger value="calendarios" className={tabTriggerClass}>
                 <CalendarDays className="w-4 h-4" />
                 <span className="hidden sm:inline">Calendarios</span>
@@ -382,6 +379,10 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                 <CreditCard className="w-4 h-4" />
                 <span className="hidden sm:inline">Pagos</span>
               </TabsTrigger>
+              <TabsTrigger value="mis-datos" className={tabTriggerClass}>
+                <UserCircle className="w-4 h-4" />
+                <span className="hidden sm:inline">Mis datos</span>
+              </TabsTrigger>
             </TabsList>
 
             {/* Mobile breadcrumb */}
@@ -395,7 +396,8 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                 {activeTab === "voluntarios" && <Heart className="w-5 h-5 mr-2" />}
                 {activeTab === "pendientes" && <CheckSquare className="w-5 h-5 mr-2" />}
                 {activeTab === "calendarios" && <CalendarDays className="w-5 h-5 mr-2" />}
-                {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                {activeTab === "mis-datos" && <UserCircle className="w-5 h-5 mr-2" />}
+                {activeTab === "mis-datos" ? "Mis datos" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
               </h2>
             </div>
 
@@ -423,11 +425,15 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
             <TabsContent value="pagos" className="space-y-6">
               <PagosManager user={user} />
             </TabsContent>
+            <TabsContent value="mis-datos" className="space-y-6">
+              <MisDatosVoluntario user={user} />
+            </TabsContent>
           </Tabs>
         )}
       </main>
 
       <AlmaFooter borderTop />
+      </div>{/* fin z-[1] */}
 
       <ProfileCompletionModal user={user} />
     </div>

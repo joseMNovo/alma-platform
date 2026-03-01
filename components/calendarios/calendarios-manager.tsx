@@ -1131,7 +1131,7 @@ export default function CalendariosManager({ user }: { user: any }) {
 
       {/* ── Detail Dialog ────────────────────────────────────────── */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-sm mx-4 sm:mx-0">
+        <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Badge
@@ -1269,7 +1269,7 @@ export default function CalendariosManager({ user }: { user: any }) {
 
       {/* ── Bulk Delete Dialog ───────────────────────────────────── */}
       <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
-        <DialogContent className="max-w-md mx-4 sm:mx-0">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
               <Trash2 className="h-5 w-5" />
@@ -1431,7 +1431,7 @@ export default function CalendariosManager({ user }: { user: any }) {
 
       {/* ── Generate dialog (Wizard) ──────────────────────────────── */}
       <Dialog open={generateOpen} onOpenChange={setGenerateOpen}>
-        <DialogContent className="max-w-5xl mx-2 sm:mx-4 lg:mx-auto h-[90vh] overflow-hidden p-0">
+        <DialogContent className="max-w-5xl h-[90vh] overflow-hidden p-0">
           <div className="flex flex-col h-full">
             <DialogHeader className="px-6 pt-6 pb-4 border-b">
               <DialogTitle className="flex items-center gap-2">
@@ -1815,7 +1815,7 @@ export default function CalendariosManager({ user }: { user: any }) {
 
       {/* ── New / Edit instance dialog ───────────────────────────── */}
       <Dialog open={instanceDialogOpen} onOpenChange={setInstanceDialogOpen}>
-        <DialogContent className="max-w-md mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingInstance ? "Editar evento" : "Nuevo evento"}

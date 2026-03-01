@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     const { config } = await import("@/lib/config")
     if (config.admin.email && email === config.admin.email.toLowerCase()) {
       logWarn("PIN incorrecto para admin env", { module: "auth", action: "login_failed", meta: { email } })
-      return NextResponse.json({ error: "PIN incorrecto" }, { status: 401 })
+      return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 })
     }
 
     // 2. Look up volunteer by email in DB
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
         logWarn("PIN incorrecto para voluntario", {
           module: "auth", action: "login_failed", user: volunteer.id, meta: { email },
         })
-        return NextResponse.json({ error: "PIN incorrecto" }, { status: 401 })
+        return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 })
       }
 
       // Build volunteer user object
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
         logWarn("PIN incorrecto para participante", {
           module: "auth", action: "login_failed", user: participant.id, meta: { email },
         })
-        return NextResponse.json({ error: "PIN incorrecto" }, { status: 401 })
+        return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 })
       }
 
       // Fetch profile to populate name in header
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
 
     // 4. Not found in any table
     logWarn("Email no registrado", { module: "auth", action: "login_failed", meta: { email } })
-    return NextResponse.json({ error: "Email no registrado" }, { status: 401 })
+    return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 })
 
   } catch (error) {
     logError("Error inesperado en autenticación", { module: "auth", action: "login_error", error })

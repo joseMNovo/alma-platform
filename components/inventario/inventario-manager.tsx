@@ -319,7 +319,7 @@ export default function InventarioManager({ user }: { user: any }) {
                 Nuevo Item
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editingItem ? "Editar Item" : "Nuevo Item"}</DialogTitle>
                 <DialogDescription>

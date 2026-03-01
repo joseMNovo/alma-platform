@@ -168,7 +168,7 @@ export default function GruposManager({ user }: { user: any }) {
               </Button>
             </DialogTrigger>
           )}
-          <DialogContent className="max-w-md mx-4 sm:mx-0">
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>{editingGroup ? "Editar Grupo" : "Nuevo Grupo"}</DialogTitle>
             </DialogHeader>
@@ -308,7 +308,7 @@ export default function GruposManager({ user }: { user: any }) {
 
       {/* Detail dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-md mx-4 sm:mx-0">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {viewingGroup?.name}
