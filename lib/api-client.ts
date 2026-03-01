@@ -6,6 +6,7 @@
  */
 
 const BASE_URL = process.env.BACKEND_URL || 'http://localhost:8001'
+const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || ''
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${BASE_URL}${path}`
@@ -14,6 +15,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      'X-API-Key': INTERNAL_API_KEY,
       ...options?.headers,
     },
     // No cache en server components de Next.js
