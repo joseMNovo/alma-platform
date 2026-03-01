@@ -107,6 +107,10 @@ export default function PendientesManager({ user }: { user: any }) {
       toast({ title: "Error", description: "La descripción es requerida", variant: "destructive" })
       return
     }
+    if (!formData.assigned_volunteer_id) {
+      toast({ title: "Error", description: "Debés asignar un voluntario", variant: "destructive" })
+      return
+    }
 
     const newItem: Category = {
       id: generateId(),
@@ -126,12 +130,17 @@ export default function PendientesManager({ user }: { user: any }) {
 
   const handleAddSubCategory = (categoryId: string) => {
     setSelectedCategory(categoryId)
+    setFormData({ description: '', assigned_volunteer_id: user.id.toString() })
     setIsSubCategoryModalOpen(true)
   }
 
   const handleAddSubCategorySave = () => {
     if (!formData.description.trim()) {
       toast({ title: "Error", description: "La descripción es requerida", variant: "destructive" })
+      return
+    }
+    if (!formData.assigned_volunteer_id) {
+      toast({ title: "Error", description: "Debés asignar un voluntario", variant: "destructive" })
       return
     }
     if (!selectedCategory) {
@@ -241,6 +250,10 @@ export default function PendientesManager({ user }: { user: any }) {
       toast({ title: "Error", description: "La descripción es requerida", variant: "destructive" })
       return
     }
+    if (!formData.assigned_volunteer_id) {
+      toast({ title: "Error", description: "Debés asignar un voluntario", variant: "destructive" })
+      return
+    }
     if (!editingItem) return
 
     if (editingItem.type === 'category') {
@@ -334,7 +347,7 @@ export default function PendientesManager({ user }: { user: any }) {
             <DialogTrigger asChild>
               <Button
                 className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white w-full sm:w-auto"
-                onClick={() => setFormData({ description: '', assigned_volunteer_id: '' })}
+                onClick={() => setFormData({ description: '', assigned_volunteer_id: user.id.toString() })}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Agregar

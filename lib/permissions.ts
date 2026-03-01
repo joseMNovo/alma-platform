@@ -12,6 +12,10 @@ export type Action =
   | "actividades:create"
   | "actividades:edit"
   | "actividades:delete"
+  | "ideas:create"
+  | "ideas:edit"
+  | "ideas:delete"
+  | "ideas:comment"
   | "participante:edit_profile"
 
 /**
@@ -64,6 +68,16 @@ export function can(user: { role: string } | null, action: Action): boolean {
       return true
 
     case "actividades:delete":
+      return isAdmin
+
+    // Ideas: todos los voluntarios pueden crear, editar sus propias ideas y comentar; solo admin puede borrar ideas.
+    // Nota: la verificación de autoría (ideas:edit solo la propia) se hace en la API route, no aquí.
+    case "ideas:create":
+    case "ideas:edit":
+    case "ideas:comment":
+      return true
+
+    case "ideas:delete":
       return isAdmin
 
     // Profile edit: only for participants (handled above)

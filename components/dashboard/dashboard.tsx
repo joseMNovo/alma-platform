@@ -16,6 +16,7 @@ import {
   CalendarDays,
   UserCircle,
   LayoutGrid,
+  Lightbulb,
 } from "lucide-react"
 import TalleresManager from "@/components/talleres/talleres-manager"
 import GruposManager from "@/components/grupos/grupos-manager"
@@ -25,6 +26,7 @@ import InventarioManager from "@/components/inventario/inventario-manager"
 import VoluntariosManager from "@/components/voluntarios/voluntarios-manager"
 import PendientesManager from "@/components/pendientes/pendientes-manager"
 import CalendariosManager from "@/components/calendarios/calendarios-manager"
+import IdeasManager from "@/components/ideas/ideas-manager"
 import MisDatos from "@/components/participantes/mis-datos"
 import MisDatosVoluntario from "@/components/voluntarios/mis-datos-voluntario"
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
@@ -59,6 +61,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
     if (pathname.includes('/grupos')) return 'espacios'
     if (pathname.includes('/actividades')) return 'espacios'
     if (pathname.includes('/pagos')) return 'pagos'
+    if (pathname.includes('/ideas')) return 'ideas'
     if (pathname.includes('/mis-datos')) return 'mis-datos'
     return 'calendarios'
   }
@@ -86,7 +89,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   const subTabTriggerClass = "flex items-center space-x-2 data-[state=active]:bg-[#4dd0e1]/15 data-[state=active]:text-[#4dd0e1] data-[state=active]:font-semibold"
 
   // Tabs que muestran la flor arriba a la derecha; el resto la muestran abajo a la derecha
-  const flowerTop = ['voluntarios', 'espacios', 'pendientes'].includes(activeTab)
+  const flowerTop = ['voluntarios', 'espacios', 'pendientes', 'ideas'].includes(activeTab)
 
   const espaciosLabel = espaciosSubTab.charAt(0).toUpperCase() + espaciosSubTab.slice(1)
 
@@ -291,6 +294,14 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                               Pagos
                             </Button>
                             <Button
+                              variant={activeTab === "ideas" ? "default" : "ghost"}
+                              className={`w-full justify-start ${activeTab === "ideas" ? "bg-[#4dd0e1] text-white" : ""}`}
+                              onClick={() => handleTabChange("ideas")}
+                            >
+                              <Lightbulb className="w-5 h-5 mr-3" />
+                              Ideas
+                            </Button>
+                            <Button
                               variant={activeTab === "mis-datos" ? "default" : "ghost"}
                               className={`w-full justify-start ${activeTab === "mis-datos" ? "bg-[#4dd0e1] text-white" : ""}`}
                               onClick={() => handleTabChange("mis-datos")}
@@ -381,7 +392,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         ) : (
           // ── Vista Voluntario / Admin ───────────────────────────────────
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-            <TabsList className="hidden md:grid w-full grid-cols-4 xl:grid-cols-7 bg-white border border-gray-200 p-1 rounded-lg">
+            <TabsList className="hidden md:grid w-full grid-cols-4 xl:grid-cols-8 bg-white border border-gray-200 p-1 rounded-lg">
               <TabsTrigger value="calendarios" className={tabTriggerClass}>
                 <CalendarDays className="w-4 h-4" />
                 <span className="hidden sm:inline">Calendarios</span>
@@ -406,6 +417,10 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                 <CreditCard className="w-4 h-4" />
                 <span className="hidden sm:inline">Pagos</span>
               </TabsTrigger>
+              <TabsTrigger value="ideas" className={tabTriggerClass}>
+                <Lightbulb className="w-4 h-4" />
+                <span className="hidden sm:inline">Ideas</span>
+              </TabsTrigger>
               <TabsTrigger value="mis-datos" className={tabTriggerClass}>
                 <UserCircle className="w-4 h-4" />
                 <span className="hidden sm:inline">Mis datos</span>
@@ -429,6 +444,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                     {activeTab === "voluntarios" && <Heart className="w-5 h-5 mr-2" />}
                     {activeTab === "pendientes" && <CheckSquare className="w-5 h-5 mr-2" />}
                     {activeTab === "calendarios" && <CalendarDays className="w-5 h-5 mr-2" />}
+                    {activeTab === "ideas" && <Lightbulb className="w-5 h-5 mr-2" />}
                     {activeTab === "mis-datos" && <UserCircle className="w-5 h-5 mr-2" />}
                     {activeTab === "mis-datos" ? "Mis datos" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
                   </>
@@ -471,6 +487,9 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
             </TabsContent>
             <TabsContent value="pagos" className="space-y-6">
               <PagosManager user={user} />
+            </TabsContent>
+            <TabsContent value="ideas" className="space-y-6">
+              <IdeasManager user={user} />
             </TabsContent>
             <TabsContent value="mis-datos" className="space-y-6">
               <MisDatosVoluntario user={user} />

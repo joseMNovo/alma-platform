@@ -27,6 +27,24 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     if (body.pendientes !== undefined) {
+      // Validación: todos los pendientes y sub-tareas deben tener voluntario asignado
+      const tasks: any[] = body.pendientes
+      for (const task of tasks) {
+        if (!task.assigned_volunteer_id) {
+          return NextResponse.json(
+            { error: `El pendiente "${(task.description || "").slice(0, 50)}" no tiene voluntario asignado` },
+            { status: 422 }
+          )
+        }
+        for (const sub of task.sub_items || []) {
+          if (!sub.assigned_volunteer_id) {
+            return NextResponse.json(
+              { error: `La sub-tarea "${(sub.description || "").slice(0, 50)}" no tiene voluntario asignado` },
+              { status: 422 }
+            )
+          }
+        }
+      }
       await savePendingTasks(body.pendientes)
     }
 

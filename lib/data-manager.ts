@@ -154,6 +154,27 @@ export interface ParticipantProfile {
   accepts_whatsapp?: boolean
 }
 
+export interface Idea {
+  id: number
+  title: string
+  body: string
+  category?: string | null
+  created_by_volunteer_id: number
+  created_by_name?: string | null
+  comment_count: number
+  created_at: string
+  updated_at?: string | null
+}
+
+export interface IdeaComment {
+  id: number
+  idea_id: number
+  volunteer_id: number
+  volunteer_name?: string | null
+  body: string
+  created_at: string
+}
+
 export type BulkDeleteScope = 'month' | 'type' | 'series' | 'all'
 
 export interface BulkDeleteFilters {
@@ -630,6 +651,38 @@ export async function upsertParticipantProfile(
   } else {
     return api.put<ParticipantProfile>(`/participants/${participant_id}/profile`, data)
   }
+}
+
+// ============================================================
+// Ideas
+// ============================================================
+
+export async function getIdeas(): Promise<Idea[]> {
+  return api.get<Idea[]>('/ideas/?limit=500')
+}
+
+export async function createIdea(data: { title: string; body: string; category?: string | null; created_by_volunteer_id: number }): Promise<Idea> {
+  return api.post<Idea>('/ideas/', data)
+}
+
+export async function updateIdea(id: number, data: { title?: string; body?: string; category?: string | null }): Promise<Idea> {
+  return api.put<Idea>(`/ideas/${id}`, data)
+}
+
+export async function deleteIdea(id: number): Promise<void> {
+  await api.delete(`/ideas/${id}`)
+}
+
+export async function getIdeaComments(ideaId: number): Promise<IdeaComment[]> {
+  return api.get<IdeaComment[]>(`/ideas/${ideaId}/comments`)
+}
+
+export async function createIdeaComment(ideaId: number, body: string, volunteerId: number): Promise<IdeaComment> {
+  return api.post<IdeaComment>(`/ideas/${ideaId}/comments?volunteer_id=${volunteerId}`, { body })
+}
+
+export async function deleteIdeaComment(ideaId: number, commentId: number): Promise<void> {
+  await api.delete(`/ideas/${ideaId}/comments/${commentId}`)
 }
 
 export async function getPersonasCounts(): Promise<{ volunteers: number; participants: number }> {
