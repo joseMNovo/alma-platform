@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Plus, Edit, Trash2, Activity, Search, Filter, CheckCircle2, User } from "lucide-react"
+import { Plus, Edit, Trash2, Activity, Search, Filter, CheckCircle2, User, ChevronDown } from "lucide-react"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 import { can } from "@/lib/permissions"
 
@@ -35,8 +35,9 @@ export default function ActividadesManager({ user }: { user: any }) {
   const [nameTouched, setNameTouched] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [activityToDelete, setActivityToDelete] = useState<any>(null)
+  const [expandedId, setExpandedId] = useState<number | null>(null)
 
-  // Detail dialog
+  // Detail dialog (desktop)
   const [detailOpen, setDetailOpen] = useState(false)
   const [viewingActivity, setViewingActivity] = useState<any>(null)
 
@@ -162,97 +163,208 @@ export default function ActividadesManager({ user }: { user: any }) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
         <div>
           <h2 className="text-xl md:text-2xl font-bold text-gray-900">Actividades</h2>
-          <p className="text-gray-600">Ciclos de charlas, jornadas, eventos y más</p>
+          <p className="text-sm text-gray-500">Ciclos de charlas, jornadas, eventos y más</p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            {can(user, "actividades:create") && (
-              <DialogTrigger asChild>
-                <Button onClick={resetForm} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nueva Actividad
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          {can(user, "actividades:create") && (
+            <DialogTrigger asChild>
+              <Button onClick={resetForm} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+                <Plus className="w-4 h-4 mr-2" />
+                Nueva Actividad
+              </Button>
+            </DialogTrigger>
+          )}
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>{editingActivity ? "Editar Actividad" : "Nueva Actividad"}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nombre de la Actividad</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onBlur={() => setNameTouched(true)}
+                  placeholder="Ej: Ciclo de charlas sobre Alzheimer"
+                />
+                {nameTouched && !formData.name.trim() && (
+                  <p className="text-xs text-red-500">El nombre es requerido</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Descripción</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Estado</Label>
+                <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="activo">Activo</SelectItem>
+                    <SelectItem value="inactivo">Inactivo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                  Cancelar
                 </Button>
-              </DialogTrigger>
-            )}
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>{editingActivity ? "Editar Actividad" : "Nueva Actividad"}</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} noValidate className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nombre de la Actividad</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    onBlur={() => setNameTouched(true)}
-                    placeholder="Ej: Ciclo de charlas sobre Alzheimer"
-                  />
-                  {nameTouched && !formData.name.trim() && (
-                    <p className="text-xs text-red-500">El nombre es requerido</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Descripción</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={3}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="status">Estado</Label>
-                  <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="activo">Activo</SelectItem>
-                      <SelectItem value="inactivo">Inactivo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit" disabled={!formData.name.trim()} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white disabled:opacity-50">
-                    {editingActivity ? "Actualizar" : "Crear"} Actividad
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+                <Button type="submit" disabled={!formData.name.trim()} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white disabled:opacity-50">
+                  {editingActivity ? "Actualizar" : "Crear"} Actividad
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-2">
-        <div className="relative flex-grow">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+      {/* Search + Filter */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
           <Input
             placeholder="Buscar actividades..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-9 h-9 text-sm"
           />
         </div>
         <Button
           variant="outline"
-          className={`flex items-center gap-2 ${filterActive ? "bg-[#4dd0e1] text-white" : ""}`}
+          className={`shrink-0 h-9 px-3 flex items-center gap-1.5 text-sm ${filterActive ? "bg-orange-400 text-white border-orange-400 hover:bg-orange-500 hover:border-orange-500" : ""}`}
           onClick={() => setFilterActive(!filterActive)}
         >
-          <Filter size={18} />
-          {filterActive ? "Todos" : "Solo Activas"}
+          <Filter size={15} />
+          {filterActive ? "Todos" : "Activas"}
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      {/* ── MOBILE: Acordeón (< sm) ── */}
+      <div className="sm:hidden space-y-2">
+        {filteredActivities.map((activity) => {
+          const isExpanded = expandedId === activity.id
+          return (
+            <div
+              key={activity.id}
+              className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
+            >
+              {/* Fila compacta — siempre visible */}
+              <button
+                className="w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-gray-50"
+                onClick={() => setExpandedId(isExpanded ? null : activity.id)}
+              >
+                <span
+                  className={`w-2 h-2 rounded-full flex-shrink-0 mt-px ${
+                    activity.status === "activo" ? "bg-orange-400" : "bg-gray-300"
+                  }`}
+                />
+                <div className="flex-1 min-w-0">
+                  <span className="font-semibold text-gray-900 text-sm block truncate leading-snug">
+                    {activity.name}
+                  </span>
+                  {activity.created_by_name && (
+                    <span className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                      <User className="w-3 h-3 flex-shrink-0" />
+                      {activity.created_by_name}
+                    </span>
+                  )}
+                </div>
+                <Badge
+                  variant={activity.status === "activo" ? "default" : "secondary"}
+                  className={`text-xs flex-shrink-0 ${activity.status === "activo" ? "bg-orange-400" : ""}`}
+                >
+                  {activity.status}
+                </Badge>
+                <ChevronDown
+                  className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-300 ${
+                    isExpanded ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {/* Contenido expandido */}
+              <div
+                className={`grid transition-all duration-300 ease-in-out ${
+                  isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <div className="px-4 pb-4 pt-3 border-t border-gray-100 space-y-3">
+                    <p
+                      className={`text-sm leading-relaxed ${
+                        activity.description ? "text-gray-600" : "text-gray-400 italic"
+                      }`}
+                    >
+                      {activity.description || "Sin descripción."}
+                    </p>
+                    <div className="flex gap-2">
+                      {isParticipant ? (
+                        <Button
+                          onClick={(e) => { e.stopPropagation(); handleEnrollToggle(activity) }}
+                          disabled={enrollingId === activity.id}
+                          size="sm"
+                          className={`flex-1 h-9 ${
+                            enrolledIds.includes(activity.id)
+                              ? "bg-green-500 hover:bg-green-600 text-white"
+                              : "bg-orange-400 hover:bg-orange-500 text-white"
+                          }`}
+                        >
+                          {enrolledIds.includes(activity.id) ? (
+                            <><CheckCircle2 className="w-4 h-4 mr-1.5" />Anotado</>
+                          ) : (
+                            "Quiero participar"
+                          )}
+                        </Button>
+                      ) : (
+                        <>
+                          {can(user, "actividades:edit") && (
+                            <Button
+                              onClick={() => openEditDialog(activity)}
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 h-9"
+                            >
+                              <Edit className="w-3.5 h-3.5 mr-1.5" />
+                              Editar
+                            </Button>
+                          )}
+                          {can(user, "actividades:delete") && (
+                            <Button
+                              onClick={() => handleDelete(activity)}
+                              variant="outline"
+                              size="sm"
+                              className="h-9 w-9 p-0 text-red-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* ── DESKTOP: Grid de cards (≥ sm) ── */}
+      <div className="hidden sm:grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {filteredActivities.map((activity) => (
           <Card key={activity.id} className="hover:shadow-lg transition-shadow">
             <CardHeader
@@ -337,7 +449,7 @@ export default function ActividadesManager({ user }: { user: any }) {
         </div>
       )}
 
-      {/* Detail dialog */}
+      {/* Detail dialog (desktop) */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>

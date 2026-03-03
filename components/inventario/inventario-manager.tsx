@@ -34,6 +34,7 @@ export default function InventarioManager({ user }: { user: any }) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [itemToDelete, setItemToDelete] = useState<any>(null)
   const [deleting, setDeleting] = useState(false)
+  const [expandedId, setExpandedId] = useState<number | null>(null)
   const [filters, setFilters] = useState({
     searchTerm: "",
     category: "todas",
@@ -290,13 +291,14 @@ export default function InventarioManager({ user }: { user: any }) {
   }
 
   return (
-    <div className="space-y-6 px-4 sm:px-0">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+    <div className="space-y-4 px-4 sm:px-0">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div className="text-center sm:text-left">
           <h2 className="text-2xl font-bold text-gray-900">Inventario</h2>
-          <p className="text-gray-600">Gestión de materiales y recursos</p>
+          <p className="text-sm text-gray-500">Gestión de materiales y recursos</p>
         </div>
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center gap-2">
           <Button
             variant="outline"
             onClick={() => setShowFilters(!showFilters)}
@@ -566,31 +568,31 @@ export default function InventarioManager({ user }: { user: any }) {
         </Card>
       )}
 
-      {/* Summary */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 px-4 sm:px-0">
+      {/* Summary cards */}
+      <div className="grid gap-3 grid-cols-3 sm:gap-4 px-4 sm:px-0">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total items</CardTitle>
+          <CardHeader className="pb-1 pt-3 px-3 sm:px-4 sm:pt-4 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">Items</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-[#4dd0e1]">{inventory.length}</div>
+          <CardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
+            <div className="text-xl sm:text-2xl font-bold text-[#4dd0e1]">{inventory.length}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Items bajo stock</CardTitle>
+          <CardHeader className="pb-1 pt-3 px-3 sm:px-4 sm:pt-4 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">Bajo stock</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{lowStockItems.length}</div>
+          <CardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
+            <div className="text-xl sm:text-2xl font-bold text-red-600">{lowStockItems.length}</div>
           </CardContent>
         </Card>
         {totalInventoryValue > 0 && (
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Valor total</CardTitle>
+            <CardHeader className="pb-1 pt-3 px-3 sm:px-4 sm:pt-4 sm:pb-2">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">Valor</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">${totalInventoryValue.toLocaleString()}</div>
+            <CardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
+              <div className="text-xl sm:text-2xl font-bold text-green-600">${totalInventoryValue.toLocaleString()}</div>
             </CardContent>
           </Card>
         )}
@@ -610,8 +612,8 @@ export default function InventarioManager({ user }: { user: any }) {
               {lowStockItems.map((item) => (
                 <div key={item.id} className="flex justify-between items-center text-sm">
                   <span className="font-medium truncate">{item.name}</span>
-                  <span className="text-red-600 text-xs sm:text-sm">
-                    Stock: {item.quantity} (Mín: {item.minimum_stock})
+                  <span className="text-red-600 text-xs sm:text-sm ml-2 flex-shrink-0">
+                    {item.quantity} / {item.minimum_stock}
                   </span>
                 </div>
               ))}
@@ -620,8 +622,151 @@ export default function InventarioManager({ user }: { user: any }) {
         </Card>
       )}
 
-      {/* Item list */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 px-4 sm:px-0">
+      {/* ── MOBILE: Acordeón (< sm) ── */}
+      <div className="sm:hidden space-y-2">
+        {filteredInventory.map((item) => {
+          const isExpanded = expandedId === item.id
+          const lowStock = isLowStock(item)
+          const volunteerName = getVolunteerName(item.assigned_volunteer_id)
+          return (
+            <div
+              key={item.id}
+              className={`bg-white rounded-xl border shadow-sm overflow-hidden ${
+                lowStock ? "border-red-200" : "border-gray-100"
+              }`}
+            >
+              {/* Fila compacta — siempre visible */}
+              <button
+                className="w-full flex items-start gap-3 px-4 py-3.5 text-left transition-colors active:bg-gray-50"
+                onClick={() => setExpandedId(isExpanded ? null : item.id)}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-semibold text-gray-900 text-sm truncate leading-snug flex-1">
+                      {item.name}
+                    </span>
+                    {lowStock && (
+                      <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    {item.category && (
+                      <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                        {item.category}
+                      </span>
+                    )}
+                    <span className={`text-xs font-medium ${lowStock ? "text-red-600" : "text-gray-500"}`}>
+                      Cant: {item.quantity}
+                    </span>
+                  </div>
+                </div>
+                <ChevronDown
+                  className={`w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5 transition-transform duration-300 ${
+                    isExpanded ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {/* Contenido expandido */}
+              <div
+                className={`grid transition-all duration-300 ease-in-out ${
+                  isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <div className="px-4 pb-4 pt-3 border-t border-gray-100 space-y-3">
+                    {/* Stock controls + datos */}
+                    <div className="space-y-2">
+                      {/* Cantidad con controles inline */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500">Cantidad</span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); updateStock(item.id, Math.max(0, item.quantity - 1)) }}
+                            disabled={item.quantity === 0}
+                            className="w-7 h-7 rounded-md border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-40 text-sm font-medium"
+                          >
+                            −
+                          </button>
+                          <span className={`text-sm font-semibold min-w-[2rem] text-center ${lowStock ? "text-red-600" : "text-gray-900"}`}>
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); updateStock(item.id, item.quantity + 1) }}
+                            className="w-7 h-7 rounded-md border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 text-sm font-medium"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-400">Stock mínimo</span>
+                        <span className={`font-medium ${lowStock ? "text-red-500" : "text-gray-600"}`}>
+                          {item.minimum_stock}
+                        </span>
+                      </div>
+
+                      {item.price > 0 && (
+                        <>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-400">Precio unitario</span>
+                            <span className="font-medium text-gray-600">${item.price.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-400">Valor total</span>
+                            <span className="font-semibold text-[#4dd0e1]">
+                              ${(item.quantity * item.price).toLocaleString()}
+                            </span>
+                          </div>
+                        </>
+                      )}
+
+                      {item.supplier && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-400">Proveedor</span>
+                          <span className="font-medium text-gray-600 text-right">{item.supplier}</span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-400">Voluntario</span>
+                        <span className={`font-medium text-right ${item.assigned_volunteer_id ? "text-[#4dd0e1]" : "text-gray-400"}`}>
+                          {volunteerName}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Acciones */}
+                    <div className="flex gap-2 pt-1 border-t border-gray-100">
+                      <Button
+                        onClick={() => openEditDialog(item)}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 h-9"
+                      >
+                        <Edit className="w-3.5 h-3.5 mr-1.5" />
+                        Editar
+                      </Button>
+                      <Button
+                        onClick={() => handleDeleteClick(item)}
+                        variant="outline"
+                        size="sm"
+                        className="h-9 w-9 p-0 text-red-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* ── DESKTOP: Grid de cards (≥ sm) ── */}
+      <div className="hidden sm:grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 px-4 sm:px-0">
         {filteredInventory.map((item) => (
           <Card key={item.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>

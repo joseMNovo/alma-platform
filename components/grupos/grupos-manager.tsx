@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Plus, Edit, Trash2, Users, CheckCircle2 } from "lucide-react"
+import { Plus, Edit, Trash2, Users, CheckCircle2, ChevronDown } from "lucide-react"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 import { can } from "@/lib/permissions"
 
@@ -33,8 +33,9 @@ export default function GruposManager({ user }: { user: any }) {
     status: "activo",
   })
   const [nameTouched, setNameTouched] = useState(false)
+  const [expandedId, setExpandedId] = useState<number | null>(null)
 
-  // Detail dialog
+  // Detail dialog (desktop)
   const [detailOpen, setDetailOpen] = useState(false)
   const [viewingGroup, setViewingGroup] = useState<any>(null)
 
@@ -154,11 +155,12 @@ export default function GruposManager({ user }: { user: any }) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Grupos</h2>
-          <p className="text-gray-600">Espacios de contención y apoyo emocional</p>
+          <p className="text-sm text-gray-500">Espacios de contención y apoyo emocional</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           {can(user, "grupos:create") && (
@@ -220,7 +222,118 @@ export default function GruposManager({ user }: { user: any }) {
         </Dialog>
       </div>
 
-      <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      {/* ── MOBILE: Acordeón (< sm) ── */}
+      <div className="sm:hidden space-y-2">
+        {groups.map((group) => {
+          const isExpanded = expandedId === group.id
+          return (
+            <div
+              key={group.id}
+              className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
+            >
+              {/* Fila compacta — siempre visible */}
+              <button
+                className="w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-gray-50"
+                onClick={() => setExpandedId(isExpanded ? null : group.id)}
+              >
+                <span
+                  className={`w-2 h-2 rounded-full flex-shrink-0 mt-px ${
+                    group.status === "activo" ? "bg-[#4dd0e1]" : "bg-gray-300"
+                  }`}
+                />
+                <div className="flex-1 min-w-0">
+                  <span className="font-semibold text-gray-900 text-sm block truncate leading-snug">
+                    {group.name}
+                  </span>
+                  {!isParticipant && (
+                    <span className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                      <Users className="w-3 h-3 flex-shrink-0" />
+                      {group.participants} participante{group.participants !== 1 ? "s" : ""}
+                    </span>
+                  )}
+                </div>
+                <Badge
+                  variant={group.status === "activo" ? "default" : "secondary"}
+                  className={`text-xs flex-shrink-0 ${group.status === "activo" ? "bg-[#4dd0e1]" : ""}`}
+                >
+                  {group.status}
+                </Badge>
+                <ChevronDown
+                  className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-300 ${
+                    isExpanded ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {/* Contenido expandido */}
+              <div
+                className={`grid transition-all duration-300 ease-in-out ${
+                  isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <div className="px-4 pb-4 pt-3 border-t border-gray-100 space-y-3">
+                    <p
+                      className={`text-sm leading-relaxed ${
+                        group.description ? "text-gray-600" : "text-gray-400 italic"
+                      }`}
+                    >
+                      {group.description || "Sin descripción."}
+                    </p>
+                    <div className="flex gap-2">
+                      {isParticipant ? (
+                        <Button
+                          onClick={(e) => { e.stopPropagation(); handleEnrollToggle(group) }}
+                          disabled={enrollingId === group.id}
+                          size="sm"
+                          className={`flex-1 h-9 ${
+                            enrolledIds.includes(group.id)
+                              ? "bg-green-500 hover:bg-green-600 text-white"
+                              : "bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
+                          }`}
+                        >
+                          {enrolledIds.includes(group.id) ? (
+                            <><CheckCircle2 className="w-4 h-4 mr-1.5" />Anotado</>
+                          ) : (
+                            "Quiero participar"
+                          )}
+                        </Button>
+                      ) : (
+                        <>
+                          {can(user, "grupos:edit") && (
+                            <Button
+                              onClick={() => openEditDialog(group)}
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 h-9"
+                            >
+                              <Edit className="w-3.5 h-3.5 mr-1.5" />
+                              Editar
+                            </Button>
+                          )}
+                          {can(user, "grupos:delete") && (
+                            <Button
+                              onClick={() => handleDelete(group)}
+                              variant="outline"
+                              size="sm"
+                              className="h-9 w-9 p-0 text-red-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* ── DESKTOP: Grid de cards (≥ sm) ── */}
+      <div className="hidden sm:grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {groups.map((group) => (
           <Card key={group.id} className="hover:shadow-lg transition-shadow">
             <CardHeader
@@ -307,7 +420,7 @@ export default function GruposManager({ user }: { user: any }) {
         </div>
       )}
 
-      {/* Detail dialog */}
+      {/* Detail dialog (desktop) */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>

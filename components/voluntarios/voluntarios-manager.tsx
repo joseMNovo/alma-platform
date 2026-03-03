@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 import PersonasTablero from "@/components/voluntarios/personas-tablero"
-import { Plus, Edit, Trash2, Users, User, Calendar, Phone, Mail, Heart, KeyRound, X } from "lucide-react"
+import { Plus, Edit, Trash2, Users, User, Calendar, Phone, Mail, Heart, KeyRound, X, ChevronDown } from "lucide-react"
 
 interface CurrentUser {
   id: number
@@ -54,6 +54,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [volunteerToDelete, setVolunteerToDelete] = useState<Volunteer | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [expandedId, setExpandedId] = useState<number | null>(null)
 
   // PIN management
   const [pinDialogOpen, setPinDialogOpen] = useState(false)
@@ -248,14 +249,6 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
     setDialogOpen(true)
   }
 
-  const getGenderIcon = (gender: string) => {
-    switch (gender?.toLowerCase()) {
-      case "masculino": return "👨"
-      case "femenino": return "👩"
-      default: return "👤"
-    }
-  }
-
   const getGenderColor = (gender: string) => {
     switch (gender?.toLowerCase()) {
       case "masculino": return "bg-blue-100 text-blue-800"
@@ -291,18 +284,18 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
   }
 
   return (
-    <div className="space-y-6 px-4 sm:px-0">
+    <div className="space-y-4 px-4 sm:px-0">
       {/* Tablero de personas registradas */}
       <PersonasTablero />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div className="text-center sm:text-left">
           <h2 className="text-2xl font-bold text-gray-900 flex items-center justify-center sm:justify-start">
             <Users className="w-6 h-6 mr-3 text-[#4dd0e1]" />
             Gestión de voluntarios
           </h2>
-          <p className="text-gray-600 mt-1">Administra los voluntarios de ALMA</p>
+          <p className="text-sm text-gray-500 mt-1">Administra los voluntarios de ALMA</p>
         </div>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -473,8 +466,158 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
         </Dialog>
       </div>
 
-      {/* Volunteer list */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4 sm:px-0">
+      {/* ── MOBILE: Acordeón (< sm) ── */}
+      <div className="sm:hidden space-y-2">
+        {volunteers.map((volunteer) => {
+          const isExpanded = expandedId === volunteer.id
+          const fullName = getFullName(volunteer)
+          return (
+            <div
+              key={volunteer.id}
+              className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
+            >
+              {/* Fila compacta — siempre visible */}
+              <button
+                className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors active:bg-gray-50"
+                onClick={() => setExpandedId(isExpanded ? null : volunteer.id)}
+              >
+                {/* Avatar pequeño */}
+                {volunteer.photo ? (
+                  <img
+                    src={volunteer.photo}
+                    alt={fullName}
+                    className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#4dd0e1] to-[#3bc0d1] flex items-center justify-center flex-shrink-0">
+                    <User className="w-4 h-4 text-white" />
+                  </div>
+                )}
+
+                {/* Nombre + email */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-semibold text-gray-900 text-sm truncate leading-snug">
+                      {fullName}
+                    </span>
+                    {volunteer.is_admin && user.role === "admin" && (
+                      <span className="text-xs text-[#4dd0e1] flex-shrink-0">👑</span>
+                    )}
+                  </div>
+                  {volunteer.email ? (
+                    <span className="text-xs text-gray-400 truncate block mt-0.5">{volunteer.email}</span>
+                  ) : volunteer.phone ? (
+                    <span className="text-xs text-gray-400 truncate block mt-0.5">{volunteer.phone}</span>
+                  ) : null}
+                </div>
+
+                {/* Age badge + chevron */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {volunteer.age && (
+                    <Badge variant="outline" className="text-xs px-1.5 py-0">
+                      {volunteer.age}a
+                    </Badge>
+                  )}
+                  <ChevronDown
+                    className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${
+                      isExpanded ? "rotate-180" : ""
+                    }`}
+                  />
+                </div>
+              </button>
+
+              {/* Contenido expandido */}
+              <div
+                className={`grid transition-all duration-300 ease-in-out ${
+                  isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <div className="px-4 pb-4 pt-3 border-t border-gray-100 space-y-3">
+                    {/* Datos de contacto */}
+                    <div className="space-y-2">
+                      {volunteer.phone && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Phone className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                          <span>{volunteer.phone}</span>
+                        </div>
+                      )}
+                      {volunteer.email && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Mail className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                          <span className="truncate">{volunteer.email}</span>
+                        </div>
+                      )}
+                      {volunteer.birth_date && (
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <Calendar className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                          <span>Nac: {new Date(volunteer.birth_date).toLocaleDateString("es-ES")}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <Calendar className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                        <span>Registro: {new Date(volunteer.registration_date).toLocaleDateString("es-ES")}</span>
+                      </div>
+                    </div>
+
+                    {/* Especialidades */}
+                    {volunteer.specialties && volunteer.specialties.length > 0 && (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                          <Heart className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                          <span>Especialidades</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {volunteer.specialties.map((specialty, index) => (
+                            <Badge key={index} variant="outline" className="text-xs px-2 py-0.5">
+                              {specialty}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Acciones */}
+                    <div className="flex gap-2 pt-1">
+                      <Button
+                        onClick={() => openEditDialog(volunteer)}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 h-9"
+                      >
+                        <Edit className="w-3.5 h-3.5 mr-1.5" />
+                        Editar
+                      </Button>
+                      {user.role === "admin" && (
+                        <Button
+                          onClick={() => openPinDialog(volunteer)}
+                          variant="outline"
+                          size="sm"
+                          className="h-9 w-9 p-0 text-[#4dd0e1] border-[#4dd0e1] hover:bg-[#e0f7fa]"
+                          title="Asignar PIN"
+                        >
+                          <KeyRound className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                      <Button
+                        onClick={() => handleDeleteClick(volunteer)}
+                        variant="outline"
+                        size="sm"
+                        className="h-9 w-9 p-0 text-red-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* ── DESKTOP: Grid de cards (≥ sm) ── */}
+      <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4 sm:px-0">
         {volunteers.map((volunteer) => (
           <Card key={volunteer.id} className="hover:shadow-lg transition-shadow duration-200">
             <CardHeader className="pb-3">
