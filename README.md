@@ -1,3 +1,7 @@
+> **TL;DR:** Web **Next.js** para **Alzheimer Rosario**: talleres, grupos, actividades, pagos e inventario en un solo lugar, con roles.
+>
+> **Correrlo:** `npm install --legacy-peer-deps` → `npm run dev` (o `pnpm install` / `pnpm dev`) → **http://localhost:3000**. Opcional: `.env.local`; si no, credenciales por defecto en la sección de configuración más abajo.
+
 # ALMA - Plataforma de Gestión para Alzheimer Rosario
 
 ## Descripción

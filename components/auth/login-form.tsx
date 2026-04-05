@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import AlmaFooter from "@/components/ui/alma-footer"
 
-export default function LoginForm({ onLogin }: { onLogin: (user: any) => void }) {
+export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) => void; gamesUrl: string }) {
   const [email, setEmail] = useState("")
   const [pin, setPin] = useState("")
   const [error, setError] = useState("")
@@ -69,6 +69,22 @@ export default function LoginForm({ onLogin }: { onLogin: (user: any) => void })
       className="min-h-screen flex flex-col bg-gradient-to-br from-[#4dd0e1] to-[#9a8bc2] relative overflow-hidden"
       style={{ fontFamily: "'Gotham Rounded', system-ui, sans-serif" }}
     >
+      {/* Link a juegos — esquina superior derecha */}
+      {gamesUrl && (
+        <a
+          href={gamesUrl}
+          className="absolute top-4 right-4 z-10 flex items-center gap-1 text-white/60 hover:text-white/85 transition-colors no-underline"
+          style={{ fontSize: "12px" }}
+        >
+          Acceder a los juegos
+          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+            <polyline points="15 3 21 3 21 9" />
+            <line x1="10" y1="14" x2="21" y2="3" />
+          </svg>
+        </a>
+      )}
+
       {/* Flores decorativas */}
       <div className="absolute top-16 left-16 w-28 h-28 opacity-[0.02] pointer-events-none">
         <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
@@ -144,6 +160,7 @@ export default function LoginForm({ onLogin }: { onLogin: (user: any) => void })
                 Registrate
               </a>
             </p>
+
 
             {/* Accordion form */}
             <div
