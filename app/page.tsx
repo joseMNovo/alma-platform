@@ -4,6 +4,6 @@ export const dynamic = 'force-dynamic'
 import HomePageClient from "@/components/home-page-client"
 
 export default function HomePage() {
-  const gamesUrl = process.env.GAMES_URL ?? ""
+  const gamesUrl = process.env.NEXT_PUBLIC_GAMES_URL ?? ""
   return <HomePageClient gamesUrl={gamesUrl} />
 }

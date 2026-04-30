@@ -17,7 +17,10 @@ import {
   UserCircle,
   LayoutGrid,
   Lightbulb,
+  Gamepad2,
 } from "lucide-react"
+
+const GAMES_URL = process.env.NEXT_PUBLIC_GAMES_URL ?? ""
 import TalleresManager from "@/components/talleres/talleres-manager"
 import GruposManager from "@/components/grupos/grupos-manager"
 import ActividadesManager from "@/components/actividades/actividades-manager"
@@ -126,6 +129,17 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                 {/* UI: always show human-readable role label */}
                 <p className="text-xs text-gray-600">{roleLabel}</p>
               </div>
+              {GAMES_URL && (
+                <a
+                  href={GAMES_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hidden sm:flex items-center gap-1.5 text-gray-400 hover:text-[#4dd0e1] transition-colors text-xs no-underline"
+                >
+                  <Gamepad2 className="w-3.5 h-3.5" />
+                  Juegos
+                </a>
+              )}
               <Button
                 onClick={onLogout}
                 variant="outline"
@@ -312,6 +326,17 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                           </>
                         )}
                       </nav>
+                      {GAMES_URL && (
+                        <a
+                          href={GAMES_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-4 flex items-center gap-2 text-gray-400 hover:text-[#4dd0e1] transition-colors text-xs no-underline px-3 py-2"
+                        >
+                          <Gamepad2 className="w-4 h-4" />
+                          Acceder a los juegos
+                        </a>
+                      )}
                     </div>
                   </div>
                 </SheetContent>

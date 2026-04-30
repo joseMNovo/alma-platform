@@ -17,7 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, Edit, Trash2, DollarSign, Calendar, AlertTriangle, CheckCircle, Clock } from "lucide-react"
+import { Plus, Edit, Trash2, DollarSign, Calendar, AlertTriangle, CheckCircle, Clock, Construction } from "lucide-react"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 
 export default function PagosManager({ user }: { user: any }) {
@@ -167,6 +167,13 @@ export default function PagosManager({ user }: { user: any }) {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-3 bg-amber-50 border border-amber-300 text-amber-800 rounded-lg px-4 py-3">
+        <Construction className="w-5 h-5 shrink-0" />
+        <div>
+          <p className="font-semibold text-sm">Sección en desarrollo</p>
+          <p className="text-xs text-amber-700">Esta funcionalidad aún no está operativa. Estamos trabajando en ella.</p>
+        </div>
+      </div>
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Gestión de Pagos</h2>
