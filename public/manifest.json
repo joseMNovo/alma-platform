@@ -1,0 +1,17 @@
+{
+  "name": "ALMA - Alzheimer Rosario",
+  "short_name": "ALMA",
+  "description": "Plataforma de gestión para ALMA",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#00bcd4",
+  "icons": [
+    {
+      "src": "/images/flor.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
