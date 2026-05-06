@@ -134,9 +134,9 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                   href={GAMES_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hidden sm:flex items-center gap-1.5 text-gray-400 hover:text-[#4dd0e1] transition-colors text-xs no-underline"
+                  className="hidden sm:inline-flex items-center justify-center gap-2 rounded-md border border-[#4dd0e1] text-[#4dd0e1] bg-transparent hover:bg-[#4dd0e1] hover:text-white transition-colors text-sm font-medium h-9 px-3 no-underline"
                 >
-                  <Gamepad2 className="w-3.5 h-3.5" />
+                  <Gamepad2 className="w-4 h-4" />
                   Juegos
                 </a>
               )}
@@ -331,10 +331,10 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                           href={GAMES_URL}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="mt-4 flex items-center gap-2 text-gray-400 hover:text-[#4dd0e1] transition-colors text-xs no-underline px-3 py-2"
+                          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md border border-[#4dd0e1] text-[#4dd0e1] bg-transparent hover:bg-[#4dd0e1] hover:text-white transition-colors text-sm font-medium h-9 px-3 no-underline"
                         >
                           <Gamepad2 className="w-4 h-4" />
-                          Acceder a los juegos
+                          Juegos
                         </a>
                       )}
                     </div>
