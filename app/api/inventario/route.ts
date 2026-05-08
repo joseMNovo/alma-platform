@@ -20,9 +20,6 @@ export async function POST(request: NextRequest) {
   if (!session) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 })
   }
-  if (!session.is_admin) {
-    return NextResponse.json({ error: "Acceso denegado" }, { status: 403 })
-  }
   try {
     const data = await request.json()
 
@@ -47,9 +44,6 @@ export async function PUT(request: NextRequest) {
   const session = getSessionUser(request)
   if (!session) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-  }
-  if (!session.is_admin) {
-    return NextResponse.json({ error: "Acceso denegado" }, { status: 403 })
   }
   try {
     const url = new URL(request.url)
@@ -76,9 +70,6 @@ export async function DELETE(request: NextRequest) {
   const session = getSessionUser(request)
   if (!session) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-  }
-  if (!session.is_admin) {
-    return NextResponse.json({ error: "Acceso denegado" }, { status: 403 })
   }
   try {
     const url = new URL(request.url)
