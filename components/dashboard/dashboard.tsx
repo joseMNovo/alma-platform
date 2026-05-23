@@ -18,6 +18,7 @@ import {
   LayoutGrid,
   Lightbulb,
   Gamepad2,
+  ClipboardCheck,
 } from "lucide-react"
 
 const GAMES_URL = process.env.NEXT_PUBLIC_GAMES_URL ?? ""
@@ -32,6 +33,7 @@ import CalendariosManager from "@/components/calendarios/calendarios-manager"
 import IdeasManager from "@/components/ideas/ideas-manager"
 import MisDatos from "@/components/participantes/mis-datos"
 import MisDatosVoluntario from "@/components/voluntarios/mis-datos-voluntario"
+import AprobacionesManager from "@/components/voluntarios/aprobaciones-manager"
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import AlmaFooter from "@/components/ui/alma-footer"
 import ProfileCompletionModal from "@/components/auth/profile-completion-modal"
@@ -56,6 +58,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   const roleLabel = ROLE_LABELS[user.role] ?? user.role
 
   const getActiveTab = () => {
+    if (pathname.includes('/aprobaciones')) return 'aprobaciones'
     if (pathname.includes('/inventario')) return 'inventario'
     if (pathname.includes('/voluntarios')) return 'voluntarios'
     if (pathname.includes('/pendientes')) return 'pendientes'
@@ -323,6 +326,16 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                               <UserCircle className="w-5 h-5 mr-3" />
                               Mis datos
                             </Button>
+                            {isAdmin && (
+                              <Button
+                                variant={activeTab === "aprobaciones" ? "default" : "ghost"}
+                                className={`w-full justify-start ${activeTab === "aprobaciones" ? "bg-[#4dd0e1] text-white" : ""}`}
+                                onClick={() => handleTabChange("aprobaciones")}
+                              >
+                                <ClipboardCheck className="w-5 h-5 mr-3" />
+                                Aprobaciones
+                              </Button>
+                            )}
                           </>
                         )}
                       </nav>
@@ -417,7 +430,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         ) : (
           // ── Vista Voluntario / Admin ───────────────────────────────────
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-            <TabsList className="hidden md:grid w-full grid-cols-4 xl:grid-cols-8 bg-white border border-gray-200 p-1 rounded-lg">
+            <TabsList className={`hidden md:grid w-full bg-white border border-gray-200 p-1 rounded-lg ${isAdmin ? 'grid-cols-4 xl:grid-cols-9' : 'grid-cols-4 xl:grid-cols-8'}`}>
               <TabsTrigger value="calendarios" className={tabTriggerClass}>
                 <CalendarDays className="w-4 h-4" />
                 <span className="hidden sm:inline">Calendarios</span>
@@ -450,6 +463,12 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                 <UserCircle className="w-4 h-4" />
                 <span className="hidden sm:inline">Mis datos</span>
               </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger value="aprobaciones" className={tabTriggerClass}>
+                  <ClipboardCheck className="w-4 h-4" />
+                  <span className="hidden sm:inline">Aprobaciones</span>
+                </TabsTrigger>
+              )}
             </TabsList>
 
             {/* Mobile breadcrumb */}
@@ -519,6 +538,11 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
             <TabsContent value="mis-datos" className="space-y-6">
               <MisDatosVoluntario user={user} />
             </TabsContent>
+            {isAdmin && (
+              <TabsContent value="aprobaciones" className="space-y-6">
+                <AprobacionesManager user={user} />
+              </TabsContent>
+            )}
           </Tabs>
         )}
       </main>

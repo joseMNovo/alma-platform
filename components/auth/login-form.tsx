@@ -13,11 +13,29 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [accordionOpen, setAccordionOpen] = useState(false)
+  const [forgotPin, setForgotPin] = useState(false)
+  const [resetEmail, setResetEmail] = useState("")
+  const [resetUserType, setResetUserType] = useState<"volunteer" | "participant">("volunteer")
+  const [resetStatus, setResetStatus] = useState<"idle" | "loading" | "sent">("idle")
   const emailRef = useRef<HTMLInputElement>(null)
 
   const handlePinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, "").slice(0, 4)
     setPin(value)
+  }
+
+  const handleResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setResetStatus("loading")
+    try {
+      await fetch("/api/pin-reset/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: resetEmail, user_type: resetUserType }),
+      })
+    } finally {
+      setResetStatus("sent")
+    }
   }
 
   const handleLoginButtonClick = () => {
@@ -143,23 +161,25 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
           {/* Columna derecha — acción */}
           <div className="w-full md:w-80 flex flex-col items-center gap-4">
 
-            {/* CTA button — fondo blanco, teal-action para texto, hover con tinte */}
-            <Button
-              type="button"
-              onClick={handleLoginButtonClick}
-              disabled={loading}
-              className="w-full bg-white hover:bg-[#f0fdff] active:scale-[0.98] text-[#0099b0] font-semibold rounded-full px-8 py-3 text-base transition-all shadow-lg hover:shadow-xl border-0 disabled:opacity-60"
-            >
-              {loading ? "Iniciando sesión..." : "Iniciar sesión"}
-            </Button>
+            {!(forgotPin && resetStatus === "sent") && (
+              <>
+                <Button
+                  type="button"
+                  onClick={handleLoginButtonClick}
+                  disabled={loading}
+                  className="w-full bg-white hover:bg-[#f0fdff] active:scale-[0.98] text-[#0099b0] font-semibold rounded-full px-8 py-3 text-base transition-all shadow-lg hover:shadow-xl border-0 disabled:opacity-60"
+                >
+                  {loading ? "Iniciando sesión..." : "Iniciar sesión"}
+                </Button>
 
-            {/* Link de registro — siempre visible */}
-            <p className="text-white/80 text-sm text-center">
-              ¿No tenés cuenta?{" "}
-              <a href="/registro" className="text-white font-semibold underline hover:text-white/90">
-                Registrate
-              </a>
-            </p>
+                <p className="text-white/80 text-sm text-center">
+                  ¿No tenés cuenta?{" "}
+                  <a href="/registro" className="text-white font-semibold underline hover:text-white/90">
+                    Registrate
+                  </a>
+                </p>
+              </>
+            )}
 
 
             {/* Accordion form */}
@@ -168,61 +188,147 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
                 accordionOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
               }`}
             >
-              {/* Card del formulario — blanco sólido, borde con tinte teal, sombra fuerte */}
-              <form
-                onSubmit={handleSubmit}
-                noValidate
-                className="bg-white rounded-2xl shadow-2xl p-6 space-y-4 text-left border border-[#b2ebf2]"
-              >
-                <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-gray-800 font-semibold text-sm">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    ref={emailRef}
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="tu@email.com"
-                    required
-                    className="border-[#b2ebf2] placeholder:text-gray-400 text-gray-800 focus:border-[#0099b0] focus:ring-2 focus:ring-[#4dd0e1]/30 focus:ring-offset-0 transition-shadow"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="pin" className="text-gray-800 font-semibold text-sm">
-                    PIN (4 dígitos)
-                  </Label>
-                  <Input
-                    id="pin"
-                    type="password"
-                    inputMode="numeric"
-                    value={pin}
-                    onChange={handlePinChange}
-                    placeholder="••••"
-                    required
-                    maxLength={4}
-                    className="border-[#b2ebf2] placeholder:text-gray-400 text-gray-800 focus:border-[#0099b0] focus:ring-2 focus:ring-[#4dd0e1]/30 focus:ring-offset-0 tracking-widest text-center text-lg transition-shadow"
-                  />
-                </div>
-
-                {error && (
-                  <Alert className="border-red-200 bg-red-50 rounded-xl">
-                    <AlertDescription className="text-red-700 text-sm">{error}</AlertDescription>
-                  </Alert>
-                )}
-
-                {/* Botón Confirmar — teal oscuro para contraste WCAG AA (ratio 6.5:1) */}
-                <Button
-                  type="submit"
-                  disabled={loading || pin.length !== 4}
-                  className="w-full bg-[#0099b0] hover:bg-[#007a8e] active:bg-[#006478] active:scale-[0.98] text-white font-semibold py-2.5 px-4 rounded-lg transition-all
-                    disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:shadow-none shadow-md hover:shadow-lg"
+              {!forgotPin ? (
+                <form
+                  onSubmit={handleSubmit}
+                  noValidate
+                  className="bg-white rounded-2xl shadow-2xl p-6 space-y-4 text-left border border-[#b2ebf2]"
                 >
-                  {loading ? "Verificando..." : "Confirmar"}
-                </Button>
-              </form>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="email" className="text-gray-800 font-semibold text-sm">Email</Label>
+                    <Input
+                      id="email"
+                      ref={emailRef}
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="tu@email.com"
+                      required
+                      className="border-[#b2ebf2] placeholder:text-gray-400 text-gray-800 focus:border-[#0099b0] focus:ring-2 focus:ring-[#4dd0e1]/30 focus:ring-offset-0 transition-shadow"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pin" className="text-gray-800 font-semibold text-sm">PIN (4 dígitos)</Label>
+                    <Input
+                      id="pin"
+                      type="password"
+                      inputMode="numeric"
+                      value={pin}
+                      onChange={handlePinChange}
+                      placeholder="••••"
+                      required
+                      maxLength={4}
+                      className="border-[#b2ebf2] placeholder:text-gray-400 text-gray-800 focus:border-[#0099b0] focus:ring-2 focus:ring-[#4dd0e1]/30 focus:ring-offset-0 tracking-widest text-center text-lg transition-shadow"
+                    />
+                  </div>
+
+                  {error && (
+                    <Alert className="border-red-200 bg-red-50 rounded-xl">
+                      <AlertDescription className="text-red-700 text-sm">{error}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  <Button
+                    type="submit"
+                    disabled={loading || pin.length !== 4}
+                    className="w-full bg-[#0099b0] hover:bg-[#007a8e] active:bg-[#006478] active:scale-[0.98] text-white font-semibold py-2.5 px-4 rounded-lg transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:shadow-none shadow-md hover:shadow-lg"
+                  >
+                    {loading ? "Verificando..." : "Confirmar"}
+                  </Button>
+
+                  <p className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => { setForgotPin(true); setResetStatus("idle"); setResetEmail("") }}
+                      className="text-xs text-[#0099b0] hover:underline"
+                    >
+                      ¿Olvidaste tu PIN?
+                    </button>
+                  </p>
+                </form>
+              ) : (
+                <div className="bg-white rounded-2xl shadow-2xl p-6 space-y-4 text-left border border-[#b2ebf2]">
+                  {resetStatus === "sent" ? (
+                    <div className="text-center space-y-3 py-2">
+                      <p className="text-gray-700 font-semibold text-sm">¡Listo!</p>
+                      <p className="text-gray-500 text-sm">Si el email existe, vas a recibir un link para restablecer tu PIN.</p>
+                      <button
+                        type="button"
+                        onClick={() => { setForgotPin(false); setResetStatus("idle") }}
+                        className="text-xs text-[#0099b0] hover:underline"
+                      >
+                        Volver al login
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleResetSubmit} className="space-y-4">
+                      <div>
+                        <p className="text-gray-800 font-semibold text-sm mb-3">Restablecer PIN</p>
+                        <p className="text-gray-500 text-xs mb-4">Te enviamos un link a tu email para crear un nuevo PIN.</p>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-gray-800 font-semibold text-sm">Email</Label>
+                        <Input
+                          type="email"
+                          value={resetEmail}
+                          onChange={(e) => setResetEmail(e.target.value)}
+                          placeholder="tu@email.com"
+                          required
+                          className="border-[#b2ebf2] placeholder:text-gray-400 text-gray-800 focus:border-[#0099b0] focus:ring-2 focus:ring-[#4dd0e1]/30 focus:ring-offset-0 transition-shadow"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-gray-800 font-semibold text-sm">Tipo de cuenta</Label>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setResetUserType("volunteer")}
+                            className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold border transition-all ${
+                              resetUserType === "volunteer"
+                                ? "bg-[#0099b0] text-white border-[#0099b0]"
+                                : "bg-white text-gray-500 border-gray-200 hover:border-[#4dd0e1]"
+                            }`}
+                          >
+                            Voluntario
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setResetUserType("participant")}
+                            className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold border transition-all ${
+                              resetUserType === "participant"
+                                ? "bg-[#0099b0] text-white border-[#0099b0]"
+                                : "bg-white text-gray-500 border-gray-200 hover:border-[#4dd0e1]"
+                            }`}
+                          >
+                            Participante
+                          </button>
+                        </div>
+                      </div>
+
+                      <Button
+                        type="submit"
+                        disabled={resetStatus === "loading" || !resetEmail}
+                        className="w-full bg-[#0099b0] hover:bg-[#007a8e] text-white font-semibold py-2.5 rounded-lg transition-all disabled:bg-gray-100 disabled:text-gray-400 shadow-md"
+                      >
+                        {resetStatus === "loading" ? "Enviando..." : "Enviar link"}
+                      </Button>
+
+                      <p className="text-center">
+                        <button
+                          type="button"
+                          onClick={() => setForgotPin(false)}
+                          className="text-xs text-[#0099b0] hover:underline"
+                        >
+                          Volver al login
+                        </button>
+                      </p>
+                    </form>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

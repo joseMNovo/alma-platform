@@ -2,8 +2,16 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getVolunteers, createVolunteer, updateVolunteer, deleteVolunteer, type InventoryItem } from "@/lib/data-manager"
 import { api } from "@/lib/api-client"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const status = searchParams.get("status")
+
+    if (status) {
+      const volunteers = await api.get<any[]>(`/voluntarios/?status=${status}`)
+      return NextResponse.json(volunteers)
+    }
+
     const volunteers = await getVolunteers()
     return NextResponse.json(volunteers)
   } catch (error) {
