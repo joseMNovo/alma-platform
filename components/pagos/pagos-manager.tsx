@@ -302,7 +302,7 @@ export default function PagosManager({ user }: { user: any }) {
       </div>
 
       <Tabs defaultValue={isAdmin ? "todos" : "mis-pagos"} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-5 bg-white border border-gray-200 p-1 rounded-lg">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 bg-white border border-gray-200 p-1 rounded-lg">
           {isAdmin && (
             <TabsTrigger value="todos" className="data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white">
               Todos los Pagos
@@ -400,7 +400,7 @@ export default function PagosManager({ user }: { user: any }) {
 
         <TabsContent value="mis-pagos" className="space-y-4">
           {isAdmin ? (
-            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-gray-600">Total Ingresos</CardTitle>

@@ -967,7 +967,7 @@ export default function CalendariosManager({ user }: { user: any }) {
             )}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {can(user, "calendar:delete") && (
               <Button
                 size="sm"
