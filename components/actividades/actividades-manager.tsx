@@ -19,6 +19,7 @@ import {
 import { Plus, Edit, Trash2, Activity, Search, Filter, CheckCircle2, User, ChevronDown } from "lucide-react"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 import { can } from "@/lib/permissions"
+import { toast } from "@/hooks/use-toast"
 
 export default function ActividadesManager({ user }: { user: any }) {
   const [activities, setActivities] = useState<any[]>([])
@@ -74,6 +75,12 @@ export default function ActividadesManager({ user }: { user: any }) {
 
   const handleSubmit = async (e: any) => {
     e.preventDefault()
+    if (!formData.name.trim()) {
+      toast({ title: "Campo requerido", description: "El nombre de la actividad es obligatorio", variant: "destructive" })
+      setNameTouched(true)
+      document.getElementById("actividad-name")?.focus()
+      return
+    }
     try {
       const method = editingActivity ? "PUT" : "POST"
       const url = editingActivity ? `/api/actividades?id=${editingActivity.id}` : "/api/actividades"
@@ -86,9 +93,12 @@ export default function ActividadesManager({ user }: { user: any }) {
         fetchActivities()
         setDialogOpen(false)
         resetForm()
+      } else {
+        const data = await response.json().catch(() => ({}))
+        toast({ title: "Error al guardar", description: data.error || "No se pudo guardar la actividad", variant: "destructive" })
       }
-    } catch (error) {
-      console.error("Error saving actividad:", error)
+    } catch {
+      toast({ title: "Error de conexión", description: "No se pudo conectar con el servidor", variant: "destructive" })
     }
   }
 
@@ -186,9 +196,9 @@ export default function ActividadesManager({ user }: { user: any }) {
             </DialogHeader>
             <form onSubmit={handleSubmit} noValidate className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nombre de la Actividad</Label>
+                <Label htmlFor="actividad-name">Nombre de la Actividad *</Label>
                 <Input
-                  id="name"
+                  id="actividad-name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   onBlur={() => setNameTouched(true)}
@@ -219,11 +229,12 @@ export default function ActividadesManager({ user }: { user: any }) {
                   </SelectContent>
                 </Select>
               </div>
+              <p className="text-xs text-gray-400">* Campos obligatorios</p>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={!formData.name.trim()} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white disabled:opacity-50">
+                <Button type="submit" className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
                   {editingActivity ? "Actualizar" : "Crear"} Actividad
                 </Button>
               </DialogFooter>

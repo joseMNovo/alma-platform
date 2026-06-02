@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getVolunteers, getPendingTasks, savePendingTasks } from "@/lib/data-manager"
 import { getSessionUser } from "@/lib/serverAuth"
+import { logError, logWarn } from "@/lib/logger"
 
 export async function GET(request: NextRequest) {
   const session = getSessionUser(request)
@@ -20,8 +21,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = getSessionUser(request)
-  if (!session) {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+  if (session.role === "participante") {
+    logWarn("Participante intentó modificar pendientes", { module: "pendientes", action: "save", user: session.id })
+    return NextResponse.json({ error: "Sin permisos" }, { status: 403 })
   }
   try {
     const body = await request.json()
@@ -50,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, message: "Datos actualizados exitosamente" })
   } catch (error) {
-    console.error("Error updating data:", error)
+    logError("Error al guardar pendientes", { module: "pendientes", action: "save", user: session.id, error })
     return NextResponse.json({ error: "Error al actualizar datos" }, { status: 500 })
   }
 }

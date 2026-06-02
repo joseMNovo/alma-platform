@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { hashPassword } from "@/lib/utils/password"
 import { api } from "@/lib/api-client"
+import { logError } from "@/lib/logger"
 
 interface RegisterResponse {
   id: number
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: detail }, { status: 400 })
     }
 
-    console.error("Error en /api/registro:", error)
+    logError("Error en registro de participante", { module: "registro", action: "register_participant", error })
     return NextResponse.json({ error: "Error del servidor" }, { status: 500 })
   }
 }

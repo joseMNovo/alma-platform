@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { api } from '@/lib/api-client'
+import { logError } from '@/lib/logger'
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,6 +13,7 @@ export async function GET(req: NextRequest) {
     const result = await api.get(`/emails/logs?${params.toString()}`)
     return NextResponse.json(result)
   } catch (error) {
+    logError("Error al obtener logs de emails", { module: "emails", action: "list_logs", error })
     return NextResponse.json({ error: String(error) }, { status: 500 })
   }
 }

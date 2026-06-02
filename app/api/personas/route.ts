@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/serverAuth"
 import { getPersonasCounts } from "@/lib/data-manager"
+import { logError } from "@/lib/logger"
 
 /**
  * GET /api/personas
@@ -19,7 +20,8 @@ export async function GET(request: NextRequest) {
   try {
     const counts = await getPersonasCounts()
     return NextResponse.json(counts)
-  } catch {
+  } catch (error) {
+    logError("Error al obtener conteo de personas", { module: "personas", action: "count", user: session.id, error })
     return NextResponse.json({ error: "Error del servidor" }, { status: 500 })
   }
 }

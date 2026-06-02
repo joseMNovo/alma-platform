@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getInventory, createInventoryItem, updateInventoryItem, deleteInventoryItem } from "@/lib/data-manager"
 import { getSessionUser } from "@/lib/serverAuth"
+import { logInfo, logError } from "@/lib/logger"
 
 export async function GET(request: NextRequest) {
   const session = getSessionUser(request)
@@ -11,14 +12,17 @@ export async function GET(request: NextRequest) {
     const inventory = await getInventory()
     return NextResponse.json(inventory)
   } catch (error) {
+    logError("Error al listar inventario", { module: "inventario", action: "list", user: session.id, error })
     return NextResponse.json({ error: "Error del servidor" }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   const session = getSessionUser(request)
-  if (!session) {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+  if (session.role === "participante") {
+    logWarn("Permiso denegado para crear item de inventario", { module: "inventario", action: "create_item", user: session.id })
+    return NextResponse.json({ error: "Sin permisos" }, { status: 403 })
   }
   try {
     const data = await request.json()
@@ -34,16 +38,20 @@ export async function POST(request: NextRequest) {
       entry_date: new Date().toISOString().split("T")[0],
     })
 
+    logInfo("Item de inventario creado", { module: "inventario", action: "create_item", user: session.id, meta: { id: (item as any)?.id } })
     return NextResponse.json(item)
   } catch (error) {
+    logError("Error al crear item de inventario", { module: "inventario", action: "create_item", user: session.id, error })
     return NextResponse.json({ error: "Error del servidor" }, { status: 500 })
   }
 }
 
 export async function PUT(request: NextRequest) {
   const session = getSessionUser(request)
-  if (!session) {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+  if (session.role === "participante") {
+    logWarn("Permiso denegado para editar item de inventario", { module: "inventario", action: "edit_item", user: session.id })
+    return NextResponse.json({ error: "Sin permisos" }, { status: 403 })
   }
   try {
     const url = new URL(request.url)
@@ -60,24 +68,30 @@ export async function PUT(request: NextRequest) {
       assigned_volunteer_id: 'assigned_volunteer_id' in data ? data.assigned_volunteer_id : undefined,
     })
 
+    logInfo("Item de inventario actualizado", { module: "inventario", action: "edit_item", user: session.id, meta: { id } })
     return NextResponse.json(item)
   } catch (error) {
+    logError("Error al actualizar item de inventario", { module: "inventario", action: "edit_item", user: session.id, error })
     return NextResponse.json({ error: "Error del servidor" }, { status: 500 })
   }
 }
 
 export async function DELETE(request: NextRequest) {
   const session = getSessionUser(request)
-  if (!session) {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+  if (session.role === "participante") {
+    logWarn("Permiso denegado para eliminar item de inventario", { module: "inventario", action: "delete_item", user: session.id })
+    return NextResponse.json({ error: "Sin permisos" }, { status: 403 })
   }
   try {
     const url = new URL(request.url)
     const id = Number.parseInt(url.searchParams.get("id") || "0")
 
     await deleteInventoryItem(id)
+    logInfo("Item de inventario eliminado", { module: "inventario", action: "delete_item", user: session.id, meta: { id } })
     return NextResponse.json({ success: true })
   } catch (error) {
+    logError("Error al eliminar item de inventario", { module: "inventario", action: "delete_item", user: session.id, error })
     return NextResponse.json({ error: "Error del servidor" }, { status: 500 })
   }
 }

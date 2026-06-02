@@ -13,6 +13,7 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [accordionOpen, setAccordionOpen] = useState(false)
+  const [remember, setRemember] = useState(true)
   const [forgotPin, setForgotPin] = useState(false)
   const [resetEmail, setResetEmail] = useState("")
   const [resetUserType, setResetUserType] = useState<"volunteer" | "participant">("volunteer")
@@ -64,7 +65,7 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
       const response = await fetch("/api/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, pin }),
+        body: JSON.stringify({ email, pin, remember }),
       })
 
       const data = await response.json()
@@ -222,6 +223,16 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
                       className="border-[#b2ebf2] placeholder:text-gray-400 text-gray-800 focus:border-[#0099b0] focus:ring-2 focus:ring-[#4dd0e1]/30 focus:ring-offset-0 tracking-widest text-center text-lg transition-shadow"
                     />
                   </div>
+
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={remember}
+                      onChange={(e) => setRemember(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-[#0099b0] accent-[#0099b0]"
+                    />
+                    <span className="text-xs text-gray-500">Recordarme por 15 días</span>
+                  </label>
 
                   {error && (
                     <Alert className="border-red-200 bg-red-50 rounded-xl">

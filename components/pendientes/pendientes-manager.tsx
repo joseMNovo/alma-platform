@@ -104,11 +104,13 @@ export default function PendientesManager({ user }: { user: any }) {
 
   const handleAddCategory = () => {
     if (!formData.description.trim()) {
-      toast({ title: "Error", description: "La descripción es requerida", variant: "destructive" })
+      toast({ title: "Campo requerido", description: "La descripción es obligatoria", variant: "destructive" })
+      document.getElementById("pend-description")?.focus()
       return
     }
     if (!formData.assigned_volunteer_id) {
-      toast({ title: "Error", description: "Debés asignar un voluntario", variant: "destructive" })
+      toast({ title: "Campo requerido", description: "Debés asignar un voluntario", variant: "destructive" })
+      document.getElementById("pend-voluntario")?.focus()
       return
     }
 
@@ -136,11 +138,13 @@ export default function PendientesManager({ user }: { user: any }) {
 
   const handleAddSubCategorySave = () => {
     if (!formData.description.trim()) {
-      toast({ title: "Error", description: "La descripción es requerida", variant: "destructive" })
+      toast({ title: "Campo requerido", description: "La descripción es obligatoria", variant: "destructive" })
+      document.getElementById("sub-description")?.focus()
       return
     }
     if (!formData.assigned_volunteer_id) {
-      toast({ title: "Error", description: "Debés asignar un voluntario", variant: "destructive" })
+      toast({ title: "Campo requerido", description: "Debés asignar un voluntario", variant: "destructive" })
+      document.getElementById("sub-voluntario")?.focus()
       return
     }
     if (!selectedCategory) {
@@ -247,11 +251,13 @@ export default function PendientesManager({ user }: { user: any }) {
 
   const handleEditSave = () => {
     if (!formData.description.trim()) {
-      toast({ title: "Error", description: "La descripción es requerida", variant: "destructive" })
+      toast({ title: "Campo requerido", description: "La descripción es obligatoria", variant: "destructive" })
+      document.getElementById("edit-description")?.focus()
       return
     }
     if (!formData.assigned_volunteer_id) {
-      toast({ title: "Error", description: "Debés asignar un voluntario", variant: "destructive" })
+      toast({ title: "Campo requerido", description: "Debés asignar un voluntario", variant: "destructive" })
+      document.getElementById("edit-voluntario")?.focus()
       return
     }
     if (!editingItem) return
@@ -359,9 +365,9 @@ export default function PendientesManager({ user }: { user: any }) {
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="description">Descripción</Label>
+                  <Label htmlFor="pend-description">Descripción *</Label>
                   <Textarea
-                    id="description"
+                    id="pend-description"
                     placeholder="Describe la categoría..."
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -369,12 +375,12 @@ export default function PendientesManager({ user }: { user: any }) {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="voluntario">Asignar a voluntario</Label>
+                  <Label htmlFor="pend-voluntario">Asignar a voluntario *</Label>
                   <Select
                     value={formData.assigned_volunteer_id}
                     onValueChange={(value) => setFormData({ ...formData, assigned_volunteer_id: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="pend-voluntario">
                       <SelectValue placeholder="Selecciona un voluntario" />
                     </SelectTrigger>
                     <SelectContent>
@@ -386,6 +392,7 @@ export default function PendientesManager({ user }: { user: any }) {
                     </SelectContent>
                   </Select>
                 </div>
+                <p className="text-xs text-gray-400">* Campos obligatorios</p>
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
                   <Button onClick={handleAddCategory} className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white">
@@ -407,9 +414,9 @@ export default function PendientesManager({ user }: { user: any }) {
               <div className="space-y-4">
                 {editingItem?.type === 'subcategory' && (
                   <div>
-                    <Label htmlFor="edit-categoria">Categoría padre</Label>
+                    <Label htmlFor="edit-categoria">Categoría padre *</Label>
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                      <SelectTrigger>
+                      <SelectTrigger id="edit-categoria">
                         <SelectValue placeholder="Selecciona una categoría" />
                       </SelectTrigger>
                       <SelectContent>
@@ -423,7 +430,7 @@ export default function PendientesManager({ user }: { user: any }) {
                   </div>
                 )}
                 <div>
-                  <Label htmlFor="edit-description">Descripción</Label>
+                  <Label htmlFor="edit-description">Descripción *</Label>
                   <Textarea
                     id="edit-description"
                     placeholder="Describe la tarea o categoría..."
@@ -433,12 +440,12 @@ export default function PendientesManager({ user }: { user: any }) {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit-voluntario">Asignar a voluntario</Label>
+                  <Label htmlFor="edit-voluntario">Asignar a voluntario *</Label>
                   <Select
                     value={formData.assigned_volunteer_id}
                     onValueChange={(value) => setFormData({ ...formData, assigned_volunteer_id: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="edit-voluntario">
                       <SelectValue placeholder="Selecciona un voluntario" />
                     </SelectTrigger>
                     <SelectContent>
@@ -450,6 +457,7 @@ export default function PendientesManager({ user }: { user: any }) {
                     </SelectContent>
                   </Select>
                 </div>
+                <p className="text-xs text-gray-400">* Campos obligatorios</p>
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancelar</Button>
                   <Button onClick={handleEditSave} className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white">
@@ -468,7 +476,7 @@ export default function PendientesManager({ user }: { user: any }) {
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="sub-description">Descripción</Label>
+                  <Label htmlFor="sub-description">Descripción *</Label>
                   <Textarea
                     id="sub-description"
                     placeholder="Describe la sub-categoría..."
@@ -478,12 +486,12 @@ export default function PendientesManager({ user }: { user: any }) {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="sub-voluntario">Asignar a voluntario</Label>
+                  <Label htmlFor="sub-voluntario">Asignar a voluntario *</Label>
                   <Select
                     value={formData.assigned_volunteer_id}
                     onValueChange={(value) => setFormData({ ...formData, assigned_volunteer_id: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="sub-voluntario">
                       <SelectValue placeholder="Selecciona un voluntario" />
                     </SelectTrigger>
                     <SelectContent>
@@ -495,6 +503,7 @@ export default function PendientesManager({ user }: { user: any }) {
                     </SelectContent>
                   </Select>
                 </div>
+                <p className="text-xs text-gray-400">* Campos obligatorios</p>
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={() => setIsSubCategoryModalOpen(false)}>Cancelar</Button>
                   <Button onClick={handleAddSubCategorySave} className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white">

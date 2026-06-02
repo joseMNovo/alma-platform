@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import LoginForm from "@/components/auth/login-form"
 import Dashboard from "@/components/dashboard/dashboard"
+import { toast } from "@/hooks/use-toast"
 
 export default function HomePageClient({ gamesUrl }: { gamesUrl: string }) {
   const [user, setUser] = useState<any>(null)
@@ -11,12 +12,10 @@ export default function HomePageClient({ gamesUrl }: { gamesUrl: string }) {
   const router = useRouter()
 
   useEffect(() => {
-    // Verificar si hay una sesión activa
     const savedUser = localStorage.getItem("alma_user")
     if (savedUser) {
       const userData = JSON.parse(savedUser)
       setUser(userData)
-      // Sincronizar cookie por si ya tenían sesión en localStorage sin cookie
       document.cookie = "alma_session=1; path=/; SameSite=Strict; max-age=2592000"
       router.push("/calendarios")
     }
@@ -26,16 +25,53 @@ export default function HomePageClient({ gamesUrl }: { gamesUrl: string }) {
   const handleLogin = (userData: any) => {
     setUser(userData)
     localStorage.setItem("alma_user", JSON.stringify(userData))
-    // Marcar sesión en cookie para que el middleware pueda proteger rutas server-side
     document.cookie = "alma_session=1; path=/; SameSite=Strict; max-age=2592000"
     router.push("/calendarios")
   }
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(async () => {
     setUser(null)
     localStorage.removeItem("alma_user")
     document.cookie = "alma_session=; path=/; max-age=0"
-  }
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {})
+    router.push("/")
+  }, [router])
+
+  const handleSessionExpired = useCallback(() => {
+    setUser(null)
+    localStorage.removeItem("alma_user")
+    document.cookie = "alma_session=; path=/; max-age=0"
+    fetch("/api/auth/logout", { method: "POST" }).catch(() => {})
+    toast({
+      title: "Sesión expirada",
+      description: "Tu sesión venció. Volvé a ingresar.",
+      variant: "destructive",
+    })
+    router.push("/")
+  }, [router])
+
+  // Interceptor global: detecta 401 en rutas internas y cierra sesión automáticamente
+  useEffect(() => {
+    if (!user) return
+
+    const originalFetch = window.fetch
+    window.fetch = async (input, init) => {
+      const response = await originalFetch(input, init)
+      if (response.status === 401) {
+        const url = typeof input === "string" ? input
+          : input instanceof URL ? input.href
+          : (input as Request).url
+        const isInternal = url.includes("/api/")
+        const isAuthRoute = url.includes("/api/auth")
+        if (isInternal && !isAuthRoute) {
+          handleSessionExpired()
+        }
+      }
+      return response
+    }
+
+    return () => { window.fetch = originalFetch }
+  }, [user, handleSessionExpired])
 
   if (loading) {
     return (

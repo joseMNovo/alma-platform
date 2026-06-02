@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, Suspense } from "react"
+import { toast } from "@/hooks/use-toast"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -64,6 +65,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
   const [pinMessage, setPinMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null)
   const [specialtyInput, setSpecialtyInput] = useState("")
   const [nameTouched, setNameTouched] = useState(false)
+  const [lastNameTouched, setLastNameTouched] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
     last_name: "",
@@ -109,6 +111,18 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!formData.name.trim()) {
+      toast({ title: "Campo requerido", description: "El nombre es obligatorio", variant: "destructive" })
+      setNameTouched(true)
+      document.getElementById("vol-name")?.focus()
+      return
+    }
+    if (!formData.last_name.trim()) {
+      toast({ title: "Campo requerido", description: "El apellido es obligatorio", variant: "destructive" })
+      setLastNameTouched(true)
+      document.getElementById("last_name")?.focus()
+      return
+    }
     try {
       const method = editingVolunteer ? "PUT" : "POST"
       const url = editingVolunteer ? `/api/voluntarios?id=${editingVolunteer.id}` : "/api/voluntarios"
@@ -123,9 +137,12 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
         fetchVolunteers()
         setDialogOpen(false)
         resetForm()
+      } else {
+        const data = await response.json().catch(() => ({}))
+        toast({ title: "Error al guardar", description: data.error || "No se pudo guardar el voluntario", variant: "destructive" })
       }
-    } catch (error) {
-      console.error("Error saving voluntario:", error)
+    } catch {
+      toast({ title: "Error de conexión", description: "No se pudo conectar con el servidor", variant: "destructive" })
     }
   }
 
@@ -174,6 +191,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
     setEditingVolunteer(null)
     setSpecialtyInput("")
     setNameTouched(false)
+    setLastNameTouched(false)
   }
 
   const addSpecialty = () => {
@@ -323,9 +341,9 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
             <form onSubmit={handleSubmit} noValidate className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name">Nombre *</Label>
+                  <Label htmlFor="vol-name">Nombre *</Label>
                   <Input
-                    id="name"
+                    id="vol-name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     onBlur={() => setNameTouched(true)}
@@ -337,13 +355,17 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                 </div>
 
                 <div>
-                  <Label htmlFor="last_name">Apellido</Label>
+                  <Label htmlFor="last_name">Apellido *</Label>
                   <Input
                     id="last_name"
                     value={formData.last_name}
                     onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                    onBlur={() => setLastNameTouched(true)}
                     placeholder="Apellido"
                   />
+                  {lastNameTouched && !formData.last_name.trim() && (
+                    <p className="text-xs text-red-500 mt-1">El apellido es requerido</p>
+                  )}
                 </div>
 
                 <div>
@@ -453,11 +475,12 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                 )}
               </div>
 
+              <p className="text-xs text-gray-400">* Campos obligatorios</p>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={!formData.name.trim()} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] disabled:opacity-50">
+                <Button type="submit" className="bg-[#4dd0e1] hover:bg-[#3bc0d1]">
                   {editingVolunteer ? "Actualizar" : "Agregar"}
                 </Button>
               </DialogFooter>
@@ -500,9 +523,6 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                     <span className="font-semibold text-gray-900 text-sm truncate leading-snug">
                       {fullName}
                     </span>
-                    {volunteer.is_admin && user.role === "admin" && (
-                      <span className="text-xs text-[#4dd0e1] flex-shrink-0">👑</span>
-                    )}
                   </div>
                   {volunteer.email ? (
                     <span className="text-xs text-gray-400 truncate block mt-0.5">{volunteer.email}</span>
@@ -640,11 +660,6 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                       {volunteer.age && (
                         <Badge variant="outline" className="text-xs">
                           {volunteer.age} años
-                        </Badge>
-                      )}
-                      {volunteer.is_admin && user.role === "admin" && (
-                        <Badge variant="default" className="text-xs bg-[#4dd0e1] text-white">
-                          👑 Administrador
                         </Badge>
                       )}
                     </div>

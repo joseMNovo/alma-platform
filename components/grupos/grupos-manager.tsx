@@ -19,6 +19,7 @@ import {
 import { Plus, Edit, Trash2, Users, CheckCircle2, ChevronDown } from "lucide-react"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 import { can } from "@/lib/permissions"
+import { toast } from "@/hooks/use-toast"
 
 export default function GruposManager({ user }: { user: any }) {
   const [groups, setGroups] = useState<any[]>([])
@@ -72,6 +73,12 @@ export default function GruposManager({ user }: { user: any }) {
 
   const handleSubmit = async (e: any) => {
     e.preventDefault()
+    if (!formData.name.trim()) {
+      toast({ title: "Campo requerido", description: "El nombre del grupo es obligatorio", variant: "destructive" })
+      setNameTouched(true)
+      document.getElementById("grupo-name")?.focus()
+      return
+    }
     try {
       const method = editingGroup ? "PUT" : "POST"
       const url = editingGroup ? `/api/grupos?id=${editingGroup.id}` : "/api/grupos"
@@ -86,9 +93,12 @@ export default function GruposManager({ user }: { user: any }) {
         fetchGroups()
         setDialogOpen(false)
         resetForm()
+      } else {
+        const data = await response.json().catch(() => ({}))
+        toast({ title: "Error al guardar", description: data.error || "No se pudo guardar el grupo", variant: "destructive" })
       }
-    } catch (error) {
-      console.error("Error saving grupo:", error)
+    } catch {
+      toast({ title: "Error de conexión", description: "No se pudo conectar con el servidor", variant: "destructive" })
     }
   }
 
@@ -177,9 +187,9 @@ export default function GruposManager({ user }: { user: any }) {
             </DialogHeader>
             <form onSubmit={handleSubmit} noValidate className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nombre del Grupo</Label>
+                <Label htmlFor="grupo-name">Nombre del Grupo *</Label>
                 <Input
-                  id="name"
+                  id="grupo-name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   onBlur={() => setNameTouched(true)}
@@ -209,11 +219,12 @@ export default function GruposManager({ user }: { user: any }) {
                   </SelectContent>
                 </Select>
               </div>
+              <p className="text-xs text-gray-400">* Campos obligatorios</p>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={!formData.name.trim()} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white disabled:opacity-50">
+                <Button type="submit" className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
                   {editingGroup ? "Actualizar" : "Crear"} Grupo
                 </Button>
               </DialogFooter>

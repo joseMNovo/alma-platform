@@ -1,21 +1,22 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { logInfo, logWarn, logError } from "@/lib/logger"
 
 export async function POST(request: NextRequest) {
   try {
     const { to, subject, message, type } = await request.json()
 
     if (!to || !subject || !message) {
+      logWarn("Campos requeridos faltantes al registrar email", { module: "emails", action: "send_email" })
       return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 })
     }
 
     // TODO: integrar con Resend (ya configurado en el proyecto via RESEND_API_KEY)
     // o con Nodemailer usando SMTP_HOST, SMTP_USER, SMTP_PASS desde variables de entorno.
     // Por ahora el envío de email no está implementado.
-    console.log("Email pendiente de envío:", {
-      to,
-      subject,
-      type,
-      timestamp: new Date().toISOString(),
+    logInfo("Email pendiente de envío registrado", {
+      module: "emails",
+      action: "send_email",
+      meta: { subject, type, timestamp: new Date().toISOString() },
     })
 
     return NextResponse.json({
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
       emailId: Math.random().toString(36).substr(2, 9),
     })
   } catch (error) {
-    console.error("Error al procesar email:", error)
+    logError("Error al procesar email", { module: "emails", action: "send_email", error })
     return NextResponse.json({ error: "Error al enviar email" }, { status: 500 })
   }
 }
@@ -68,6 +69,7 @@ export async function GET() {
 
     return NextResponse.json(emailHistory)
   } catch (error) {
+    logError("Error al obtener historial de emails", { module: "emails", action: "list", error })
     return NextResponse.json({ error: "Error del servidor" }, { status: 500 })
   }
 }

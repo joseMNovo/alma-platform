@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog"
 import { Plus, Edit, Trash2, Package, AlertTriangle, Search, Filter, ArrowUp, ArrowDown, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
+import { toast } from "@/hooks/use-toast"
 
 function isLowStock(item: any) {
   if (item.minimum_stock === 1 && item.quantity === 1) return false
@@ -91,6 +92,26 @@ export default function InventarioManager({ user }: { user: any }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!formData.name.trim()) {
+      toast({ title: "Campo requerido", description: "El nombre del item es obligatorio", variant: "destructive" })
+      touch("name"); document.getElementById("inv-name")?.focus()
+      return
+    }
+    if (!formData.category) {
+      toast({ title: "Campo requerido", description: "La categoría es obligatoria", variant: "destructive" })
+      touch("category"); document.getElementById("inv-category")?.focus()
+      return
+    }
+    if (formData.quantity === "") {
+      toast({ title: "Campo requerido", description: "La cantidad es obligatoria", variant: "destructive" })
+      touch("quantity"); document.getElementById("inv-quantity")?.focus()
+      return
+    }
+    if (formData.minimum_stock === "") {
+      toast({ title: "Campo requerido", description: "El stock mínimo es obligatorio", variant: "destructive" })
+      touch("minimum_stock"); document.getElementById("inv-minimum_stock")?.focus()
+      return
+    }
     try {
       const method = editingItem ? "PUT" : "POST"
       const url = editingItem ? `/api/inventario?id=${editingItem.id}` : "/api/inventario"
@@ -115,9 +136,12 @@ export default function InventarioManager({ user }: { user: any }) {
         fetchInventory()
         setDialogOpen(false)
         resetForm()
+      } else {
+        const data = await response.json().catch(() => ({}))
+        toast({ title: "Error al guardar", description: data.error || "No se pudo guardar el item", variant: "destructive" })
       }
-    } catch (error) {
-      console.error("Error saving item:", error)
+    } catch {
+      toast({ title: "Error de conexión", description: "No se pudo conectar con el servidor", variant: "destructive" })
     }
   }
 
@@ -330,9 +354,9 @@ export default function InventarioManager({ user }: { user: any }) {
               </DialogHeader>
               <form onSubmit={handleSubmit} noValidate className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nombre del item</Label>
+                  <Label htmlFor="inv-name">Nombre del item *</Label>
                   <Input
-                    id="name"
+                    id="inv-name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     onBlur={() => touch("name")}
@@ -342,9 +366,9 @@ export default function InventarioManager({ user }: { user: any }) {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="category">Categoría</Label>
+                  <Label htmlFor="inv-category">Categoría *</Label>
                   <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                    <SelectTrigger>
+                    <SelectTrigger id="inv-category">
                       <SelectValue placeholder="Seleccionar categoría" />
                     </SelectTrigger>
                     <SelectContent>
@@ -356,9 +380,9 @@ export default function InventarioManager({ user }: { user: any }) {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="quantity">Cantidad</Label>
+                    <Label htmlFor="inv-quantity">Cantidad *</Label>
                     <Input
-                      id="quantity"
+                      id="inv-quantity"
                       type="number"
                       value={formData.quantity}
                       onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
@@ -369,9 +393,9 @@ export default function InventarioManager({ user }: { user: any }) {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="minimum_stock">Stock mínimo</Label>
+                    <Label htmlFor="inv-minimum_stock">Stock mínimo *</Label>
                     <Input
-                      id="minimum_stock"
+                      id="inv-minimum_stock"
                       type="number"
                       value={formData.minimum_stock}
                       onChange={(e) => setFormData({ ...formData, minimum_stock: e.target.value })}
@@ -421,11 +445,11 @@ export default function InventarioManager({ user }: { user: any }) {
                     </SelectContent>
                   </Select>
                 </div>
+                <p className="text-xs text-gray-400">* Campos obligatorios</p>
                 <DialogFooter>
                   <Button
                     type="submit"
-                    disabled={!formData.name.trim() || !formData.category || formData.quantity === "" || formData.minimum_stock === ""}
-                    className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white disabled:opacity-50"
+                    className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
                   >
                     {editingItem ? "Actualizar" : "Agregar"} Item
                   </Button>

@@ -188,10 +188,12 @@ export default function IdeasManager({ user }: { user: any }) {
   const handleSubmitIdea = async () => {
     if (!formData.title.trim()) {
       toast({ title: "Campo requerido", description: "El título es obligatorio", variant: "destructive" })
+      document.getElementById("idea-title")?.focus()
       return
     }
     if (!formData.body.trim()) {
       toast({ title: "Campo requerido", description: "La descripción es obligatoria", variant: "destructive" })
+      document.getElementById("idea-body")?.focus()
       return
     }
     setSubmitting(true)
@@ -725,13 +727,14 @@ export default function IdeasManager({ user }: { user: any }) {
                 </>
               )}
             </div>
+            <p className="text-xs text-gray-400 pt-1">* Campos obligatorios</p>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={resetForm} disabled={submitting}>
                 Cancelar
               </Button>
               <Button
                 onClick={handleSubmitIdea}
-                disabled={submitting || !formData.title.trim() || !formData.body.trim()}
+                disabled={submitting}
                 className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white"
               >
                 {submitting ? "Guardando..." : editingIdea ? "Guardar cambios" : "Crear idea"}

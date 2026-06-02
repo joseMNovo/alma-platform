@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSessionUser } from '@/lib/serverAuth'
 import { api } from '@/lib/api-client'
+import { logInfo, logWarn, logError } from '@/lib/logger'
 
 interface BackendEnrollment {
   id: number
@@ -25,6 +26,7 @@ export async function GET(req: NextRequest) {
       activities: rows.filter(r => r.type === 'actividad').map(r => r.item_id),
     })
   } catch (err: any) {
+    logError("Error al listar inscripciones del participante", { module: "inscripciones", action: "list", user: session.id, error: err })
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
@@ -37,6 +39,7 @@ export async function POST(req: NextRequest) {
 
   const { type, item_id } = await req.json()
   if (!type || !item_id) {
+    logWarn("Campos faltantes al inscribirse", { module: "inscripciones", action: "enroll", user: session.id })
     return NextResponse.json({ error: 'Faltan campos' }, { status: 400 })
   }
 
@@ -46,12 +49,14 @@ export async function POST(req: NextRequest) {
       type,
       item_id,
     })
+    logInfo("Participante inscripto", { module: "inscripciones", action: "enroll", user: session.id, meta: { type, item_id } })
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     // Ignore duplicate enrollment errors (integrity constraint)
     if (err.message?.includes('409') || err.message?.includes('already') || err.message?.includes('Integrity')) {
       return NextResponse.json({ ok: true })
     }
+    logError("Error al inscribir participante", { module: "inscripciones", action: "enroll", user: session.id, error: err })
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
@@ -64,6 +69,7 @@ export async function DELETE(req: NextRequest) {
 
   const { type, item_id } = await req.json()
   if (!type || !item_id) {
+    logWarn("Campos faltantes al desinscribirse", { module: "inscripciones", action: "unenroll", user: session.id })
     return NextResponse.json({ error: 'Faltan campos' }, { status: 400 })
   }
 
@@ -74,8 +80,10 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
     await api.delete(`/participants/${session.id}/enrollments/${enrollment.id}`)
+    logInfo("Participante desinscripto", { module: "inscripciones", action: "unenroll", user: session.id, meta: { type, item_id } })
     return NextResponse.json({ ok: true })
   } catch (err: any) {
+    logError("Error al desinscribir participante", { module: "inscripciones", action: "unenroll", user: session.id, error: err })
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }

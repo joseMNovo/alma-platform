@@ -12,6 +12,8 @@ export interface SessionUser {
  * Reads the httpOnly 'alma_token' JWT cookie from the request and verifies it.
  * Returns the session user payload, or null if missing/invalid.
  */
+const MIN_TOKEN_VERSION = parseInt(process.env.APP_TOKEN_VERSION || "1")
+
 export function getSessionUser(request: NextRequest): SessionUser | null {
   try {
     const token = request.cookies.get("alma_token")?.value
@@ -21,6 +23,10 @@ export function getSessionUser(request: NextRequest): SessionUser | null {
     if (!secret) return null
 
     const payload = jwt.verify(token, secret) as any
+
+    // Rechazar tokens emitidos antes de la versión mínima requerida
+    if ((payload.tv ?? 0) < MIN_TOKEN_VERSION) return null
+
     return {
       id: payload.id,
       email: payload.email,

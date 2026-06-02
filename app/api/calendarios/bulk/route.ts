@@ -6,12 +6,16 @@ import {
 } from '@/lib/data-manager'
 import { getSessionUser } from '@/lib/serverAuth'
 import { can } from '@/lib/permissions'
+import { logInfo, logWarn, logError } from '@/lib/logger'
 
 // GET: preview count — admin only
 export async function GET(req: NextRequest) {
   const session = getSessionUser(req)
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  if (!can(session, 'calendar:delete')) return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  if (!can(session, 'calendar:delete')) {
+    logWarn("Permiso denegado para previsualizar eliminación masiva de calendario", { module: "calendarios", action: "bulk_delete", user: session.id })
+    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
 
   try {
     const { searchParams } = new URL(req.url)
@@ -43,6 +47,7 @@ export async function GET(req: NextRequest) {
     const count = await countCalendarInstancesBulk(filters)
     return NextResponse.json({ count })
   } catch (err: any) {
+    logError("Error al contar instancias de calendario para eliminación masiva", { module: "calendarios", action: "bulk_delete", user: session.id, error: err })
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
@@ -51,7 +56,10 @@ export async function GET(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const session = getSessionUser(req)
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  if (!can(session, 'calendar:delete')) return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  if (!can(session, 'calendar:delete')) {
+    logWarn("Permiso denegado para eliminación masiva de calendario", { module: "calendarios", action: "bulk_delete", user: session.id })
+    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
 
   try {
     const body = await req.json()
@@ -67,8 +75,10 @@ export async function DELETE(req: NextRequest) {
     if (scope === 'series') { filters.source_id = source_id ?? null }
 
     const result = await deleteCalendarInstancesBulk(filters)
+    logInfo("Eliminación masiva de instancias de calendario ejecutada", { module: "calendarios", action: "bulk_delete", user: session.id, meta: { scope, ...(year ? { year } : {}), ...(month ? { month } : {}), ...(type ? { type } : {}) } })
     return NextResponse.json(result)
   } catch (err: any) {
+    logError("Error en eliminación masiva de calendario", { module: "calendarios", action: "bulk_delete", user: session.id, error: err })
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
