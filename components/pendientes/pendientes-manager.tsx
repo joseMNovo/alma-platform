@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Plus, CheckSquare, User, Calendar, Trash2, Edit } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
+import { formatLocalDate } from "@/lib/utils"
 
 interface SubItem {
   id: string
@@ -318,9 +319,7 @@ export default function PendientesManager({ user }: { user: any }) {
     return subItem.assigned_volunteer_id === user.id.toString()
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
-  }
+  const formatDate = (dateString: string) => formatLocalDate(dateString)
 
   const filteredItems = pendingItems.filter(item => {
     const showByCompleted = showCompleted || !item.completed

@@ -50,6 +50,7 @@ const ESPACIOS_TABS = ["grupos", "talleres", "actividades"]
 
 export default function Dashboard({ user, onLogout }: { user: any, onLogout: () => void }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [pendingCount, setPendingCount] = useState(0)
   const router = useRouter()
   const pathname = usePathname()
 
@@ -334,6 +335,11 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                               >
                                 <ClipboardCheck className="w-5 h-5 mr-3" />
                                 Aprobaciones
+                                {pendingCount > 0 && (
+                                  <span className="ml-auto inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full bg-red-500 text-white">
+                                    {pendingCount}
+                                  </span>
+                                )}
                               </Button>
                             )}
                           </>
@@ -467,6 +473,11 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                 <TabsTrigger value="aprobaciones" className={tabTriggerClass}>
                   <ClipboardCheck className="w-4 h-4" />
                   <span className="hidden sm:inline">Aprobaciones</span>
+                  {pendingCount > 0 && (
+                    <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-red-500 text-white">
+                      {pendingCount}
+                    </span>
+                  )}
                 </TabsTrigger>
               )}
             </TabsList>
@@ -540,7 +551,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
             </TabsContent>
             {isAdmin && (
               <TabsContent value="aprobaciones" className="space-y-6">
-                <AprobacionesManager user={user} />
+                <AprobacionesManager user={user} onPendingCount={setPendingCount} />
               </TabsContent>
             )}
           </Tabs>

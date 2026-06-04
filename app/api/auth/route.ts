@@ -147,6 +147,7 @@ export async function POST(request: NextRequest) {
         phone: volunteer.phone,
         gender: volunteer.gender,
         age: volunteer.age,
+        birth_date: volunteer.birth_date,
         status: volunteer.status,
         specialties: volunteer.specialties,
         registration_date: volunteer.registration_date,

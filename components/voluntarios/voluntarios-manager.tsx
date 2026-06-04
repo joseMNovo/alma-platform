@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 import PersonasTablero from "@/components/voluntarios/personas-tablero"
+import { formatLocalDate } from "@/lib/utils"
 import { Plus, Edit, Trash2, Users, User, Calendar, Phone, Mail, Heart, KeyRound, X, ChevronDown } from "lucide-react"
 
 interface CurrentUser {
@@ -100,7 +101,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
       const response = await fetch("/api/voluntarios")
       if (response.ok) {
         const data = await response.json()
-        setVolunteers(data)
+        setVolunteers(data.filter((v: any) => v.status !== "pendiente"))
       }
     } catch (error) {
       console.error("Error fetching voluntarios:", error)
@@ -571,12 +572,12 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                       {volunteer.birth_date && (
                         <div className="flex items-center gap-2 text-xs text-gray-500">
                           <Calendar className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                          <span>Nac: {new Date(volunteer.birth_date).toLocaleDateString("es-ES")}</span>
+                          <span>Nac: {volunteer.birth_date.slice(0, 10).split("-").reverse().join("/")}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-2 text-xs text-gray-500">
                         <Calendar className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                        <span>Registro: {new Date(volunteer.registration_date).toLocaleDateString("es-ES")}</span>
+                        <span>Registro: {formatLocalDate(volunteer.registration_date)}</span>
                       </div>
                     </div>
 
@@ -688,7 +689,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                   <div className="flex items-center text-sm text-gray-600">
                     <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
                     <span className="text-xs sm:text-sm">
-                      Nacimiento: {new Date(volunteer.birth_date).toLocaleDateString("es-ES")}
+                      Nacimiento: {volunteer.birth_date.slice(0, 10).split("-").reverse().join("/")}
                     </span>
                   </div>
                 )}
@@ -696,7 +697,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                 <div className="flex items-center text-sm text-gray-600">
                   <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
                   <span className="text-xs sm:text-sm">
-                    Registrado: {new Date(volunteer.registration_date).toLocaleDateString("es-ES")}
+                    Registrado: {formatLocalDate(volunteer.registration_date)}
                   </span>
                 </div>
               </div>

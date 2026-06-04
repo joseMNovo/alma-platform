@@ -19,6 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Edit, Trash2, DollarSign, Calendar, AlertTriangle, CheckCircle, Clock, Construction } from "lucide-react"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
+import { formatLocalDate } from "@/lib/utils"
 
 export default function PagosManager({ user }: { user: any }) {
   const [payments, setPayments] = useState<any[]>([])
@@ -351,7 +352,7 @@ export default function PagosManager({ user }: { user: any }) {
                             </span>
                             <span className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
-                              Vence: {payment.due_date ? new Date(payment.due_date).toLocaleDateString("es-ES") : "-"}
+                              Vence: {payment.due_date ? formatLocalDate(payment.due_date) : "-"}
                             </span>
                             {payment.payment_method && <span className="capitalize">Método: {payment.payment_method}</span>}
                           </div>
@@ -476,12 +477,12 @@ export default function PagosManager({ user }: { user: any }) {
                         </span>
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          Vence: {payment.due_date ? new Date(payment.due_date).toLocaleDateString("es-ES") : "-"}
+                          Vence: {payment.due_date ? formatLocalDate(payment.due_date) : "-"}
                         </span>
                         {payment.payment_date && (
                           <span className="flex items-center gap-1 text-green-600">
                             <CheckCircle className="w-3 h-3" />
-                            Pagado: {new Date(payment.payment_date).toLocaleDateString("es-ES")}
+                            Pagado: {formatLocalDate(payment.payment_date)}
                           </span>
                         )}
                       </div>
@@ -509,7 +510,7 @@ export default function PagosManager({ user }: { user: any }) {
                           <p className="text-sm text-gray-600 truncate">{payment.concept}</p>
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
                             <span>${payment.amount.toLocaleString()}</span>
-                            <span>Vence: {payment.due_date ? new Date(payment.due_date).toLocaleDateString("es-ES") : "-"}</span>
+                            <span>Vence: {payment.due_date ? formatLocalDate(payment.due_date) : "-"}</span>
                           </div>
                         </div>
                         <Button
@@ -542,7 +543,7 @@ export default function PagosManager({ user }: { user: any }) {
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
                             <span>${payment.amount.toLocaleString()}</span>
                             <span className="text-red-600">
-                              Venció: {payment.due_date ? new Date(payment.due_date).toLocaleDateString("es-ES") : "-"}
+                              Venció: {payment.due_date ? formatLocalDate(payment.due_date) : "-"}
                             </span>
                           </div>
                         </div>
@@ -583,7 +584,7 @@ export default function PagosManager({ user }: { user: any }) {
                         <p className="text-sm text-gray-600 truncate">{payment.concept}</p>
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
                           <span>${payment.amount.toLocaleString()}</span>
-                          <span>Pagado: {payment.payment_date ? new Date(payment.payment_date).toLocaleDateString("es-ES") : "-"}</span>
+                          <span>Pagado: {payment.payment_date ? formatLocalDate(payment.payment_date) : "-"}</span>
                         </div>
                       </div>
                     </CardContent>

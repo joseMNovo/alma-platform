@@ -213,7 +213,11 @@ export async function getVolunteerByEmailForAuth(
   email: string
 ): Promise<{ volunteer: Volunteer; pin_hash: string | null } | null> {
   try {
-    const data = await api.get<{ id: number; name: string; last_name?: string; email?: string; status: string; is_admin: boolean; pin_hash?: string | null }>(
+    const data = await api.get<{
+      id: number; name: string; last_name?: string; email?: string; status: string; is_admin: boolean;
+      pin_hash?: string | null; phone?: string | null; gender?: string | null; age?: number | null;
+      birth_date?: string | null; photo?: string | null; specialties?: string[] | null;
+    }>(
       `/voluntarios/auth/${encodeURIComponent(email)}`
     )
     const volunteer: Volunteer = {
@@ -223,6 +227,12 @@ export async function getVolunteerByEmailForAuth(
       email: data.email,
       status: data.status,
       is_admin: data.is_admin,
+      phone: data.phone,
+      gender: data.gender,
+      age: data.age,
+      birth_date: data.birth_date,
+      photo: data.photo,
+      specialties: data.specialties,
       registration_date: '',
       capacity: 0,
     } as unknown as Volunteer

@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { can } from "@/lib/permissions"
+import { formatLocalDate } from "@/lib/utils"
 import type { Idea, IdeaComment } from "@/lib/data-manager"
 
 // ── Paleta de colores para categorías ─────────────────────────────────
@@ -37,14 +38,7 @@ function getCategoryColor(category: string): string {
   return CATEGORY_COLORS[category]
 }
 
-// ── Helpers de fecha ───────────────────────────────────────────────────
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString("es-AR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  })
-}
+const formatDate = (dateString: string) => formatLocalDate(dateString)
 
 function formatDateTime(dateString: string): string {
   return new Date(dateString).toLocaleString("es-AR", {
@@ -307,7 +301,7 @@ export default function IdeasManager({ user }: { user: any }) {
 
   // ── Permisos ───────────────────────────────────────────────────────
   const canEditIdea = (idea: Idea) => idea.created_by_volunteer_id === user.id
-  const canDeleteIdea = () => isAdmin
+  const canDeleteIdea = (idea: Idea) => isAdmin || idea.created_by_volunteer_id === user.id
   // Admin o dueño de la idea pueden borrar comentarios
   const canDeleteComment = (idea: Idea) => isAdmin || idea.created_by_volunteer_id === user.id
 
@@ -414,7 +408,7 @@ export default function IdeasManager({ user }: { user: any }) {
                         <Edit className="w-3.5 h-3.5" />
                       </Button>
                     )}
-                    {canDeleteIdea() && (
+                    {canDeleteIdea(idea) && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -479,6 +473,7 @@ export default function IdeasManager({ user }: { user: any }) {
       {/* ── Modal: Ver idea + comentarios ─────────────────────────────── */}
       <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
         <DialogContent className="sm:max-w-2xl w-full p-0 gap-0 max-h-[92vh] flex flex-col overflow-hidden">
+          <DialogTitle className="sr-only">{viewingIdea?.title ?? "Ver idea"}</DialogTitle>
           {viewingIdea && (
             <>
               {/* Cabecera fija del modal */}
@@ -505,31 +500,6 @@ export default function IdeasManager({ user }: { user: any }) {
                       <span>{formatDate(viewingIdea.created_at)}</span>
                     </div>
                   </div>
-                </div>
-                {/* Acciones: editar/borrar (solo si tiene permisos) */}
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  {canEditIdea(viewingIdea) && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={e => { handleOpenEdit(viewingIdea, e); setViewModalOpen(false) }}
-                      className="h-8 w-8 p-0 text-gray-400 hover:text-[#4dd0e1] hover:bg-[#4dd0e1]/10"
-                      title="Editar idea"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                  )}
-                  {canDeleteIdea() && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={e => { handleDeleteIdeaClick(viewingIdea, e); setViewModalOpen(false) }}
-                      className="h-8 w-8 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50"
-                      title="Eliminar idea"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
                 </div>
               </div>
 
@@ -602,34 +572,69 @@ export default function IdeasManager({ user }: { user: any }) {
                 </div>
               </div>
 
-              {/* Input de nuevo comentario — fijo al fondo */}
-              {can(user, "ideas:comment") && (
-                <div className="flex-shrink-0 px-6 py-4 border-t border-gray-100 bg-white">
-                  <div className="flex gap-2 items-end">
-                    <Textarea
-                      placeholder="Escribí un comentario..."
-                      value={commentText}
-                      onChange={e => setCommentText(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === "Enter" && !e.shiftKey && commentText.trim()) {
-                          e.preventDefault()
-                          handleSendComment()
-                        }
-                      }}
-                      rows={2}
-                      className="flex-1 resize-none text-sm min-h-[60px]"
-                      disabled={sendingComment}
-                    />
-                    <Button
-                      onClick={handleSendComment}
-                      disabled={!commentText.trim() || sendingComment}
-                      className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white h-[60px] px-3 flex-shrink-0"
-                      title="Enviar comentario"
-                    >
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1">Enter para enviar · Shift+Enter para nueva línea</p>
+              {/* Footer fijo: acciones + comentario */}
+              {(canEditIdea(viewingIdea) || canDeleteIdea(viewingIdea) || can(user, "ideas:comment")) && (
+                <div className="flex-shrink-0 px-6 py-4 border-t border-gray-100 bg-white space-y-3">
+                  {(canEditIdea(viewingIdea) || canDeleteIdea(viewingIdea)) && (
+                    <div className="flex gap-2">
+                      {canEditIdea(viewingIdea) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={e => { handleOpenEdit(viewingIdea, e); setViewModalOpen(false) }}
+                          className="gap-1.5 text-gray-600 hover:text-[#4dd0e1] hover:border-[#4dd0e1]"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                          Editar
+                        </Button>
+                      )}
+                      {canDeleteIdea(viewingIdea) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={e => {
+                            e.stopPropagation()
+                            setIdeaToDelete(viewingIdea)
+                            setViewModalOpen(false)
+                            setTimeout(() => setDeleteIdeaDialogOpen(true), 200)
+                          }}
+                          className="gap-1.5 text-red-500 border-red-200 hover:text-red-700 hover:border-red-400 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Eliminar
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                  {can(user, "ideas:comment") && (
+                    <div>
+                      <div className="flex gap-2 items-end">
+                        <Textarea
+                          placeholder="Escribí un comentario..."
+                          value={commentText}
+                          onChange={e => setCommentText(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === "Enter" && !e.shiftKey && commentText.trim()) {
+                              e.preventDefault()
+                              handleSendComment()
+                            }
+                          }}
+                          rows={2}
+                          className="flex-1 resize-none text-sm min-h-[60px]"
+                          disabled={sendingComment}
+                        />
+                        <Button
+                          onClick={handleSendComment}
+                          disabled={!commentText.trim() || sendingComment}
+                          className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white h-[60px] px-3 flex-shrink-0"
+                          title="Enviar comentario"
+                        >
+                          <Send className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">Enter para enviar · Shift+Enter para nueva línea</p>
+                    </div>
+                  )}
                 </div>
               )}
             </>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle2, Clock, Mail, User, Loader2, RefreshCw } from "lucide-react"
+import { formatLocalDate } from "@/lib/utils"
 
 interface PendingVolunteer {
   id: number
@@ -20,7 +21,7 @@ interface CurrentUser {
   role: string
 }
 
-export default function AprobacionesManager({ user }: { user: CurrentUser }) {
+export default function AprobacionesManager({ user, onPendingCount }: { user: CurrentUser; onPendingCount?: (n: number) => void }) {
   const [volunteers, setVolunteers] = useState<PendingVolunteer[]>([])
   const [loading, setLoading] = useState(true)
   const [approvingId, setApprovingId] = useState<number | null>(null)
@@ -32,6 +33,7 @@ export default function AprobacionesManager({ user }: { user: CurrentUser }) {
       if (res.ok) {
         const data = await res.json()
         setVolunteers(data)
+        onPendingCount?.(data.length)
       }
     } finally {
       setLoading(false)
@@ -45,7 +47,11 @@ export default function AprobacionesManager({ user }: { user: CurrentUser }) {
     try {
       const res = await fetch(`/api/voluntarios/${id}/approve`, { method: "POST" })
       if (res.ok) {
-        setVolunteers((prev) => prev.filter((v) => v.id !== id))
+        setVolunteers((prev) => {
+          const updated = prev.filter((v) => v.id !== id)
+          onPendingCount?.(updated.length)
+          return updated
+        })
       }
     } finally {
       setApprovingId(null)
@@ -110,7 +116,7 @@ export default function AprobacionesManager({ user }: { user: CurrentUser }) {
                   </div>
                   <div className="flex items-center gap-2 text-gray-500 text-xs">
                     <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                    <span>Registrado el {new Date(v.registration_date).toLocaleDateString("es-AR")}</span>
+                    <span>Registrado el {formatLocalDate(v.registration_date)}</span>
                   </div>
                 </div>
 
