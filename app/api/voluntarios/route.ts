@@ -11,6 +11,12 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get("status")
+    const id = searchParams.get("id")
+
+    if (id) {
+      const volunteer = await api.get<any>(`/voluntarios/${id}`)
+      return NextResponse.json(volunteer)
+    }
 
     if (status) {
       const volunteers = await api.get<any[]>(`/voluntarios/?status=${status}`)

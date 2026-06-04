@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -19,6 +19,24 @@ export default function MisDatosVoluntario({ user }: { user: any }) {
     birth_date: user.birth_date || "",
     specialties: (user.specialties as string[]) || [],
   })
+  const [loadingData, setLoadingData] = useState(true)
+
+  useEffect(() => {
+    fetch(`/api/voluntarios?id=${user.id}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(v => {
+        if (v) setFormData({
+          name: v.name || "",
+          last_name: v.last_name || "",
+          phone: v.phone || "",
+          gender: v.gender || "",
+          age: v.age ? String(v.age) : "",
+          birth_date: v.birth_date || "",
+          specialties: v.specialties || [],
+        })
+      })
+      .finally(() => setLoadingData(false))
+  }, [user.id])
   const [specialtyInput, setSpecialtyInput] = useState("")
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null)
@@ -84,6 +102,14 @@ export default function MisDatosVoluntario({ user }: { user: any }) {
     }
   }
 
+  if (loadingData) {
+    return (
+      <div className="flex items-center justify-center py-16 text-[#4dd0e1]">
+        Cargando tus datos...
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -91,7 +117,7 @@ export default function MisDatosVoluntario({ user }: { user: any }) {
         <p className="text-gray-600">Tu información personal en la plataforma</p>
       </div>
 
-      <Card className="max-w-2xl">
+      <Card className="w-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <UserCircle className="w-5 h-5 text-[#4dd0e1]" />

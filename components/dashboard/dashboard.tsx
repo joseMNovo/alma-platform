@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -56,6 +56,14 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
 
   const isAdmin = user.role === "admin"
   const isParticipant = user.role === "participante"
+
+  useEffect(() => {
+    if (!isAdmin) return
+    fetch("/api/voluntarios?status=pendiente")
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setPendingCount(Array.isArray(data) ? data.length : 0))
+      .catch(() => {})
+  }, [pathname, isAdmin])
   const roleLabel = ROLE_LABELS[user.role] ?? user.role
 
   const getActiveTab = () => {
