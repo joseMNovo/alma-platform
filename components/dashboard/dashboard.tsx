@@ -19,6 +19,7 @@ import {
   Lightbulb,
   Gamepad2,
   ClipboardCheck,
+  Loader2,
 } from "lucide-react"
 
 const GAMES_URL = process.env.NEXT_PUBLIC_GAMES_URL ?? ""
@@ -51,6 +52,7 @@ const ESPACIOS_TABS = ["grupos", "talleres", "actividades"]
 export default function Dashboard({ user, onLogout }: { user: any, onLogout: () => void }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
+  const [navigating, setNavigating] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
 
@@ -58,6 +60,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   const isParticipant = user.role === "participante"
 
   useEffect(() => {
+    setNavigating(false)
     if (!isAdmin) return
     fetch("/api/voluntarios?status=pendiente")
       .then(r => r.ok ? r.json() : [])
@@ -92,6 +95,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   const espaciosSubTab = getEspaciosSubTab()
 
   const handleTabChange = (value: string) => {
+    setNavigating(true)
     if (value === "espacios") {
       router.push(`/${espaciosSubTab}`)
     } else {
@@ -117,6 +121,20 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       <div className={`hidden md:block fixed bottom-0 right-0 w-[700px] h-[700px] pointer-events-none select-none translate-x-1/3 translate-y-1/3 rotate-[20deg] transition-opacity duration-700 ${!flowerTop ? 'opacity-[0.07]' : 'opacity-0'}`}>
         <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
       </div>
+
+      {/* Progress bar de navegación */}
+      <div className={`fixed top-0 left-0 right-0 z-50 h-[2px] overflow-hidden transition-opacity duration-300 ${navigating ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div
+          className="h-full bg-[#4dd0e1]"
+          style={{ animation: navigating ? 'alma-nav-bar 1.4s ease-in-out infinite' : 'none', width: '45%' }}
+        />
+      </div>
+      <style>{`
+        @keyframes alma-nav-bar {
+          0%   { transform: translateX(-120%); }
+          100% { transform: translateX(350%); }
+        }
+      `}</style>
 
       {/* Todo el contenido por encima de la flor */}
       <div className="relative z-[1]">
@@ -217,7 +235,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                               <Button
                                 variant={activeTab === "espacios" && espaciosSubTab === "talleres" ? "default" : "ghost"}
                                 className={`w-full justify-start pl-8 ${activeTab === "espacios" && espaciosSubTab === "talleres" ? "bg-[#4dd0e1] text-white" : ""}`}
-                                onClick={() => { router.push("/talleres"); setMobileMenuOpen(false) }}
+                                onClick={() => { setNavigating(true); router.push("/talleres"); setMobileMenuOpen(false) }}
                               >
                                 <Calendar className="w-5 h-5 mr-3" />
                                 Talleres
@@ -225,7 +243,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                               <Button
                                 variant={activeTab === "espacios" && espaciosSubTab === "grupos" ? "default" : "ghost"}
                                 className={`w-full justify-start pl-8 ${activeTab === "espacios" && espaciosSubTab === "grupos" ? "bg-[#4dd0e1] text-white" : ""}`}
-                                onClick={() => { router.push("/grupos"); setMobileMenuOpen(false) }}
+                                onClick={() => { setNavigating(true); router.push("/grupos"); setMobileMenuOpen(false) }}
                               >
                                 <Users className="w-5 h-5 mr-3" />
                                 Grupos
@@ -233,7 +251,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                               <Button
                                 variant={activeTab === "espacios" && espaciosSubTab === "actividades" ? "default" : "ghost"}
                                 className={`w-full justify-start pl-8 ${activeTab === "espacios" && espaciosSubTab === "actividades" ? "bg-[#4dd0e1] text-white" : ""}`}
-                                onClick={() => { router.push("/actividades"); setMobileMenuOpen(false) }}
+                                onClick={() => { setNavigating(true); router.push("/actividades"); setMobileMenuOpen(false) }}
                               >
                                 <Activity className="w-5 h-5 mr-3" />
                                 Actividades
@@ -289,7 +307,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                               <Button
                                 variant={activeTab === "espacios" && espaciosSubTab === "talleres" ? "default" : "ghost"}
                                 className={`w-full justify-start pl-8 ${activeTab === "espacios" && espaciosSubTab === "talleres" ? "bg-[#4dd0e1] text-white" : ""}`}
-                                onClick={() => { router.push("/talleres"); setMobileMenuOpen(false) }}
+                                onClick={() => { setNavigating(true); router.push("/talleres"); setMobileMenuOpen(false) }}
                               >
                                 <Calendar className="w-5 h-5 mr-3" />
                                 Talleres
@@ -297,7 +315,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                               <Button
                                 variant={activeTab === "espacios" && espaciosSubTab === "grupos" ? "default" : "ghost"}
                                 className={`w-full justify-start pl-8 ${activeTab === "espacios" && espaciosSubTab === "grupos" ? "bg-[#4dd0e1] text-white" : ""}`}
-                                onClick={() => { router.push("/grupos"); setMobileMenuOpen(false) }}
+                                onClick={() => { setNavigating(true); router.push("/grupos"); setMobileMenuOpen(false) }}
                               >
                                 <Users className="w-5 h-5 mr-3" />
                                 Grupos
@@ -305,7 +323,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                               <Button
                                 variant={activeTab === "espacios" && espaciosSubTab === "actividades" ? "default" : "ghost"}
                                 className={`w-full justify-start pl-8 ${activeTab === "espacios" && espaciosSubTab === "actividades" ? "bg-[#4dd0e1] text-white" : ""}`}
-                                onClick={() => { router.push("/actividades"); setMobileMenuOpen(false) }}
+                                onClick={() => { setNavigating(true); router.push("/actividades"); setMobileMenuOpen(false) }}
                               >
                                 <Activity className="w-5 h-5 mr-3" />
                                 Actividades
@@ -374,7 +392,15 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+      <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+        {navigating && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-gray-50/70 backdrop-blur-[1px] rounded-lg min-h-[200px]">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-[#4dd0e1]" />
+              <span className="text-sm text-gray-500">Cargando...</span>
+            </div>
+          </div>
+        )}
         {isParticipant ? (
           // ── Vista Participante ─────────────────────────────────────────
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
@@ -417,7 +443,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               <CalendariosManager user={user} />
             </TabsContent>
             <TabsContent value="espacios" className="space-y-4">
-              <Tabs value={espaciosSubTab} onValueChange={(v) => router.push(`/${v}`)} className="space-y-4">
+              <Tabs value={espaciosSubTab} onValueChange={(v) => { setNavigating(true); router.push(`/${v}`) }} className="space-y-4">
                 <TabsList className="bg-white border border-gray-200 p-1 rounded-lg w-auto">
                   <TabsTrigger value="talleres" className={subTabTriggerClass}>
                     <Calendar className="w-4 h-4" />
@@ -528,7 +554,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               <CalendariosManager user={user} />
             </TabsContent>
             <TabsContent value="espacios" className="space-y-4">
-              <Tabs value={espaciosSubTab} onValueChange={(v) => router.push(`/${v}`)} className="space-y-4">
+              <Tabs value={espaciosSubTab} onValueChange={(v) => { setNavigating(true); router.push(`/${v}`) }} className="space-y-4">
                 <TabsList className="bg-white border border-gray-200 p-1 rounded-lg w-auto">
                   <TabsTrigger value="talleres" className={subTabTriggerClass}>
                     <Calendar className="w-4 h-4" />
