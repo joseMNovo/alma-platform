@@ -32,6 +32,7 @@ interface CalendarInstance {
   id: number
   type: "grupo" | "taller" | "actividad"
   source_id: number | null
+  title: string | null
   date: string
   start_time: string
   end_time: string
@@ -379,6 +380,7 @@ export default function CalendariosManager({ user }: { user: any }) {
   const [instanceForm, setInstanceForm] = useState({
     module: "grupo" as "grupo" | "taller" | "actividad",
     source_id: "",
+    title: "",
     is_single_day: true,
     date_from: "",
     date_to: "",
@@ -614,6 +616,7 @@ export default function CalendariosManager({ user }: { user: any }) {
     setInstanceForm({
       module: "grupo",
       source_id: "",
+      title: "",
       is_single_day: true,
       date_from: prefillDate ?? "",
       date_to: prefillDate ?? "",
@@ -633,6 +636,7 @@ export default function CalendariosManager({ user }: { user: any }) {
     setInstanceForm({
       module: inst.type,
       source_id: inst.source_id ? String(inst.source_id) : "",
+      title: inst.title || "",
       is_single_day: true,
       date_from: inst.date,
       date_to: "",
@@ -675,6 +679,7 @@ export default function CalendariosManager({ user }: { user: any }) {
         start_time: instanceForm.start_time,
         end_time: instanceForm.end_time,
         source_id: instanceForm.source_id ? parseInt(instanceForm.source_id) : null,
+        title: instanceForm.title.trim() || null,
         coordinator_id: instanceForm.module !== "actividad" && instanceForm.coordinator_id
           ? parseInt(instanceForm.coordinator_id) : null,
         co_coordinator_id: instanceForm.module !== "actividad" && instanceForm.co_coordinator_id
@@ -1099,7 +1104,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                               } ${inst.status === "cancelado" ? "opacity-40 line-through" : ""}
                               ${inst.status === "realizado" ? "opacity-70" : ""}`}
                             >
-                              {formatTime(inst.start_time)}{" "}{getSourceName(inst)}
+                              {formatTime(inst.start_time)}{" "}{inst.title || getSourceName(inst)}
                             </button>
                           )
                         })}
@@ -1143,7 +1148,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                     : "bg-orange-400 text-white"
                 }
               >
-                {selectedInstance && getSourceName(selectedInstance)}
+                {selectedInstance && (selectedInstance.title || getSourceName(selectedInstance))}
               </Badge>
               {selectedInstance && (() => {
                 const d = new Date(selectedInstance.date + "T12:00:00")
@@ -2004,6 +2009,16 @@ export default function CalendariosManager({ user }: { user: any }) {
                   <SelectItem value="cancelado">Cancelado</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label>Título (opcional)</Label>
+              <Input
+                value={instanceForm.title}
+                onChange={e => setInstanceForm(f => ({ ...f, title: e.target.value }))}
+                maxLength={150}
+                placeholder="Si lo dejás vacío, se muestra la actividad"
+              />
             </div>
 
             <div className="space-y-1">

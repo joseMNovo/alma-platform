@@ -121,6 +121,7 @@ export interface CalendarInstance {
   id: number
   type: 'grupo' | 'taller' | 'actividad'
   source_id: number | null
+  title: string | null
   date: string
   start_time: string
   end_time: string
@@ -529,6 +530,7 @@ export async function createCalendarInstance(data: {
   start_time?: string
   end_time?: string
   source_id?: number | null
+  title?: string | null
   notes?: string | null
   status?: string
 }): Promise<CalendarInstance> {
@@ -549,6 +551,7 @@ export async function updateCalendarInstance(
     start_time: string
     end_time: string
     source_id: number | null
+    title: string | null
     notes: string | null
     status: string
   }>
