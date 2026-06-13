@@ -176,6 +176,18 @@ export interface IdeaComment {
   created_at: string
 }
 
+export interface Announcement {
+  id: number
+  title: string
+  body: string
+  audience: string
+  is_active: boolean
+  starts_at?: string | null
+  ends_at?: string | null
+  created_at?: string
+  updated_at?: string | null
+}
+
 export type BulkDeleteScope = 'month' | 'type' | 'series' | 'all'
 
 export interface BulkDeleteFilters {
@@ -696,6 +708,24 @@ export async function createIdeaComment(ideaId: number, body: string, volunteerI
 
 export async function deleteIdeaComment(ideaId: number, commentId: number): Promise<void> {
   await api.delete(`/ideas/${ideaId}/comments/${commentId}`)
+}
+
+// ============================================================
+// Announcements (Anuncios / Novedades)
+// ============================================================
+
+export async function getPendingAnnouncement(
+  userType: string,
+  userId: number,
+  role: string,
+): Promise<Announcement | null> {
+  return api.get<Announcement | null>(
+    `/announcements/pending?user_type=${encodeURIComponent(userType)}&user_id=${userId}&role=${encodeURIComponent(role)}`,
+  )
+}
+
+export async function dismissAnnouncement(id: number, userType: string, userId: number): Promise<void> {
+  await api.post(`/announcements/${id}/dismiss`, { user_type: userType, user_id: userId })
 }
 
 export async function getPersonasCounts(): Promise<{ volunteers: number; participants: number }> {

@@ -38,6 +38,7 @@ import AprobacionesManager from "@/components/voluntarios/aprobaciones-manager"
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import AlmaFooter from "@/components/ui/alma-footer"
 import ProfileCompletionModal from "@/components/auth/profile-completion-modal"
+import AnnouncementModal from "@/components/announcements/announcement-modal"
 import { Menu } from "lucide-react"
 
 // Human-readable role labels (UI)
@@ -596,6 +597,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       </div>{/* fin z-[1] */}
 
       <ProfileCompletionModal user={user} />
+      <AnnouncementModal user={user} />
     </div>
   )
 }
