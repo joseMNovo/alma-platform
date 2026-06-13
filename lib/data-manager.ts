@@ -127,8 +127,11 @@ export interface CalendarInstance {
   end_time: string
   notes: string | null
   status: 'programado' | 'realizado' | 'cancelado'
+  notify_enabled: boolean
+  reminder_offsets: number[] | null
   coordinator: VolunteerRef | null
   co_coordinator: VolunteerRef | null
+  volunteers: VolunteerRef[]
 }
 
 export interface Participant {
@@ -545,6 +548,8 @@ export async function createCalendarInstance(data: {
   title?: string | null
   notes?: string | null
   status?: string
+  notify_enabled?: boolean
+  reminder_offsets?: number[] | null
 }): Promise<CalendarInstance> {
   const ci = await api.post<any>('/calendar/instances', {
     ...data,
@@ -552,7 +557,7 @@ export async function createCalendarInstance(data: {
     end_time: data.end_time || '12:00:00',
     status: data.status || 'programado',
   })
-  return { ...ci, coordinator: null, co_coordinator: null }
+  return { ...ci, coordinator: null, co_coordinator: null, volunteers: [] }
 }
 
 export async function updateCalendarInstance(
@@ -566,10 +571,19 @@ export async function updateCalendarInstance(
     title: string | null
     notes: string | null
     status: string
+    notify_enabled: boolean
+    reminder_offsets: number[] | null
   }>
 ): Promise<CalendarInstance> {
   const ci = await api.put<any>(`/calendar/instances/${id}`, data)
-  return { ...ci, coordinator: null, co_coordinator: null }
+  return { ...ci, coordinator: null, co_coordinator: null, volunteers: [] }
+}
+
+export async function setEventVolunteers(
+  instance_id: number,
+  volunteer_ids: number[]
+): Promise<void> {
+  await api.put(`/calendar/instances/${instance_id}/volunteers`, { volunteer_ids })
 }
 
 export async function deleteCalendarInstance(id: number): Promise<void> {

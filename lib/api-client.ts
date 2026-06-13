@@ -31,7 +31,9 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     if (rawBody) {
       try {
         const json = JSON.parse(rawBody)
-        detail = json?.detail ?? JSON.stringify(json)
+        const d = json?.detail ?? json
+        // El detail de FastAPI en un 422 es un array de objetos; lo serializamos para que sea legible
+        detail = typeof d === 'string' ? d : JSON.stringify(d)
       } catch {
         // Si no es JSON, dejamos el texto crudo para diagnóstico
       }

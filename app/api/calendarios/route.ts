@@ -6,6 +6,7 @@ import {
   deleteCalendarInstance,
   setCalendarAssignment,
   removeCalendarAssignment,
+  setEventVolunteers,
 } from '@/lib/data-manager'
 import { getSessionUser } from '@/lib/serverAuth'
 import { can } from '@/lib/permissions'
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { coordinator_id, co_coordinator_id, ...instanceData } = body
+    const { coordinator_id, co_coordinator_id, volunteer_ids, ...instanceData } = body
 
     const instance = await createCalendarInstance(instanceData)
 
@@ -50,9 +51,12 @@ export async function POST(req: NextRequest) {
     if (co_coordinator_id) {
       await setCalendarAssignment(instance.id, 'co_coordinator', co_coordinator_id)
     }
+    if (Array.isArray(volunteer_ids)) {
+      await setEventVolunteers(instance.id, volunteer_ids)
+    }
 
     // Re-fetch with assignments if any were set
-    if (coordinator_id || co_coordinator_id) {
+    if (coordinator_id || co_coordinator_id || (Array.isArray(volunteer_ids) && volunteer_ids.length > 0)) {
       const date = new Date(instance.date + 'T12:00:00')
       const updated = await getCalendarInstances(date.getFullYear(), date.getMonth() + 1)
       const found = updated.find(i => i.id === instance.id)
@@ -82,7 +86,7 @@ export async function PUT(req: NextRequest) {
     if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
     const body = await req.json()
-    const { coordinator_id, co_coordinator_id, ...instanceData } = body
+    const { coordinator_id, co_coordinator_id, volunteer_ids, ...instanceData } = body
 
     const instance = await updateCalendarInstance(id, instanceData)
 
@@ -102,6 +106,9 @@ export async function PUT(req: NextRequest) {
       } else {
         await removeCalendarAssignment(id, 'co_coordinator')
       }
+    }
+    if (Array.isArray(volunteer_ids)) {
+      await setEventVolunteers(id, volunteer_ids)
     }
 
     // Re-fetch with updated assignments

@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { ChevronLeft, ChevronRight, Plus, Edit, Trash2, Zap, AlertTriangle, UserCheck, UserPlus } from "lucide-react"
+import { ChevronLeft, ChevronRight, ChevronDown, Plus, Edit, Trash2, Zap, AlertTriangle, UserCheck, UserPlus } from "lucide-react"
 import { can } from "@/lib/permissions"
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -38,8 +38,11 @@ interface CalendarInstance {
   end_time: string
   notes: string | null
   status: "programado" | "realizado" | "cancelado"
+  notify_enabled: boolean
+  reminder_offsets: number[] | null
   coordinator: VolunteerRef | null
   co_coordinator: VolunteerRef | null
+  volunteers: VolunteerRef[]
 }
 
 interface PreviewEntry {
@@ -76,6 +79,12 @@ const STATUS_LABELS: Record<string, string> = {
   realizado: "Realizado",
   cancelado: "Cancelado",
 }
+
+const REMINDER_OPTIONS = [
+  { label: "Una semana antes", value: 7 },
+  { label: "Un día antes", value: 1 },
+  { label: "El mismo día", value: 0 },
+]
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -389,10 +398,14 @@ export default function CalendariosManager({ user }: { user: any }) {
     end_time: "12:00",
     coordinator_id: "",
     co_coordinator_id: "",
+    volunteer_ids: [] as number[],
+    notify_enabled: false,
+    reminder_offsets: [] as number[],
     status: "programado",
     notes: "",
   })
   const [saving, setSaving] = useState(false)
+  const [volunteersOpen, setVolunteersOpen] = useState(false)
 
   // Bulk delete dialog
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
@@ -625,9 +638,13 @@ export default function CalendariosManager({ user }: { user: any }) {
       end_time: "12:00",
       coordinator_id: "",
       co_coordinator_id: "",
+      volunteer_ids: [],
+      notify_enabled: false,
+      reminder_offsets: [],
       status: "programado",
       notes: "",
     })
+    setVolunteersOpen(false)
     setInstanceDialogOpen(true)
   }
 
@@ -645,9 +662,13 @@ export default function CalendariosManager({ user }: { user: any }) {
       end_time: formatTime(inst.end_time),
       coordinator_id: inst.coordinator ? String(inst.coordinator.id) : "",
       co_coordinator_id: inst.co_coordinator ? String(inst.co_coordinator.id) : "",
+      volunteer_ids: (inst.volunteers || []).map(v => v.id),
+      notify_enabled: inst.notify_enabled ?? false,
+      reminder_offsets: inst.reminder_offsets || [],
       status: inst.status,
       notes: inst.notes || "",
     })
+    setVolunteersOpen(false)
     setDetailOpen(false)
     setInstanceDialogOpen(true)
   }
@@ -658,6 +679,24 @@ export default function CalendariosManager({ user }: { user: any }) {
       repeat_days: f.repeat_days.includes(dayValue)
         ? f.repeat_days.filter(d => d !== dayValue)
         : [...f.repeat_days, dayValue],
+    }))
+  }
+
+  function toggleVolunteer(volId: number) {
+    setInstanceForm(f => ({
+      ...f,
+      volunteer_ids: f.volunteer_ids.includes(volId)
+        ? f.volunteer_ids.filter(id => id !== volId)
+        : [...f.volunteer_ids, volId],
+    }))
+  }
+
+  function toggleReminderOffset(offset: number) {
+    setInstanceForm(f => ({
+      ...f,
+      reminder_offsets: f.reminder_offsets.includes(offset)
+        ? f.reminder_offsets.filter(o => o !== offset)
+        : [...f.reminder_offsets, offset],
     }))
   }
 
@@ -684,6 +723,9 @@ export default function CalendariosManager({ user }: { user: any }) {
           ? parseInt(instanceForm.coordinator_id) : null,
         co_coordinator_id: instanceForm.module !== "actividad" && instanceForm.co_coordinator_id
           ? parseInt(instanceForm.co_coordinator_id) : null,
+        volunteer_ids: instanceForm.volunteer_ids,
+        notify_enabled: instanceForm.notify_enabled,
+        reminder_offsets: instanceForm.notify_enabled ? instanceForm.reminder_offsets : null,
         status: instanceForm.status,
         notes: instanceForm.notes || null,
       })
@@ -1201,6 +1243,26 @@ export default function CalendariosManager({ user }: { user: any }) {
                     </span>
                   </div>
                 </>
+              )}
+
+              {selectedInstance.volunteers && selectedInstance.volunteers.length > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Voluntarios</span>
+                  <span className="font-medium text-right">
+                    {selectedInstance.volunteers.map(v => `${v.name} ${v.last_name}`).join(", ")}
+                  </span>
+                </div>
+              )}
+
+              {selectedInstance.notify_enabled && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500">Notificación</span>
+                  <Badge variant="outline" className="border-[#4dd0e1] text-[#0097a7]">
+                    {(selectedInstance.reminder_offsets || [])
+                      .map(o => REMINDER_OPTIONS.find(r => r.value === o)?.label ?? `${o}d`)
+                      .join(" · ") || "Activada"}
+                  </Badge>
+                </div>
               )}
 
               {selectedInstance.notes && (
@@ -1999,6 +2061,78 @@ export default function CalendariosManager({ user }: { user: any }) {
               </>
             )}
 
+            {/* Voluntarios asignados (lista N) — acordeón, cerrado por defecto */}
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={() => setVolunteersOpen(o => !o)}
+                className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm hover:bg-gray-50"
+              >
+                <span className="font-medium">
+                  Voluntarios asignados
+                  {instanceForm.volunteer_ids.length > 0 && (
+                    <span className="ml-2 text-[#0097a7]">({instanceForm.volunteer_ids.length})</span>
+                  )}
+                </span>
+                {volunteersOpen
+                  ? <ChevronDown className="h-4 w-4 text-gray-500" />
+                  : <ChevronRight className="h-4 w-4 text-gray-500" />}
+              </button>
+              {volunteersOpen && (
+                <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
+                  {volunteers.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No hay voluntarios</p>
+                  ) : (
+                    volunteers.map(v => (
+                      <label key={v.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Checkbox
+                          checked={instanceForm.volunteer_ids.includes(v.id)}
+                          onCheckedChange={() => toggleVolunteer(v.id)}
+                        />
+                        {v.name} {v.last_name}
+                      </label>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Notificación por email a los voluntarios asignados */}
+            <div className="space-y-2 rounded-md border p-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="notify_enabled"
+                  checked={instanceForm.notify_enabled}
+                  onCheckedChange={checked =>
+                    setInstanceForm(f => ({ ...f, notify_enabled: checked as boolean }))
+                  }
+                />
+                <Label htmlFor="notify_enabled" className="cursor-pointer">
+                  Notificar a los voluntarios por email
+                </Label>
+              </div>
+              {instanceForm.notify_enabled && (
+                <div className="pl-6 space-y-1">
+                  <Label className="text-sm">¿Cuándo enviar el recordatorio?</Label>
+                  <div className="flex flex-col gap-1">
+                    {REMINDER_OPTIONS.map(opt => (
+                      <label key={opt.value} className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Checkbox
+                          checked={instanceForm.reminder_offsets.includes(opt.value)}
+                          onCheckedChange={() => toggleReminderOffset(opt.value)}
+                        />
+                        {opt.label}
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">El email se envía a las 6:00 AM del día correspondiente.</p>
+                  {instanceForm.reminder_offsets.length === 0 && (
+                    <p className="text-xs text-red-600">Elegí al menos una opción para poder guardar.</p>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="space-y-1">
               <Label>Estado</Label>
               <Select value={instanceForm.status} onValueChange={v => setInstanceForm(f => ({ ...f, status: v }))}>
@@ -2044,7 +2178,8 @@ export default function CalendariosManager({ user }: { user: any }) {
                 !instanceForm.date_from ||
                 !instanceForm.start_time ||
                 !instanceForm.end_time ||
-                (!editingInstance && !instanceForm.is_single_day && !instanceForm.date_to)
+                (!editingInstance && !instanceForm.is_single_day && !instanceForm.date_to) ||
+                (instanceForm.notify_enabled && instanceForm.reminder_offsets.length === 0)
               }
             >
               {saving ? "Guardando..." : editingInstance ? "Guardar cambios" : "Crear instancia"}
