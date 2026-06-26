@@ -16,6 +16,10 @@ export type Action =
   | "ideas:edit"
   | "ideas:delete"
   | "ideas:comment"
+  | "personas:view"
+  | "personas:create"
+  | "personas:edit"
+  | "personas:delete"
   | "participante:edit_profile"
 
 /**
@@ -80,6 +84,16 @@ export function can(user: { role: string } | null, action: Action): boolean {
     case "ideas:delete":
       return isAdmin
 
+    // Personas (base de datos): voluntarios y admin pueden ver y dar de alta/modificar.
+    // La baja (eliminar) queda reservada al admin por ser destructiva e irreversible.
+    case "personas:view":
+    case "personas:create":
+    case "personas:edit":
+      return true
+
+    case "personas:delete":
+      return isAdmin
+
     // Profile edit: only for participants (handled above)
     case "participante:edit_profile":
       return false
@@ -87,4 +101,20 @@ export function can(user: { role: string } | null, action: Action): boolean {
     default:
       return false
   }
+}
+
+/**
+ * Borrado de una instancia de calendario:
+ *   - admin → puede borrar cualquier evento
+ *   - voluntario → solo los eventos que él mismo creó (created_by_volunteer_id === user.id)
+ * Eventos legados sin autor (created_by_volunteer_id null) → solo admin.
+ * Helper compartido entre la UI (botón "Eliminar") y la API route (DELETE).
+ */
+export function canDeleteCalendarInstance(
+  user: { id: number; role: string } | null,
+  instance: { created_by_volunteer_id?: number | null } | null
+): boolean {
+  if (!user || !instance) return false
+  if (can(user, "calendar:delete")) return true // admin
+  return instance.created_by_volunteer_id != null && instance.created_by_volunteer_id === user.id
 }

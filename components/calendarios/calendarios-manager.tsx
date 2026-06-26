@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { ChevronLeft, ChevronRight, ChevronDown, Plus, Edit, Trash2, Zap, AlertTriangle, UserCheck, UserPlus } from "lucide-react"
-import { can } from "@/lib/permissions"
+import { can, canDeleteCalendarInstance } from "@/lib/permissions"
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -374,7 +374,7 @@ export default function CalendariosManager({ user }: { user: any }) {
   // Filters
   const [filterType, setFilterType] = useState<"all" | "grupo" | "taller" | "actividad">("all")
   const [filterVolunteer, setFilterVolunteer] = useState("all")
-  const [filterMine, setFilterMine] = useState(true)
+  const [filterMine, setFilterMine] = useState(false)
 
   // Detail panel
   const [selectedInstance, setSelectedInstance] = useState<CalendarInstance | null>(null)
@@ -1279,7 +1279,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                     Editar
                   </Button>
                 )}
-                {can(user, "calendar:delete") && (
+                {canDeleteCalendarInstance(user, selectedInstance) && (
                   <Button
                     size="sm"
                     variant="outline"
@@ -1510,9 +1510,9 @@ export default function CalendariosManager({ user }: { user: any }) {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="flex flex-1 min-h-0 overflow-hidden">
+            <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-y-auto md:overflow-hidden">
               {/* Left column — wizard */}
-              <div className="w-[55%] overflow-y-auto border-r p-5" style={{ maxHeight: "calc(90vh - 145px)" }}>
+              <div className="w-full md:w-[55%] md:overflow-y-auto border-b md:border-b-0 md:border-r p-5 md:max-h-[calc(90vh_-_145px)]">
                 <Tabs value={generateTab} onValueChange={(v: any) => setGenerateTab(v)}>
                   <TabsList className="w-full mb-4">
                     <TabsTrigger value="alma" className="flex-1">ALMA Clásico</TabsTrigger>
@@ -1793,7 +1793,7 @@ export default function CalendariosManager({ user }: { user: any }) {
               </div>
 
               {/* Right column — live preview */}
-              <div className="w-[45%] flex flex-col overflow-hidden" style={{ maxHeight: "calc(90vh - 145px)" }}>
+              <div className="w-full md:w-[45%] flex flex-col md:overflow-hidden md:max-h-[calc(90vh_-_145px)]">
                 <div className="px-4 py-3 border-b bg-gray-50">
                   <p className="text-sm font-semibold text-gray-700">Preview en vivo</p>
                   <p className="text-xs text-gray-500 mt-0.5">
@@ -2032,7 +2032,15 @@ export default function CalendariosManager({ user }: { user: any }) {
                   <Label>Coordinador</Label>
                   <Select
                     value={instanceForm.coordinator_id || "none"}
-                    onValueChange={v => setInstanceForm(f => ({ ...f, coordinator_id: v === "none" ? "" : v }))}
+                    onValueChange={v => setInstanceForm(f => {
+                      const coordinator_id = v === "none" ? "" : v
+                      const removedId = coordinator_id ? parseInt(coordinator_id) : null
+                      return {
+                        ...f,
+                        coordinator_id,
+                        volunteer_ids: removedId ? f.volunteer_ids.filter(id => id !== removedId) : f.volunteer_ids,
+                      }
+                    })}
                   >
                     <SelectTrigger><SelectValue placeholder="Sin asignar" /></SelectTrigger>
                     <SelectContent>
@@ -2047,7 +2055,15 @@ export default function CalendariosManager({ user }: { user: any }) {
                   <Label>Co-coordinador</Label>
                   <Select
                     value={instanceForm.co_coordinator_id || "none"}
-                    onValueChange={v => setInstanceForm(f => ({ ...f, co_coordinator_id: v === "none" ? "" : v }))}
+                    onValueChange={v => setInstanceForm(f => {
+                      const co_coordinator_id = v === "none" ? "" : v
+                      const removedId = co_coordinator_id ? parseInt(co_coordinator_id) : null
+                      return {
+                        ...f,
+                        co_coordinator_id,
+                        volunteer_ids: removedId ? f.volunteer_ids.filter(id => id !== removedId) : f.volunteer_ids,
+                      }
+                    })}
                   >
                     <SelectTrigger><SelectValue placeholder="Sin asignar" /></SelectTrigger>
                     <SelectContent>
@@ -2078,23 +2094,28 @@ export default function CalendariosManager({ user }: { user: any }) {
                   ? <ChevronDown className="h-4 w-4 text-gray-500" />
                   : <ChevronRight className="h-4 w-4 text-gray-500" />}
               </button>
-              {volunteersOpen && (
-                <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
-                  {volunteers.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No hay voluntarios</p>
-                  ) : (
-                    volunteers.map(v => (
-                      <label key={v.id} className="flex items-center gap-2 cursor-pointer text-sm">
-                        <Checkbox
-                          checked={instanceForm.volunteer_ids.includes(v.id)}
-                          onCheckedChange={() => toggleVolunteer(v.id)}
-                        />
-                        {v.name} {v.last_name}
-                      </label>
-                    ))
-                  )}
-                </div>
-              )}
+              {volunteersOpen && (() => {
+                const coordId = instanceForm.coordinator_id ? parseInt(instanceForm.coordinator_id) : null
+                const coCoordId = instanceForm.co_coordinator_id ? parseInt(instanceForm.co_coordinator_id) : null
+                const assignable = volunteers.filter(v => v.id !== coordId && v.id !== coCoordId)
+                return (
+                  <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
+                    {assignable.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No hay voluntarios</p>
+                    ) : (
+                      assignable.map(v => (
+                        <label key={v.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                          <Checkbox
+                            checked={instanceForm.volunteer_ids.includes(v.id)}
+                            onCheckedChange={() => toggleVolunteer(v.id)}
+                          />
+                          {v.name} {v.last_name}
+                        </label>
+                      ))
+                    )}
+                  </div>
+                )
+              })()}
             </div>
 
             {/* Notificación por email a los voluntarios asignados */}

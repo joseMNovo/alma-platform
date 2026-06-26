@@ -4,12 +4,13 @@ import {
   createCalendarInstance,
   updateCalendarInstance,
   deleteCalendarInstance,
+  getCalendarInstanceOwner,
   setCalendarAssignment,
   removeCalendarAssignment,
   setEventVolunteers,
 } from '@/lib/data-manager'
 import { getSessionUser } from '@/lib/serverAuth'
-import { can } from '@/lib/permissions'
+import { can, canDeleteCalendarInstance } from '@/lib/permissions'
 import { logInfo, logWarn, logError } from '@/lib/logger'
 
 export async function GET(req: NextRequest) {
@@ -43,7 +44,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { coordinator_id, co_coordinator_id, volunteer_ids, ...instanceData } = body
 
-    const instance = await createCalendarInstance(instanceData)
+    // Registra al usuario que crea el evento, para permitir que lo borre luego sin ser admin
+    const instance = await createCalendarInstance({ ...instanceData, created_by_volunteer_id: session.id })
 
     if (coordinator_id) {
       await setCalendarAssignment(instance.id, 'coordinator', coordinator_id)
@@ -126,17 +128,21 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const session = getSessionUser(req)
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  // Calendar DELETE is admin-only (consistent with grupos/talleres delete restriction)
+
+  const { searchParams } = new URL(req.url)
+  const id = parseInt(searchParams.get('id') || '')
+  if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
+
+  // Admin borra cualquier evento; un voluntario solo los que creó (created_by_volunteer_id === su id)
   if (!can(session, 'calendar:delete')) {
-    logWarn('Permiso denegado para eliminar evento de calendario', { module: 'calendar', action: 'delete_denied', user: session.id })
-    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+    const owner = await getCalendarInstanceOwner(id)
+    if (!canDeleteCalendarInstance(session, { created_by_volunteer_id: owner })) {
+      logWarn('Permiso denegado para eliminar evento de calendario', { module: 'calendar', action: 'delete_denied', user: session.id, meta: { id } })
+      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+    }
   }
 
   try {
-    const { searchParams } = new URL(req.url)
-    const id = parseInt(searchParams.get('id') || '')
-    if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
-
     await deleteCalendarInstance(id)
     logInfo('Evento de calendario eliminado', { module: 'calendar', action: 'delete_event', user: session.id, meta: { id } })
     return NextResponse.json({ ok: true })

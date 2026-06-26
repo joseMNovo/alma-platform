@@ -6,6 +6,14 @@ import LoginForm from "@/components/auth/login-form"
 import Dashboard from "@/components/dashboard/dashboard"
 import { toast } from "@/hooks/use-toast"
 
+// Onboarding: un voluntario tiene el perfil "incompleto" si le faltan datos de
+// contacto/identidad básicos (lo que queda vacío recién registrado).
+function isVolunteerProfileIncomplete(u: any): boolean {
+  if (!u || u.role !== "voluntario") return false
+  const missing = (v: any) => v === null || v === undefined || String(v).trim() === ""
+  return missing(u.phone) || missing(u.birth_date)
+}
+
 export default function HomePageClient({ gamesUrl }: { gamesUrl: string }) {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -26,6 +34,16 @@ export default function HomePageClient({ gamesUrl }: { gamesUrl: string }) {
     setUser(userData)
     localStorage.setItem("alma_user", JSON.stringify(userData))
     document.cookie = "alma_session=1; path=/; SameSite=Strict; max-age=2592000"
+    // Invitar a completar el perfil solo si es voluntario, tiene datos incompletos
+    // y no descartó antes la invitación ("Hacerlo después").
+    try {
+      if (
+        isVolunteerProfileIncomplete(userData) &&
+        !localStorage.getItem("alma_profile_prompt_dismissed")
+      ) {
+        localStorage.setItem("alma_new_registration", userData.role)
+      }
+    } catch {}
     router.push("/calendarios")
   }
 

@@ -25,18 +25,21 @@ export default function ProfileCompletionModal({ user }: ProfileCompletionModalP
   useEffect(() => {
     const flag = localStorage.getItem("alma_new_registration")
     if (flag) {
+      // One-shot: consumimos el flag al mostrarlo para que no reaparezca al
+      // navegar (el Dashboard se remonta por ruta).
+      localStorage.removeItem("alma_new_registration")
       setRegistrationRole(flag)
       setOpen(true)
     }
   }, [])
 
   const handleClose = () => {
-    localStorage.removeItem("alma_new_registration")
+    // "Hacerlo después": recordamos la decisión para no volver a invitarlo en cada login.
+    localStorage.setItem("alma_profile_prompt_dismissed", "1")
     setOpen(false)
   }
 
   const handleCompleteProfile = () => {
-    localStorage.removeItem("alma_new_registration")
     setOpen(false)
     if (registrationRole === "participante") {
       router.push("/mis-datos")
@@ -54,7 +57,7 @@ export default function ProfileCompletionModal({ user }: ProfileCompletionModalP
             ¡Bienvenido/a a ALMA!
           </DialogTitle>
           <DialogDescription className="text-gray-600 text-sm leading-relaxed pt-2">
-            Tu cuenta fue creada exitosamente. Para aprovechar mejor la plataforma, te recomendamos completar tu perfil.
+            Para aprovechar mejor la plataforma, te invitamos a completar tu perfil con tus datos de contacto.
             ¡Podés hacerlo cuando quieras!
           </DialogDescription>
         </DialogHeader>

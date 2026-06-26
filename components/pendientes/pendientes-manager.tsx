@@ -37,7 +37,7 @@ export default function PendientesManager({ user }: { user: any }) {
   const [pendingItems, setPendingItems] = useState<Category[]>([])
   const [volunteers, setVolunteers] = useState<any[]>([])
   const [showCompleted, setShowCompleted] = useState(false)
-  const [showOnlyMine, setShowOnlyMine] = useState(true)
+  const [showOnlyMine, setShowOnlyMine] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isSubCategoryModalOpen, setIsSubCategoryModalOpen] = useState(false)

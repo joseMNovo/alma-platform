@@ -19,6 +19,7 @@ import {
   Lightbulb,
   Gamepad2,
   ClipboardCheck,
+  Database,
   Loader2,
 } from "lucide-react"
 
@@ -32,6 +33,7 @@ import VoluntariosManager from "@/components/voluntarios/voluntarios-manager"
 import PendientesManager from "@/components/pendientes/pendientes-manager"
 import CalendariosManager from "@/components/calendarios/calendarios-manager"
 import IdeasManager from "@/components/ideas/ideas-manager"
+import PersonasDbManager from "@/components/personas/personas-db-manager"
 import MisDatos from "@/components/participantes/mis-datos"
 import MisDatosVoluntario from "@/components/voluntarios/mis-datos-voluntario"
 import AprobacionesManager from "@/components/voluntarios/aprobaciones-manager"
@@ -60,6 +62,9 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   const isAdmin = user.role === "admin"
   const isParticipant = user.role === "participante"
 
+  // Pagos oculto por ahora (el módulo todavía no existe). Para reactivarlo: poner true.
+  const SHOW_PAGOS = false
+
   useEffect(() => {
     setNavigating(false)
     if (!isAdmin) return
@@ -74,6 +79,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
     if (pathname.includes('/aprobaciones')) return 'aprobaciones'
     if (pathname.includes('/inventario')) return 'inventario'
     if (pathname.includes('/voluntarios')) return 'voluntarios'
+    if (pathname.includes('/personas')) return 'personas'
     if (pathname.includes('/pendientes')) return 'pendientes'
     if (pathname.includes('/calendarios')) return 'calendarios'
     if (pathname.includes('/talleres')) return 'espacios'
@@ -167,7 +173,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                   rel="noopener noreferrer"
                   className="hidden sm:inline-flex items-center justify-center gap-2 rounded-md border border-[#4dd0e1] text-[#4dd0e1] bg-transparent hover:bg-[#4dd0e1] hover:text-white transition-colors text-sm font-medium h-9 px-3 no-underline"
                 >
-                  <Gamepad2 className="w-4 h-4" />
+                  <Gamepad2 className="w-4 h-4 shrink-0" />
                   Juegos
                 </a>
               )}
@@ -302,6 +308,14 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                               <Heart className="w-5 h-5 mr-3" />
                               Voluntarios
                             </Button>
+                            <Button
+                              variant={activeTab === "personas" ? "default" : "ghost"}
+                              className={`w-full justify-start ${activeTab === "personas" ? "bg-[#4dd0e1] text-white" : ""}`}
+                              onClick={() => handleTabChange("personas")}
+                            >
+                              <Database className="w-5 h-5 mr-3" />
+                              Base de datos
+                            </Button>
                             {/* Espacios group */}
                             <div>
                               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1">Espacios</p>
@@ -330,14 +344,16 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                                 Actividades
                               </Button>
                             </div>
-                            <Button
-                              variant={activeTab === "pagos" ? "default" : "ghost"}
-                              className={`w-full justify-start ${activeTab === "pagos" ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange("pagos")}
-                            >
-                              <CreditCard className="w-5 h-5 mr-3" />
-                              Pagos
-                            </Button>
+                            {SHOW_PAGOS && (
+                              <Button
+                                variant={activeTab === "pagos" ? "default" : "ghost"}
+                                className={`w-full justify-start ${activeTab === "pagos" ? "bg-[#4dd0e1] text-white" : ""}`}
+                                onClick={() => handleTabChange("pagos")}
+                              >
+                                <CreditCard className="w-5 h-5 mr-3" />
+                                Pagos
+                              </Button>
+                            )}
                             <Button
                               variant={activeTab === "ideas" ? "default" : "ghost"}
                               className={`w-full justify-start ${activeTab === "ideas" ? "bg-[#4dd0e1] text-white" : ""}`}
@@ -379,7 +395,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                           rel="noopener noreferrer"
                           className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md border border-[#4dd0e1] text-[#4dd0e1] bg-transparent hover:bg-[#4dd0e1] hover:text-white transition-colors text-sm font-medium h-9 px-3 no-underline"
                         >
-                          <Gamepad2 className="w-4 h-4" />
+                          <Gamepad2 className="w-4 h-4 shrink-0" />
                           Juegos
                         </a>
                       )}
@@ -407,15 +423,15 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
             <TabsList className="hidden md:grid w-full grid-cols-3 bg-white border border-gray-200 p-1 rounded-lg">
               <TabsTrigger value="calendarios" className={tabTriggerClass}>
-                <CalendarDays className="w-4 h-4" />
+                <CalendarDays className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">Calendarios</span>
               </TabsTrigger>
               <TabsTrigger value="espacios" className={tabTriggerClass}>
-                <LayoutGrid className="w-4 h-4" />
+                <LayoutGrid className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">Espacios</span>
               </TabsTrigger>
               <TabsTrigger value="mis-datos" className={tabTriggerClass}>
-                <UserCircle className="w-4 h-4" />
+                <UserCircle className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">Mis datos</span>
               </TabsTrigger>
             </TabsList>
@@ -447,15 +463,15 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               <Tabs value={espaciosSubTab} onValueChange={(v) => { setNavigating(true); router.push(`/${v}`) }} className="space-y-4">
                 <TabsList className="bg-white border border-gray-200 p-1 rounded-lg w-auto">
                   <TabsTrigger value="talleres" className={subTabTriggerClass}>
-                    <Calendar className="w-4 h-4" />
+                    <Calendar className="w-4 h-4 shrink-0" />
                     <span>Talleres</span>
                   </TabsTrigger>
                   <TabsTrigger value="grupos" className={subTabTriggerClass}>
-                    <Users className="w-4 h-4" />
+                    <Users className="w-4 h-4 shrink-0" />
                     <span>Grupos</span>
                   </TabsTrigger>
                   <TabsTrigger value="actividades" className={subTabTriggerClass}>
-                    <Activity className="w-4 h-4" />
+                    <Activity className="w-4 h-4 shrink-0" />
                     <span>Actividades</span>
                   </TabsTrigger>
                 </TabsList>
@@ -471,42 +487,48 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         ) : (
           // ── Vista Voluntario / Admin ───────────────────────────────────
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-            <TabsList className={`hidden md:grid w-full bg-white border border-gray-200 p-1 rounded-lg ${isAdmin ? 'grid-cols-4 xl:grid-cols-9' : 'grid-cols-4 xl:grid-cols-8'}`}>
+            <TabsList className="hidden md:flex md:flex-wrap md:justify-center w-full bg-white border border-gray-200 p-1 rounded-lg gap-1">
               <TabsTrigger value="calendarios" className={tabTriggerClass}>
-                <CalendarDays className="w-4 h-4" />
+                <CalendarDays className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">Calendarios</span>
               </TabsTrigger>
               <TabsTrigger value="inventario" className={tabTriggerClass}>
-                <Package className="w-4 h-4" />
+                <Package className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">Inventario</span>
               </TabsTrigger>
               <TabsTrigger value="pendientes" className={tabTriggerClass}>
-                <CheckSquare className="w-4 h-4" />
+                <CheckSquare className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">Pendientes</span>
               </TabsTrigger>
               <TabsTrigger value="voluntarios" className={tabTriggerClass}>
-                <Heart className="w-4 h-4" />
+                <Heart className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">Voluntarios</span>
               </TabsTrigger>
+              <TabsTrigger value="personas" className={tabTriggerClass}>
+                <Database className="w-4 h-4 shrink-0" />
+                <span className="hidden sm:inline">Base de datos</span>
+              </TabsTrigger>
               <TabsTrigger value="espacios" className={tabTriggerClass}>
-                <LayoutGrid className="w-4 h-4" />
+                <LayoutGrid className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">Espacios</span>
               </TabsTrigger>
-              <TabsTrigger value="pagos" className={tabTriggerClass}>
-                <CreditCard className="w-4 h-4" />
-                <span className="hidden sm:inline">Pagos</span>
-              </TabsTrigger>
+              {SHOW_PAGOS && (
+                <TabsTrigger value="pagos" className={tabTriggerClass}>
+                  <CreditCard className="w-4 h-4 shrink-0" />
+                  <span className="hidden sm:inline">Pagos</span>
+                </TabsTrigger>
+              )}
               <TabsTrigger value="ideas" className={tabTriggerClass}>
-                <Lightbulb className="w-4 h-4" />
+                <Lightbulb className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">Ideas</span>
               </TabsTrigger>
               <TabsTrigger value="mis-datos" className={tabTriggerClass}>
-                <UserCircle className="w-4 h-4" />
+                <UserCircle className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">Mis datos</span>
               </TabsTrigger>
               {isAdmin && (
                 <TabsTrigger value="aprobaciones" className={tabTriggerClass}>
-                  <ClipboardCheck className="w-4 h-4" />
+                  <ClipboardCheck className="w-4 h-4 shrink-0" />
                   <span className="hidden sm:inline">Aprobaciones</span>
                   {pendingCount > 0 && (
                     <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-red-500 text-white">
@@ -532,11 +554,16 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                     {activeTab === "pagos" && <CreditCard className="w-5 h-5 mr-2" />}
                     {activeTab === "inventario" && <Package className="w-5 h-5 mr-2" />}
                     {activeTab === "voluntarios" && <Heart className="w-5 h-5 mr-2" />}
+                    {activeTab === "personas" && <Database className="w-5 h-5 mr-2" />}
                     {activeTab === "pendientes" && <CheckSquare className="w-5 h-5 mr-2" />}
                     {activeTab === "calendarios" && <CalendarDays className="w-5 h-5 mr-2" />}
                     {activeTab === "ideas" && <Lightbulb className="w-5 h-5 mr-2" />}
                     {activeTab === "mis-datos" && <UserCircle className="w-5 h-5 mr-2" />}
-                    {activeTab === "mis-datos" ? "Mis datos" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                    {activeTab === "mis-datos"
+                      ? "Mis datos"
+                      : activeTab === "personas"
+                        ? "Base de datos"
+                        : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
                   </>
                 )}
               </h2>
@@ -551,6 +578,9 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
             <TabsContent value="voluntarios" className="space-y-6">
               <VoluntariosManager user={user} />
             </TabsContent>
+            <TabsContent value="personas" className="space-y-6">
+              <PersonasDbManager user={user} />
+            </TabsContent>
             <TabsContent value="calendarios" className="space-y-6">
               <CalendariosManager user={user} />
             </TabsContent>
@@ -558,15 +588,15 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               <Tabs value={espaciosSubTab} onValueChange={(v) => { setNavigating(true); router.push(`/${v}`) }} className="space-y-4">
                 <TabsList className="bg-white border border-gray-200 p-1 rounded-lg w-auto">
                   <TabsTrigger value="talleres" className={subTabTriggerClass}>
-                    <Calendar className="w-4 h-4" />
+                    <Calendar className="w-4 h-4 shrink-0" />
                     <span>Talleres</span>
                   </TabsTrigger>
                   <TabsTrigger value="grupos" className={subTabTriggerClass}>
-                    <Users className="w-4 h-4" />
+                    <Users className="w-4 h-4 shrink-0" />
                     <span>Grupos</span>
                   </TabsTrigger>
                   <TabsTrigger value="actividades" className={subTabTriggerClass}>
-                    <Activity className="w-4 h-4" />
+                    <Activity className="w-4 h-4 shrink-0" />
                     <span>Actividades</span>
                   </TabsTrigger>
                 </TabsList>
@@ -575,9 +605,11 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                 <TabsContent value="actividades">{espaciosSubTab === "actividades" && <ActividadesManager user={user} />}</TabsContent>
               </Tabs>
             </TabsContent>
-            <TabsContent value="pagos" className="space-y-6">
-              <PagosManager user={user} />
-            </TabsContent>
+            {SHOW_PAGOS && (
+              <TabsContent value="pagos" className="space-y-6">
+                <PagosManager user={user} />
+              </TabsContent>
+            )}
             <TabsContent value="ideas" className="space-y-6">
               <IdeasManager user={user} />
             </TabsContent>

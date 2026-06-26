@@ -88,5 +88,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Red de seguridad contra scroll lateral en móvil. Usamos `clip` (no
+       `hidden`) para no convertir el body en contenedor de scroll y así
+       preservar el header `sticky` del dashboard. */
+    overflow-x: clip;
   }
 }

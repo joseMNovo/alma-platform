@@ -129,6 +129,7 @@ export interface CalendarInstance {
   status: 'programado' | 'realizado' | 'cancelado'
   notify_enabled: boolean
   reminder_offsets: number[] | null
+  created_by_volunteer_id: number | null
   coordinator: VolunteerRef | null
   co_coordinator: VolunteerRef | null
   volunteers: VolunteerRef[]
@@ -177,6 +178,36 @@ export interface IdeaComment {
   volunteer_name?: string | null
   body: string
   created_at: string
+}
+
+export interface Persona {
+  id: number
+  participant_id?: number | null   // presente => la persona tiene cuenta de login
+  name?: string | null
+  last_name?: string | null
+  email?: string | null
+  cuit?: string | null
+  is_member?: boolean
+  birth_date?: string | null
+  address?: string | null
+  floor?: string | null
+  apartment?: string | null
+  city?: string | null
+  province?: string | null
+  postal_code?: string | null
+  phone?: string | null
+  source?: string | null
+  invited_at?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+}
+
+export interface PersonaFilters {
+  name?: string
+  last_name?: string
+  cuit?: string
+  city?: string
+  province?: string
 }
 
 export interface Announcement {
@@ -550,6 +581,7 @@ export async function createCalendarInstance(data: {
   status?: string
   notify_enabled?: boolean
   reminder_offsets?: number[] | null
+  created_by_volunteer_id?: number | null
 }): Promise<CalendarInstance> {
   const ci = await api.post<any>('/calendar/instances', {
     ...data,
@@ -558,6 +590,15 @@ export async function createCalendarInstance(data: {
     status: data.status || 'programado',
   })
   return { ...ci, coordinator: null, co_coordinator: null, volunteers: [] }
+}
+
+/**
+ * Devuelve el id del voluntario que creó la instancia (o null).
+ * Usado por la API route DELETE para validar borrado por propietario.
+ */
+export async function getCalendarInstanceOwner(id: number): Promise<number | null> {
+  const ci = await api.get<{ created_by_volunteer_id?: number | null }>(`/calendar/instances/${id}`)
+  return ci.created_by_volunteer_id ?? null
 }
 
 export async function updateCalendarInstance(
@@ -690,6 +731,50 @@ export async function upsertParticipantProfile(
   } else {
     return api.put<ParticipantProfile>(`/participants/${participant_id}/profile`, data)
   }
+}
+
+// ============================================================
+// Personas (base de datos ALMA — ABM sobre participant_profiles)
+// ============================================================
+
+const PERSONA_WRITABLE_FIELDS = [
+  "name", "last_name", "email", "cuit", "is_member", "birth_date", "address",
+  "floor", "apartment", "city", "province", "postal_code", "phone",
+] as const
+
+/** Limpia el payload: recorta strings y convierte vacíos a null.
+ *  Clave para el email: un "" rompería el índice único, NULL no. */
+function cleanPersonaPayload(data: Partial<Persona>): Record<string, any> {
+  const out: Record<string, any> = {}
+  for (const field of PERSONA_WRITABLE_FIELDS) {
+    if (field in data) {
+      const raw = (data as Record<string, any>)[field]
+      const val = typeof raw === "string" ? raw.trim() : raw
+      out[field] = val === "" || val === undefined ? null : val
+    }
+  }
+  return out
+}
+
+export async function getPersonas(filters: PersonaFilters = {}): Promise<Persona[]> {
+  const qs = new URLSearchParams()
+  for (const [key, value] of Object.entries(filters)) {
+    if (value && value.trim()) qs.set(key, value.trim())
+  }
+  qs.set("limit", "1000")
+  return api.get<Persona[]>(`/personas/?${qs.toString()}`)
+}
+
+export async function createPersona(data: Partial<Persona>): Promise<Persona> {
+  return api.post<Persona>("/personas/", cleanPersonaPayload(data))
+}
+
+export async function updatePersona(id: number, data: Partial<Persona>): Promise<Persona> {
+  return api.put<Persona>(`/personas/${id}`, cleanPersonaPayload(data))
+}
+
+export async function deletePersona(id: number): Promise<void> {
+  await api.delete(`/personas/${id}`)
 }
 
 // ============================================================
