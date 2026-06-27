@@ -49,13 +49,13 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // ── Helpers de presentación ────────────────────────────────────────────
 function fullName(p: Persona): string {
-  return `${p.last_name ?? ""}${p.last_name && p.name ? ", " : ""}${p.name ?? ""}`.trim() || "—"
+  return `${p.name ?? ""} ${p.last_name ?? ""}`.trim() || "—"
 }
 
-/** Iniciales para el avatar (apellido + nombre) */
+/** Iniciales para el avatar (nombre + apellido) */
 function initials(p: Persona): string {
-  const a = (p.last_name ?? "").trim().charAt(0)
-  const b = (p.name ?? "").trim().charAt(0)
+  const a = (p.name ?? "").trim().charAt(0)
+  const b = (p.last_name ?? "").trim().charAt(0)
   return (a + b).toUpperCase() || "?"
 }
 
