@@ -111,8 +111,8 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
     setMobileMenuOpen(false)
   }
 
-  const tabTriggerClass = "flex items-center space-x-2 data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
-  const subTabTriggerClass = "flex items-center space-x-2 data-[state=active]:bg-[#4dd0e1]/15 data-[state=active]:text-[#4dd0e1] data-[state=active]:font-semibold"
+  const tabTriggerClass = "flex items-center space-x-2 transition-all duration-200 active:scale-95 data-[state=inactive]:hover:bg-[#4dd0e1]/10 data-[state=inactive]:hover:text-[#00838f] data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
+  const subTabTriggerClass = "flex items-center space-x-2 transition-all duration-200 active:scale-95 data-[state=inactive]:hover:bg-[#4dd0e1]/10 data-[state=inactive]:hover:text-[#00838f] data-[state=active]:bg-[#4dd0e1]/15 data-[state=active]:text-[#4dd0e1] data-[state=active]:font-semibold"
 
   // Tabs que muestran la flor arriba a la derecha; el resto la muestran abajo a la derecha
   const flowerTop = ['voluntarios', 'espacios', 'pendientes', 'ideas'].includes(activeTab)

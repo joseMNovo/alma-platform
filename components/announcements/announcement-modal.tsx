@@ -34,18 +34,40 @@ export default function AnnouncementModal({ user }: AnnouncementModalProps) {
 
   useEffect(() => {
     let cancelled = false
+    let pending: Announcement | null = null
+
+    const showOrDefer = (data: Announcement) => {
+      const seen = sessionStorage.getItem(SESSION_KEY)
+      if (seen && Number(seen) === data.id) return
+      // Si el modal de bienvenida (usuario recién creado) está abierto, esperamos
+      // a que se cierre para no montarnos encima y cerrarlo de golpe.
+      if ((window as any).__almaWelcomeOpen) {
+        pending = data
+        return
+      }
+      setAnnouncement(data)
+      setOpen(true)
+    }
+
+    const onWelcomeClosed = () => {
+      if (pending && !cancelled) {
+        const data = pending
+        pending = null
+        showOrDefer(data)
+      }
+    }
+    window.addEventListener("alma:welcome-closed", onWelcomeClosed)
+
     fetch("/api/announcements")
       .then((r) => (r.ok ? r.json() : null))
       .then((data: Announcement | null) => {
         if (cancelled || !data) return
-        const seen = sessionStorage.getItem(SESSION_KEY)
-        if (seen && Number(seen) === data.id) return
-        setAnnouncement(data)
-        setOpen(true)
+        showOrDefer(data)
       })
       .catch(() => {})
     return () => {
       cancelled = true
+      window.removeEventListener("alma:welcome-closed", onWelcomeClosed)
     }
   }, [])
 

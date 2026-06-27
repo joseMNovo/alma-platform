@@ -10,7 +10,7 @@ import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 import {
   Plus, Edit, Trash2, Database, Search, X, ChevronDown,
   ArrowUpDown, ArrowUp, ArrowDown,
-  Mail, Phone, MapPin, IdCard, UserCheck, UserX, Heart,
+  Mail, Phone, MapPin, IdCard, UserCheck, UserX, Heart, BadgeCheck, Users,
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { can } from "@/lib/permissions"
@@ -40,6 +40,9 @@ const EMPTY_FORM: PersonaFormData = {
 
 const EMPTY_FILTERS = { name: "", last_name: "", cuit: "", city: "", province: "" }
 
+// Filtros categóricos (segmentados). "all" = sin filtrar.
+const EMPTY_SEG = { member: "all", volunteer: "all", account: "all" }
+
 type SortKey = "last_name" | "name" | "cuit" | "city" | "province"
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -66,19 +69,36 @@ function fullAddress(p: Persona): string {
   return [parts.join(" · "), line2].filter(Boolean).join(" — ") || "—"
 }
 
-/** Corazón socio/a: lleno en color ALMA si es socia, vacío (contorno) si no */
-function MemberHeart({ active, size = "w-4 h-4" }: { active?: boolean; size?: string }) {
+/** Marca socio/a: insignia llena en color ALMA si es socia, contorno gris si no */
+function MemberMark({ active, size = "w-4 h-4" }: { active?: boolean; size?: string }) {
   return (
-    <Heart
-      className={`${size} ${active ? "fill-[#4dd0e1] text-[#4dd0e1]" : "fill-none text-gray-300"}`}
+    <BadgeCheck
+      className={`${size} ${active ? "fill-[#4dd0e1] text-white" : "fill-none text-gray-300"}`}
       aria-label={active ? "Socia" : "No socia"}
     />
   )
 }
 
+/** Corazón voluntario/a: lleno en color ALMA si es voluntaria, contorno gris si no */
+function VolunteerHeart({ active, size = "w-4 h-4" }: { active?: boolean; size?: string }) {
+  return (
+    <Heart
+      className={`${size} ${active ? "fill-[#4dd0e1] text-[#4dd0e1]" : "fill-none text-gray-300"}`}
+      aria-label={active ? "Voluntario/a" : "No voluntario/a"}
+    />
+  )
+}
+
+/** Tiene cuenta en la plataforma si tiene login de participante (participant_id)
+ *  O ficha de voluntario (volunteer_id) — los voluntarios se loguean por la tabla
+ *  `voluntarios`, no por `participants`. */
+function hasUserAccount(p: Persona): boolean {
+  return p.participant_id != null || p.volunteer_id != null
+}
+
 /** Estado derivado según tenga (o no) cuenta de usuario en la plataforma */
 function personaStatus(p: Persona): { label: string; cls: string; Icon: typeof UserCheck } {
-  if (p.participant_id != null) {
+  if (hasUserAccount(p)) {
     return { label: "Con usuario", cls: "bg-emerald-100 text-emerald-700 border-emerald-200", Icon: UserCheck }
   }
   return { label: "Sin usuario", cls: "bg-gray-100 text-gray-500 border-gray-200", Icon: UserX }
@@ -90,6 +110,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
   const [loading, setLoading] = useState(true)
 
   const [filters, setFilters] = useState(EMPTY_FILTERS)
+  const [seg, setSeg] = useState(EMPTY_SEG)   // socio / voluntario / estado
   const [filtersOpen, setFiltersOpen] = useState(false)   // acordeón de filtros, cerrado por defecto
   const [expandedId, setExpandedId] = useState<number | null>(null)   // card mobile expandida
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "last_name", dir: "asc" })
@@ -133,12 +154,18 @@ export default function PersonasDbManager({ user }: { user: any }) {
     const match = (val: string | null | undefined, q: string) =>
       !q.trim() || (val ?? "").toLowerCase().includes(q.trim().toLowerCase())
 
+    const matchSeg = (p: Persona) =>
+      (seg.member === "all" || (seg.member === "yes" ? !!p.is_member : !p.is_member)) &&
+      (seg.volunteer === "all" || (seg.volunteer === "yes" ? !!p.is_volunteer : !p.is_volunteer)) &&
+      (seg.account === "all" || (seg.account === "with" ? hasUserAccount(p) : !hasUserAccount(p)))
+
     const list = personas.filter(p =>
       match(p.name, filters.name) &&
       match(p.last_name, filters.last_name) &&
       match(p.cuit, filters.cuit) &&
       match(p.city, filters.city) &&
-      match(p.province, filters.province)
+      match(p.province, filters.province) &&
+      matchSeg(p)
     )
 
     const dir = sort.dir === "asc" ? 1 : -1
@@ -149,9 +176,29 @@ export default function PersonasDbManager({ user }: { user: any }) {
       if (av && !bv) return -1
       return av.localeCompare(bv, "es", { sensitivity: "base" }) * dir
     })
-  }, [personas, filters, sort])
+  }, [personas, filters, seg, sort])
 
-  const hasActiveFilters = Object.values(filters).some(v => v.trim())
+  // KPIs sobre el total cargado (no sobre el filtrado).
+  // Participante = persona NO voluntaria → participantes + voluntarios = total.
+  // De cada grupo se cuenta además cuántos son socios.
+  const kpi = useMemo(() => {
+    let volunteers = 0, participants = 0, volunteerMembers = 0, participantMembers = 0, membersNoAccount = 0
+    for (const p of personas) {
+      if (p.is_volunteer) {
+        volunteers++
+        if (p.is_member) volunteerMembers++
+      } else {
+        participants++
+        if (p.is_member) participantMembers++
+      }
+      // Socio "puro": es socio pero no tiene ninguna cuenta (ni participante ni voluntario).
+      if (p.is_member && !hasUserAccount(p)) membersNoAccount++
+    }
+    return { volunteers, participants, volunteerMembers, participantMembers, membersNoAccount }
+  }, [personas])
+
+  const hasActiveFilters =
+    Object.values(filters).some(v => v.trim()) || Object.values(seg).some(v => v !== "all")
 
   const toggleSort = (key: SortKey) =>
     setSort(s => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }))
@@ -273,6 +320,76 @@ export default function PersonasDbManager({ user }: { user: any }) {
     }
   }
 
+  // ── Habilitar como voluntario/a ─────────────────────────────────────
+  const [volFormOpen, setVolFormOpen] = useState(false)
+  const [volPersona, setVolPersona] = useState<Persona | null>(null) // persona a habilitar; null = voluntario nuevo
+  const [volForm, setVolForm] = useState({ name: "", last_name: "", email: "", phone: "", birth_date: "" })
+  const [volSubmitting, setVolSubmitting] = useState(false)
+
+  const openNewVolunteer = () => {
+    setVolPersona(null)
+    setVolForm({ name: "", last_name: "", email: "", phone: "", birth_date: "" })
+    setVolFormOpen(true)
+  }
+
+  const openEnableVolunteer = (p: Persona) => {
+    setVolPersona(p)
+    setVolForm({
+      name: p.name ?? "", last_name: p.last_name ?? "", email: p.email ?? "",
+      phone: p.phone ?? "", birth_date: p.birth_date ?? "",
+    })
+    setVolFormOpen(true)
+  }
+
+  const closeVolForm = () => {
+    setVolFormOpen(false)
+    setVolPersona(null)
+  }
+
+  const setVolField = (k: keyof typeof volForm, v: string) => setVolForm(prev => ({ ...prev, [k]: v }))
+
+  const handleVolSubmit = async () => {
+    if (!volForm.name.trim()) {
+      toast({ title: "Campo requerido", description: "El nombre es obligatorio", variant: "destructive" })
+      return
+    }
+    if (!volForm.email.trim() || !EMAIL_RE.test(volForm.email.trim())) {
+      toast({ title: "Email requerido", description: "El voluntario necesita un email válido para recibir el aviso", variant: "destructive" })
+      return
+    }
+    setVolSubmitting(true)
+    try {
+      const registered_by_name = `${user?.name ?? ""} ${user?.last_name ?? ""}`.trim()
+      const res = await fetch("/api/personas/habilitar-voluntario", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: volForm.name.trim(),
+          last_name: volForm.last_name.trim(),
+          email: volForm.email.trim(),
+          phone: volForm.phone.trim(),
+          birth_date: volForm.birth_date,
+          persona_id: volPersona?.id ?? null,
+          registered_by_name,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || "No se pudo habilitar")
+      }
+      toast({
+        title: "Voluntario/a registrado/a",
+        description: "Quedó pendiente de aprobación del administrador. Le enviamos un email avisándole.",
+      })
+      closeVolForm()
+      fetchPersonas()
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "No se pudo habilitar", variant: "destructive" })
+    } finally {
+      setVolSubmitting(false)
+    }
+  }
+
   // ── Render ──────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
@@ -284,14 +401,20 @@ export default function PersonasDbManager({ user }: { user: any }) {
         <div className="flex-1 min-w-0">
           <h2 className="text-lg font-semibold text-[#00838f] leading-tight">Base de datos de personas</h2>
           <p className="text-sm text-[#00838f]/80 mt-0.5">
-            Personas que forman parte de la comunidad de ALMA —participantes de talleres, grupos y actividades—. Consultá, agregá y mantené sus datos actualizados.
+            Todas las personas vinculadas a ALMA: voluntarias, participantes y socias. Consultá, agregá y mantené sus datos actualizados.
           </p>
         </div>
         {canCreate && (
-          <Button onClick={openCreate} className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white flex-shrink-0 w-full sm:w-auto">
-            <Plus className="w-4 h-4 mr-2" />
-            Nueva persona
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0 w-full sm:w-auto">
+            <Button onClick={openCreate} className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white w-full sm:w-auto">
+              <Plus className="w-4 h-4 mr-2" />
+              Nueva persona
+            </Button>
+            <Button onClick={openNewVolunteer} variant="outline" className="border-[#4dd0e1] text-[#00838f] hover:bg-[#4dd0e1]/10 w-full sm:w-auto">
+              <Heart className="w-4 h-4 mr-2" />
+              Nuevo voluntario/a
+            </Button>
+          </div>
         )}
       </div>
 
@@ -315,7 +438,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
             {hasActiveFilters && (
               <div className="flex justify-end mb-3">
                 <button
-                  onClick={() => setFilters(EMPTY_FILTERS)}
+                  onClick={() => { setFilters(EMPTY_FILTERS); setSeg(EMPTY_SEG) }}
                   className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 transition-colors"
                 >
                   <X className="w-3 h-3" /> Limpiar
@@ -329,15 +452,53 @@ export default function PersonasDbManager({ user }: { user: any }) {
               <FilterInput label="Localidad" value={filters.city} onChange={v => setFilters(f => ({ ...f, city: v }))} />
               <FilterInput label="Provincia" value={filters.province} onChange={v => setFilters(f => ({ ...f, province: v }))} />
             </div>
+            <div className="mt-3 flex flex-wrap gap-x-6 gap-y-3">
+              <SegmentFilter
+                label="Socio/a"
+                value={seg.member}
+                onChange={v => setSeg(s => ({ ...s, member: v }))}
+                options={[{ value: "all", label: "Todos" }, { value: "yes", label: "Socios" }, { value: "no", label: "No" }]}
+              />
+              <SegmentFilter
+                label="Voluntario/a"
+                value={seg.volunteer}
+                onChange={v => setSeg(s => ({ ...s, volunteer: v }))}
+                options={[{ value: "all", label: "Todos" }, { value: "yes", label: "Voluntarios" }, { value: "no", label: "No" }]}
+              />
+              <SegmentFilter
+                label="Estado"
+                value={seg.account}
+                onChange={v => setSeg(s => ({ ...s, account: v }))}
+                options={[{ value: "all", label: "Todos" }, { value: "with", label: "Con usuario" }, { value: "without", label: "Sin usuario" }]}
+              />
+            </div>
           </CardContent>
         )}
       </Card>
 
-      {/* Conteo */}
-      <div className="flex items-center justify-between px-1">
+      {/* Conteo + KPIs */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-1">
         <span className="text-sm text-gray-500">
           {loading ? "Cargando..." : `${filtered.length} ${filtered.length === 1 ? "persona" : "personas"}${hasActiveFilters ? ` (de ${personas.length})` : ""}`}
         </span>
+        {!loading && (
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-gray-500">
+            <span className="inline-flex items-center gap-1.5" title="Participantes (personas no voluntarias) — y cuántas son socias">
+              <Users className="w-4 h-4 text-gray-400" />
+              <span className="font-semibold text-gray-700">{kpi.participants}</span> participantes
+              <span className="text-xs text-gray-400">· {kpi.participantMembers} socios</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5" title="Voluntarios/as — y cuántos son socios">
+              <Heart className="w-4 h-4 fill-[#4dd0e1] text-[#4dd0e1]" />
+              <span className="font-semibold text-gray-700">{kpi.volunteers}</span> voluntarios
+              <span className="text-xs text-gray-400">· {kpi.volunteerMembers} socios</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5" title="Socios/as sin ninguna cuenta (ni participante ni voluntario) — solo socio">
+              <BadgeCheck className="w-4 h-4 fill-[#4dd0e1] text-white" />
+              <span className="font-semibold text-gray-700">{kpi.membersNoAccount}</span> socios sin usuario
+            </span>
+          </div>
+        )}
       </div>
 
       {/* ── Listado de personas (grid de cards) ──────────────────────── */}
@@ -379,6 +540,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
                     )}
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* Socio/a — toggle de un toque */}
                     {canEdit ? (
                       <button
                         type="button"
@@ -388,11 +550,24 @@ export default function PersonasDbManager({ user }: { user: any }) {
                         aria-pressed={!!p.is_member}
                         className="p-1 rounded-full transition-transform active:scale-90 disabled:opacity-50"
                       >
-                        <MemberHeart active={!!p.is_member} />
+                        <MemberMark active={!!p.is_member} />
                       </button>
                     ) : (
-                      <MemberHeart active={!!p.is_member} />
+                      <MemberMark active={!!p.is_member} />
                     )}
+                    {/* Voluntario/a — corazón (toca para habilitar si aún no lo es) */}
+                    {p.is_volunteer ? (
+                      <span className="p-1" title="Voluntario/a"><VolunteerHeart active /></span>
+                    ) : canCreate ? (
+                      <button
+                        type="button"
+                        onClick={e => { e.stopPropagation(); openEnableVolunteer(p) }}
+                        title="Habilitar como voluntario/a"
+                        className="p-1 rounded-full transition-transform active:scale-90"
+                      >
+                        <VolunteerHeart active={false} />
+                      </button>
+                    ) : null}
                     <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`} />
                   </div>
                 </div>
@@ -401,8 +576,8 @@ export default function PersonasDbManager({ user }: { user: any }) {
                 <div className={`grid transition-all duration-300 ease-in-out ${isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
                   <div className="overflow-hidden">
                     <div className="px-4 pb-4 pt-3 border-t border-gray-100 space-y-3">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${st.cls}`}>
-                        <st.Icon className="w-3 h-3" />
+                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] leading-none font-medium border ${st.cls}`}>
+                        <st.Icon className="w-2.5 h-2.5" />
                         {st.label}
                       </span>
                       <div className="space-y-2 text-sm text-gray-600">
@@ -440,7 +615,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
 
         {/* ── DESKTOP: tabla (≥ lg) ── */}
         <div className="hidden lg:block overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-          <table className="w-full min-w-[880px] text-sm">
+          <table className="w-full min-w-[980px] text-sm">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50/80 text-left text-gray-600">
                 <SortableTh label="Apellido" k="last_name" onClick={toggleSort} SortIcon={SortIcon} />
@@ -450,6 +625,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
                 <SortableTh label="Localidad" k="city" onClick={toggleSort} SortIcon={SortIcon} />
                 <SortableTh label="Provincia" k="province" onClick={toggleSort} SortIcon={SortIcon} />
                 <th className="px-4 py-3 font-semibold text-center">Socio/a</th>
+                <th className="px-4 py-3 font-semibold text-center">Voluntario/a</th>
                 <th className="px-4 py-3 font-semibold">Estado</th>
                 <th className="px-4 py-3 font-semibold text-right">Acciones</th>
               </tr>
@@ -482,18 +658,36 @@ export default function PersonasDbManager({ user }: { user: any }) {
                             aria-pressed={!!p.is_member}
                             className="p-1 rounded-full transition-transform hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-wait"
                           >
-                            <MemberHeart active={!!p.is_member} />
+                            <MemberMark active={!!p.is_member} />
                           </button>
                         ) : (
                           <div title={p.is_member ? "Socio/a" : "No socio/a"}>
-                            <MemberHeart active={!!p.is_member} />
+                            <MemberMark active={!!p.is_member} />
                           </div>
                         )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${st.cls}`}>
-                        <st.Icon className="w-3 h-3" />
+                      <div className="flex justify-center">
+                        {p.is_volunteer ? (
+                          <div title="Voluntario/a"><VolunteerHeart active /></div>
+                        ) : canCreate ? (
+                          <button
+                            type="button"
+                            onClick={() => openEnableVolunteer(p)}
+                            title="Habilitar como voluntario/a"
+                            className="p-1 rounded-full transition-transform hover:scale-110 active:scale-95"
+                          >
+                            <VolunteerHeart active={false} />
+                          </button>
+                        ) : (
+                          <div title="No voluntario/a"><VolunteerHeart active={false} /></div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] leading-none font-medium border ${st.cls}`}>
+                        <st.Icon className="w-2.5 h-2.5" />
                         {st.label}
                       </span>
                     </td>
@@ -561,7 +755,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
               }`}
             >
               <span className="flex items-center gap-2.5">
-                <MemberHeart active={form.is_member} size="w-5 h-5" />
+                <MemberMark active={form.is_member} size="w-5 h-5" />
                 <span>
                   <span className="block text-sm font-medium text-gray-700">Socio/a de ALMA</span>
                   <span className="block text-xs text-gray-400">Marcá si la persona es socia de la organización</span>
@@ -609,6 +803,50 @@ export default function PersonasDbManager({ user }: { user: any }) {
         </DialogContent>
       </Dialog>
 
+      {/* ── Modal: Habilitar / Nuevo voluntario/a ────────────────────── */}
+      <Dialog open={volFormOpen} onOpenChange={o => { if (!o) closeVolForm() }}>
+        <DialogContent className="sm:max-w-lg max-h-[92vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{volPersona ? "Habilitar como voluntario/a" : "Nuevo voluntario/a"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-1">
+            <div className="rounded-lg bg-[#e0f7fa]/50 border border-[#4dd0e1]/30 px-4 py-3 text-sm text-[#00838f] flex gap-2">
+              <Heart className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>
+                {volPersona
+                  ? "Se creará la ficha de voluntario/a vinculada a esta persona. "
+                  : "Se registrará una nueva persona como voluntario/a. "}
+                Quedará <strong className="font-semibold">pendiente de aprobación</strong> del administrador y recibirá un email de aviso.
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Nombre" required>
+                <Input value={volForm.name} onChange={e => setVolField("name", e.target.value)} maxLength={100} placeholder="Nombre" />
+              </Field>
+              <Field label="Apellido">
+                <Input value={volForm.last_name} onChange={e => setVolField("last_name", e.target.value)} maxLength={100} placeholder="Apellido" />
+              </Field>
+              <Field label="Correo electrónico" required>
+                <Input type="email" value={volForm.email} onChange={e => setVolField("email", e.target.value)} maxLength={150} placeholder="correo@ejemplo.com" />
+              </Field>
+              <Field label="Teléfono (celular)">
+                <Input value={volForm.phone} onChange={e => setVolField("phone", e.target.value)} maxLength={50} placeholder="Celular" />
+              </Field>
+              <Field label="Fecha de nacimiento">
+                <Input type="date" value={volForm.birth_date} onChange={e => setVolField("birth_date", e.target.value)} />
+              </Field>
+            </div>
+            <p className="text-xs text-gray-400 pt-1">* Campos obligatorios</p>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={closeVolForm} disabled={volSubmitting}>Cancelar</Button>
+              <Button onClick={handleVolSubmit} disabled={volSubmitting} className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white">
+                {volSubmitting ? "Registrando..." : volPersona ? "Habilitar" : "Registrar voluntario/a"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* ── Confirmar baja ───────────────────────────────────────────── */}
       <ConfirmationDialog
         open={deleteOpen}
@@ -626,6 +864,36 @@ export default function PersonasDbManager({ user }: { user: any }) {
 }
 
 // ── Subcomponentes ─────────────────────────────────────────────────────
+function SegmentFilter({
+  label, value, onChange, options,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  options: { value: string; label: string }[]
+}) {
+  return (
+    <div>
+      <Label className="text-xs text-gray-500 block mb-1">{label}</Label>
+      <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+        {options.map(opt => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            aria-pressed={value === opt.value}
+            className={`px-3 h-8 rounded-md text-xs font-medium transition-colors ${
+              value === opt.value ? "bg-white text-[#00838f] shadow-sm" : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function FilterInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div>

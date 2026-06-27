@@ -183,6 +183,8 @@ export interface IdeaComment {
 export interface Persona {
   id: number
   participant_id?: number | null   // presente => la persona tiene cuenta de login
+  is_volunteer?: boolean           // rol voluntario (flag descriptivo)
+  volunteer_id?: number | null     // presente => tiene ficha en `voluntarios`
   name?: string | null
   last_name?: string | null
   email?: string | null
@@ -775,6 +777,24 @@ export async function updatePersona(id: number, data: Partial<Persona>): Promise
 
 export async function deletePersona(id: number): Promise<void> {
   await api.delete(`/personas/${id}`)
+}
+
+/** Payload para habilitar a una persona (o crear una nueva) como voluntario/a. */
+export interface VolunteerEnrollPayload {
+  name: string
+  last_name?: string | null
+  email: string
+  phone?: string | null
+  birth_date?: string | null
+  gender?: string | null
+  age?: number | null
+  persona_id?: number | null         // persona existente a habilitar
+  registered_by_name?: string | null // quién la dio de alta (para el mail)
+}
+
+/** Crea la ficha de voluntario (pendiente de aprobación) y la vincula a la persona. */
+export async function enrollVolunteerFromDb(data: VolunteerEnrollPayload): Promise<any> {
+  return api.post("/voluntarios/enroll-from-db", data)
 }
 
 // ============================================================

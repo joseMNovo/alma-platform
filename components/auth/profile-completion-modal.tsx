@@ -30,17 +30,30 @@ export default function ProfileCompletionModal({ user }: ProfileCompletionModalP
       localStorage.removeItem("alma_new_registration")
       setRegistrationRole(flag)
       setOpen(true)
+      // Avisamos a otros popups (novedades) que la bienvenida tiene prioridad,
+      // para que no se monten encima y la cierren. Flag en memoria → un reload
+      // lo limpia solo (no queda trabado).
+      ;(window as any).__almaWelcomeOpen = true
     }
+    return () => { (window as any).__almaWelcomeOpen = false }
   }, [])
+
+  // Libera el turno: cierra la bienvenida y avisa que el resto de popups puede mostrarse.
+  const releaseTurn = () => {
+    ;(window as any).__almaWelcomeOpen = false
+    window.dispatchEvent(new Event("alma:welcome-closed"))
+  }
 
   const handleClose = () => {
     // "Hacerlo después": recordamos la decisión para no volver a invitarlo en cada login.
     localStorage.setItem("alma_profile_prompt_dismissed", "1")
     setOpen(false)
+    releaseTurn()
   }
 
   const handleCompleteProfile = () => {
     setOpen(false)
+    releaseTurn()
     if (registrationRole === "participante") {
       router.push("/mis-datos")
     } else {

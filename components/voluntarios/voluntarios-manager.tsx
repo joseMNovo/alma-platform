@@ -19,9 +19,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
-import PersonasTablero from "@/components/voluntarios/personas-tablero"
 import { formatLocalDate } from "@/lib/utils"
-import { Plus, Edit, Trash2, Users, User, Calendar, Phone, Mail, Heart, KeyRound, X, ChevronDown } from "lucide-react"
+import { Plus, Edit, Trash2, Users, User, Calendar, Phone, Mail, Heart, KeyRound, X, ChevronDown, LayoutGrid, List, Search } from "lucide-react"
 
 interface CurrentUser {
   id: number
@@ -57,6 +56,15 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
   const [volunteerToDelete, setVolunteerToDelete] = useState<Volunteer | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [expandedId, setExpandedId] = useState<number | null>(null)
+  const [viewMode, setViewMode] = useState<"cards" | "list">("cards")
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [filters, setFilters] = useState({
+    name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    specialty: "",
+  })
 
   // PIN management
   const [pinDialogOpen, setPinDialogOpen] = useState(false)
@@ -291,6 +299,22 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
     setFormData({ ...formData, age: value })
   }
 
+  const matchesFilter = (value: string | null | undefined, query: string) =>
+    !query.trim() || (value || "").toLowerCase().includes(query.trim().toLowerCase())
+
+  const filteredVolunteers = volunteers.filter((v) =>
+    matchesFilter(v.name, filters.name) &&
+    matchesFilter(v.last_name, filters.last_name) &&
+    matchesFilter(v.email, filters.email) &&
+    matchesFilter(v.phone, filters.phone) &&
+    matchesFilter((v.specialties || []).join(" "), filters.specialty)
+  )
+
+  const activeFilterCount = Object.values(filters).filter((f) => f.trim()).length
+
+  const clearFilters = () =>
+    setFilters({ name: "", last_name: "", email: "", phone: "", specialty: "" })
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -304,16 +328,44 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
 
   return (
     <div className="space-y-4 px-4 sm:px-0">
-      {/* Tablero de personas registradas */}
-      <PersonasTablero />
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div className="text-center sm:text-left">
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center justify-center sm:justify-start">
-            <Users className="w-6 h-6 mr-3 text-[#4dd0e1]" />
-            Gestión de voluntarios
-          </h2>
+          <div className="flex items-center justify-center sm:justify-start gap-3">
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+              <Users className="w-6 h-6 mr-3 text-[#4dd0e1]" />
+              Gestión de voluntarios
+            </h2>
+            {/* Toggle de vista: tarjetas / lista (solo desktop) */}
+            <div className="hidden sm:inline-flex items-center bg-gray-100 rounded-lg p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode("cards")}
+                aria-pressed={viewMode === "cards"}
+                title="Vista de tarjetas"
+                className={`inline-flex items-center justify-center w-8 h-8 rounded-md transition-colors ${
+                  viewMode === "cards"
+                    ? "bg-white text-[#4dd0e1] shadow-sm"
+                    : "text-gray-400 hover:text-gray-600"
+                }`}
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                aria-pressed={viewMode === "list"}
+                title="Vista de lista"
+                className={`inline-flex items-center justify-center w-8 h-8 rounded-md transition-colors ${
+                  viewMode === "list"
+                    ? "bg-white text-[#4dd0e1] shadow-sm"
+                    : "text-gray-400 hover:text-gray-600"
+                }`}
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
           <p className="text-sm text-gray-500 mt-1">Administra los voluntarios de ALMA</p>
         </div>
 
@@ -324,7 +376,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
               className="w-full sm:w-auto bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Agregar voluntario
+              Nuevo voluntario/a
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
@@ -490,9 +542,103 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
         </Dialog>
       </div>
 
+      {/* ── Acordeón de filtros ── */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setFiltersOpen((o) => !o)}
+          className="w-full flex items-center justify-between px-4 py-3 text-left transition-colors hover:bg-gray-50/50"
+        >
+          <span className="flex items-center gap-2 text-sm font-medium text-gray-600">
+            <Search className="w-4 h-4 text-[#4dd0e1]" />
+            Filtros de búsqueda
+            {activeFilterCount > 0 && (
+              <Badge variant="outline" className="text-xs border-[#4dd0e1] text-[#00838f]">
+                {activeFilterCount}
+              </Badge>
+            )}
+          </span>
+          <ChevronDown
+            className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${
+              filtersOpen ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+        <div
+          className={`grid transition-all duration-300 ease-in-out ${
+            filtersOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+          }`}
+        >
+          <div className="overflow-hidden">
+            <div className="px-4 pb-4 pt-1 border-t border-gray-100">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <div>
+                  <Label htmlFor="filter-name" className="text-xs text-gray-500">Nombre</Label>
+                  <Input
+                    id="filter-name"
+                    value={filters.name}
+                    onChange={(e) => setFilters({ ...filters, name: e.target.value })}
+                    placeholder="Nombre"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="filter-last-name" className="text-xs text-gray-500">Apellido</Label>
+                  <Input
+                    id="filter-last-name"
+                    value={filters.last_name}
+                    onChange={(e) => setFilters({ ...filters, last_name: e.target.value })}
+                    placeholder="Apellido"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="filter-email" className="text-xs text-gray-500">Email</Label>
+                  <Input
+                    id="filter-email"
+                    value={filters.email}
+                    onChange={(e) => setFilters({ ...filters, email: e.target.value })}
+                    placeholder="Email"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="filter-phone" className="text-xs text-gray-500">Teléfono</Label>
+                  <Input
+                    id="filter-phone"
+                    value={filters.phone}
+                    onChange={(e) => setFilters({ ...filters, phone: e.target.value })}
+                    placeholder="Teléfono"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="filter-specialty" className="text-xs text-gray-500">Especialidad</Label>
+                  <Input
+                    id="filter-specialty"
+                    value={filters.specialty}
+                    onChange={(e) => setFilters({ ...filters, specialty: e.target.value })}
+                    placeholder="Especialidad"
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+              {activeFilterCount > 0 && (
+                <div className="flex justify-end mt-3">
+                  <Button variant="ghost" size="sm" onClick={clearFilters} className="text-gray-500 hover:text-gray-700">
+                    <X className="w-3.5 h-3.5 mr-1" />
+                    Limpiar filtros
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* ── MOBILE: Acordeón (< sm) ── */}
       <div className="sm:hidden space-y-2">
-        {volunteers.map((volunteer) => {
+        {filteredVolunteers.map((volunteer) => {
           const isExpanded = expandedId === volunteer.id
           const fullName = getFullName(volunteer)
           return (
@@ -638,8 +784,8 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
       </div>
 
       {/* ── DESKTOP: Grid de cards (≥ sm) ── */}
-      <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4 sm:px-0">
-        {volunteers.map((volunteer) => (
+      <div className={`${viewMode === "cards" ? "hidden sm:grid" : "hidden"} grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4 sm:px-0`}>
+        {filteredVolunteers.map((volunteer) => (
           <Card key={volunteer.id} className="hover:shadow-lg transition-shadow duration-200">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
@@ -753,11 +899,119 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
         ))}
       </div>
 
+      {/* ── DESKTOP: Vista de lista / tablero (≥ sm) ── */}
+      {viewMode === "list" && (
+        <div className="hidden sm:block px-4 sm:px-0">
+          <div className="overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-separate border-spacing-0">
+                <thead>
+                  <tr className="text-left text-[11px] font-semibold text-[#00838f]/70 uppercase tracking-wider bg-[#e0f7fa]/40">
+                    <th className="px-5 py-3.5 font-semibold border-r border-gray-100">Voluntario</th>
+                    <th className="px-5 py-3.5 font-semibold border-r border-gray-100">Edad</th>
+                    <th className="px-5 py-3.5 font-semibold border-r border-gray-100">Teléfono</th>
+                    <th className="px-5 py-3.5 font-semibold border-r border-gray-100">Email</th>
+                    <th className="px-5 py-3.5 font-semibold border-r border-gray-100">Registrado</th>
+                    <th className="px-5 py-3.5 font-semibold border-r border-gray-100">Especialidades</th>
+                    <th className="px-5 py-3.5 font-semibold text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...filteredVolunteers]
+                    .sort((a, b) =>
+                      getFullName(a).localeCompare(getFullName(b), "es", { sensitivity: "base" })
+                    )
+                    .map((volunteer) => (
+                    <tr key={volunteer.id} className="group border-t border-gray-50 transition-colors hover:bg-[#f6fdfe]">
+                      <td className="px-5 py-3 border-t border-r border-gray-100">
+                        <div className="flex items-center gap-3">
+                          {volunteer.photo ? (
+                            <img
+                              src={volunteer.photo}
+                              alt={getFullName(volunteer)}
+                              className="w-9 h-9 rounded-full object-cover flex-shrink-0 ring-2 ring-white shadow-sm"
+                            />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#4dd0e1] to-[#3bc0d1] flex items-center justify-center flex-shrink-0 ring-2 ring-white shadow-sm">
+                              <User className="w-4 h-4 text-white" />
+                            </div>
+                          )}
+                          <span className="font-semibold text-gray-800">{getFullName(volunteer)}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 border-t border-r border-gray-100 text-gray-500 whitespace-nowrap">{volunteer.age ? `${volunteer.age} años` : "—"}</td>
+                      <td className="px-5 py-3 border-t border-r border-gray-100 text-gray-500 tabular-nums whitespace-nowrap">{volunteer.phone || "—"}</td>
+                      <td className="px-5 py-3 border-t border-r border-gray-100 text-gray-500">{volunteer.email || "—"}</td>
+                      <td className="px-5 py-3 border-t border-r border-gray-100 text-gray-500 tabular-nums whitespace-nowrap">{formatLocalDate(volunteer.registration_date)}</td>
+                      <td className="px-5 py-3 border-t border-r border-gray-100">
+                        {volunteer.specialties && volunteer.specialties.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5 max-w-[220px]">
+                            {volunteer.specialties.map((specialty, index) => (
+                              <span
+                                key={index}
+                                className="inline-flex items-center bg-[#e0f7fa] text-[#00838f] text-xs font-medium px-2.5 py-0.5 rounded-full"
+                              >
+                                {specialty}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3 border-t border-gray-100">
+                        <div className="flex items-center justify-end gap-1 opacity-60 transition-opacity group-hover:opacity-100">
+                          <button
+                            onClick={() => openEditDialog(volunteer)}
+                            className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-gray-400 hover:text-[#00838f] hover:bg-[#e0f7fa] transition-colors"
+                            title="Editar"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          {user.role === "admin" && (
+                            <button
+                              onClick={() => openPinDialog(volunteer)}
+                              className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-gray-400 hover:text-[#00838f] hover:bg-[#e0f7fa] transition-colors"
+                              title="Asignar PIN"
+                            >
+                              <KeyRound className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDeleteClick(volunteer)}
+                            className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       {volunteers.length === 0 && (
         <div className="text-center py-12 px-4">
           <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No hay voluntarios registrados</h3>
           <p className="text-gray-600">Agrega el primer voluntario para comenzar a gestionar el equipo.</p>
+        </div>
+      )}
+
+      {volunteers.length > 0 && filteredVolunteers.length === 0 && (
+        <div className="text-center py-12 px-4">
+          <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Sin resultados</h3>
+          <p className="text-gray-600">Ningún voluntario coincide con los filtros aplicados.</p>
+          <Button variant="outline" size="sm" onClick={clearFilters} className="mt-4">
+            <X className="w-3.5 h-3.5 mr-1" />
+            Limpiar filtros
+          </Button>
         </div>
       )}
 
