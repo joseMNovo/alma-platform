@@ -302,13 +302,16 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
   const matchesFilter = (value: string | null | undefined, query: string) =>
     !query.trim() || (value || "").toLowerCase().includes(query.trim().toLowerCase())
 
-  const filteredVolunteers = volunteers.filter((v) =>
-    matchesFilter(v.name, filters.name) &&
-    matchesFilter(v.last_name, filters.last_name) &&
-    matchesFilter(v.email, filters.email) &&
-    matchesFilter(v.phone, filters.phone) &&
-    matchesFilter((v.specialties || []).join(" "), filters.specialty)
-  )
+  const filteredVolunteers = volunteers
+    .filter((v) =>
+      matchesFilter(v.name, filters.name) &&
+      matchesFilter(v.last_name, filters.last_name) &&
+      matchesFilter(v.email, filters.email) &&
+      matchesFilter(v.phone, filters.phone) &&
+      matchesFilter((v.specialties || []).join(" "), filters.specialty)
+    )
+    // Orden alfabético por nombre completo, igual en lista y cards.
+    .sort((a, b) => getFullName(a).localeCompare(getFullName(b), "es", { sensitivity: "base" }))
 
   const activeFilterCount = Object.values(filters).filter((f) => f.trim()).length
 
@@ -917,10 +920,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {[...filteredVolunteers]
-                    .sort((a, b) =>
-                      getFullName(a).localeCompare(getFullName(b), "es", { sensitivity: "base" })
-                    )
+                  {filteredVolunteers
                     .map((volunteer) => (
                     <tr key={volunteer.id} className="group border-t border-gray-50 transition-colors hover:bg-[#f6fdfe]">
                       <td className="px-5 py-3 border-t border-r border-gray-100">
