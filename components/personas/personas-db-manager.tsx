@@ -113,7 +113,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
   const [seg, setSeg] = useState(EMPTY_SEG)   // socio / voluntario / estado
   const [filtersOpen, setFiltersOpen] = useState(false)   // acordeón de filtros, cerrado por defecto
   const [expandedId, setExpandedId] = useState<number | null>(null)   // card mobile expandida
-  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "last_name", dir: "asc" })
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "name", dir: "asc" })
 
   // Modal alta / edición
   const [formOpen, setFormOpen] = useState(false)
@@ -618,8 +618,8 @@ export default function PersonasDbManager({ user }: { user: any }) {
           <table className="w-full min-w-[980px] text-sm">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50/80 text-left text-gray-600">
-                <SortableTh label="Apellido" k="last_name" onClick={toggleSort} SortIcon={SortIcon} />
                 <SortableTh label="Nombre" k="name" onClick={toggleSort} SortIcon={SortIcon} />
+                <SortableTh label="Apellido" k="last_name" onClick={toggleSort} SortIcon={SortIcon} />
                 <SortableTh label="CUIT" k="cuit" onClick={toggleSort} SortIcon={SortIcon} />
                 <th className="px-4 py-3 font-semibold">Contacto</th>
                 <SortableTh label="Localidad" k="city" onClick={toggleSort} SortIcon={SortIcon} />
@@ -635,8 +635,8 @@ export default function PersonasDbManager({ user }: { user: any }) {
                 const st = personaStatus(p)
                 return (
                   <tr key={p.id} className="border-b border-gray-100 last:border-0 hover:bg-[#4dd0e1]/[0.04] transition-colors">
-                    <td className="px-4 py-3 font-medium text-gray-900">{p.last_name || "—"}</td>
-                    <td className="px-4 py-3 text-gray-700">{p.name || "—"}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900">{p.name || "—"}</td>
+                    <td className="px-4 py-3 text-gray-700">{p.last_name || "—"}</td>
                     <td className="px-4 py-3 text-gray-500 tabular-nums">{p.cuit || "—"}</td>
                     <td className="px-4 py-3 text-gray-500">
                       <div className="flex flex-col gap-0.5">
