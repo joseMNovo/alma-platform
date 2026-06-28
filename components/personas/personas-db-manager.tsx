@@ -758,7 +758,6 @@ export default function PersonasDbManager({ user }: { user: any }) {
                 <MemberMark active={form.is_member} size="w-5 h-5" />
                 <span>
                   <span className="block text-sm font-medium text-gray-700">Socio/a de ALMA</span>
-                  <span className="block text-xs text-gray-400">Marcá si la persona es socia de la organización</span>
                 </span>
               </span>
               <span className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${form.is_member ? "bg-[#4dd0e1]" : "bg-gray-200"}`}>

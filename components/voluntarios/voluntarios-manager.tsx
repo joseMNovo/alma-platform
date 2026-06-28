@@ -289,6 +289,12 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
     return volunteer.name
   }
 
+  // Permisos de UI (el backend igual valida):
+  // - admin puede editar/eliminar a cualquiera
+  // - un voluntario solo puede editar su propio registro; nunca eliminar
+  const isAdmin = user.role === "admin"
+  const canEditVolunteer = (volunteer: Volunteer) => isAdmin || volunteer.id === user.id
+
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/[^0-9+\-\s]/g, "")
     setFormData({ ...formData, phone: value })
@@ -373,15 +379,17 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
         </div>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              onClick={() => { resetForm(); setDialogOpen(true) }}
-              className="w-full sm:w-auto bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Nuevo voluntario/a
-            </Button>
-          </DialogTrigger>
+          {user.role === "admin" && (
+            <DialogTrigger asChild>
+              <Button
+                onClick={() => { resetForm(); setDialogOpen(true) }}
+                className="w-full sm:w-auto bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Nuevo voluntario/a
+              </Button>
+            </DialogTrigger>
+          )}
           <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
@@ -748,36 +756,42 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                     )}
 
                     {/* Acciones */}
-                    <div className="flex gap-2 pt-1">
-                      <Button
-                        onClick={() => openEditDialog(volunteer)}
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 h-9"
-                      >
-                        <Edit className="w-3.5 h-3.5 mr-1.5" />
-                        Editar
-                      </Button>
-                      {user.role === "admin" && (
-                        <Button
-                          onClick={() => openPinDialog(volunteer)}
-                          variant="outline"
-                          size="sm"
-                          className="h-9 w-9 p-0 text-[#4dd0e1] border-[#4dd0e1] hover:bg-[#e0f7fa]"
-                          title="Asignar PIN"
-                        >
-                          <KeyRound className="w-3.5 h-3.5" />
-                        </Button>
-                      )}
-                      <Button
-                        onClick={() => handleDeleteClick(volunteer)}
-                        variant="outline"
-                        size="sm"
-                        className="h-9 w-9 p-0 text-red-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
+                    {(canEditVolunteer(volunteer) || isAdmin) && (
+                      <div className="flex gap-2 pt-1">
+                        {canEditVolunteer(volunteer) && (
+                          <Button
+                            onClick={() => openEditDialog(volunteer)}
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 h-9"
+                          >
+                            <Edit className="w-3.5 h-3.5 mr-1.5" />
+                            Editar
+                          </Button>
+                        )}
+                        {isAdmin && (
+                          <Button
+                            onClick={() => openPinDialog(volunteer)}
+                            variant="outline"
+                            size="sm"
+                            className="h-9 w-9 p-0 text-[#4dd0e1] border-[#4dd0e1] hover:bg-[#e0f7fa]"
+                            title="Asignar PIN"
+                          >
+                            <KeyRound className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                        {isAdmin && (
+                          <Button
+                            onClick={() => handleDeleteClick(volunteer)}
+                            variant="outline"
+                            size="sm"
+                            className="h-9 w-9 p-0 text-red-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -867,36 +881,42 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t">
-                <Button
-                  onClick={() => openEditDialog(volunteer)}
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                >
-                  <Edit className="w-4 h-4 mr-1" />
-                  Editar
-                </Button>
-                {user.role === "admin" && (
-                  <Button
-                    onClick={() => openPinDialog(volunteer)}
-                    variant="outline"
-                    size="sm"
-                    className="text-[#4dd0e1] border-[#4dd0e1] hover:bg-[#e0f7fa]"
-                    title="Asignar PIN"
-                  >
-                    <KeyRound className="w-4 h-4" />
-                  </Button>
-                )}
-                <Button
-                  onClick={() => handleDeleteClick(volunteer)}
-                  variant="outline"
-                  size="sm"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50 sm:w-auto"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
+              {(canEditVolunteer(volunteer) || isAdmin) && (
+                <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t">
+                  {canEditVolunteer(volunteer) && (
+                    <Button
+                      onClick={() => openEditDialog(volunteer)}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                    >
+                      <Edit className="w-4 h-4 mr-1" />
+                      Editar
+                    </Button>
+                  )}
+                  {isAdmin && (
+                    <Button
+                      onClick={() => openPinDialog(volunteer)}
+                      variant="outline"
+                      size="sm"
+                      className="text-[#4dd0e1] border-[#4dd0e1] hover:bg-[#e0f7fa]"
+                      title="Asignar PIN"
+                    >
+                      <KeyRound className="w-4 h-4" />
+                    </Button>
+                  )}
+                  {isAdmin && (
+                    <Button
+                      onClick={() => handleDeleteClick(volunteer)}
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 sm:w-auto"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -961,14 +981,16 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                       </td>
                       <td className="px-5 py-3 border-t border-gray-100">
                         <div className="flex items-center justify-end gap-1 opacity-60 transition-opacity group-hover:opacity-100">
-                          <button
-                            onClick={() => openEditDialog(volunteer)}
-                            className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-gray-400 hover:text-[#00838f] hover:bg-[#e0f7fa] transition-colors"
-                            title="Editar"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          {user.role === "admin" && (
+                          {canEditVolunteer(volunteer) && (
+                            <button
+                              onClick={() => openEditDialog(volunteer)}
+                              className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-gray-400 hover:text-[#00838f] hover:bg-[#e0f7fa] transition-colors"
+                              title="Editar"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                          )}
+                          {isAdmin && (
                             <button
                               onClick={() => openPinDialog(volunteer)}
                               className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-gray-400 hover:text-[#00838f] hover:bg-[#e0f7fa] transition-colors"
@@ -977,13 +999,18 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                               <KeyRound className="w-4 h-4" />
                             </button>
                           )}
-                          <button
-                            onClick={() => handleDeleteClick(volunteer)}
-                            className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                            title="Eliminar"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleDeleteClick(volunteer)}
+                              className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                          {!canEditVolunteer(volunteer) && !isAdmin && (
+                            <span className="text-gray-300 text-xs pr-1">—</span>
+                          )}
                         </div>
                       </td>
                     </tr>
