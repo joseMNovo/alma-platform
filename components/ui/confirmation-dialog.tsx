@@ -1,6 +1,6 @@
 "use client"
 
-import { AlertTriangle, Trash2, Package, Users, Calendar, Activity, CreditCard, Mail, BarChart3, Settings, Upload } from "lucide-react"
+import { AlertTriangle, Trash2, Package, Users, Calendar, Activity, CreditCard, Mail, BarChart3, Settings, Upload, FileText } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +19,7 @@ interface ConfirmationDialogProps {
   title?: string
   description?: string
   itemName?: string
-  itemType?: "taller" | "grupo" | "actividad" | "pago" | "inventario" | "email" | "reporte" | "configuracion" | "general"
+  itemType?: "taller" | "grupo" | "actividad" | "pago" | "inventario" | "email" | "reporte" | "configuracion" | "historial" | "general"
   action?: "delete" | "archive" | "restore" | "reset" | "import" | "general"
   loading?: boolean
 }
@@ -33,6 +33,7 @@ const itemIcons = {
   email: Mail,
   reporte: BarChart3,
   configuracion: Settings,
+  historial: FileText,
   general: AlertTriangle,
 }
 
@@ -45,6 +46,7 @@ const itemLabels = {
   email: "email",
   reporte: "reporte",
   configuracion: "configuración",
+  historial: "historial",
   general: "elemento",
 }
 
@@ -68,8 +70,8 @@ export default function ConfirmationDialog({
   action = "delete",
   loading = false,
 }: ConfirmationDialogProps) {
-  const IconComponent = itemIcons[itemType]
-  const itemLabel = itemLabels[itemType]
+  const IconComponent = itemIcons[itemType] ?? AlertTriangle
+  const itemLabel = itemLabels[itemType] ?? "elemento"
   const actionLabel = actionLabels[action]
 
   const defaultTitle = title || `¿Confirmar ${actionLabel}?`

@@ -182,7 +182,7 @@ export default function GruposManager({ user }: { user: any }) {
         {can(user, "historiales:view") && (
           <Button
             onClick={() => setShowHistoriales(true)}
-            className="w-full sm:w-auto bg-[#4dd0e1] text-white font-semibold shadow-md hover:bg-[#3bc0d1] hover:shadow-lg ring-1 ring-[#4dd0e1]/40 transition-all"
+            className="w-full sm:w-auto bg-gradient-to-br from-[#e0f7fa] to-[#7fd4e1] text-[#1A6B7A] font-semibold shadow-md hover:from-[#d0f2f6] hover:to-[#5ec0cf] hover:shadow-lg border border-[#4dd0e1]/40 transition-all"
           >
             <FolderClock className="w-4 h-4 mr-2" />
             Fichero de historiales

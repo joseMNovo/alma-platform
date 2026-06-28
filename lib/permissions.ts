@@ -64,14 +64,17 @@ export function can(user: { role: string } | null, action: Action): boolean {
       return true
 
     // Historiales de grupos (fichero de encuentros): datos sensibles, solo personal interno.
-    // Voluntarios y admin pueden ver y cargar/editar; la baja queda reservada al admin.
+    // Voluntarios y admin pueden ver y cargar/editar.
     case "historiales:view":
     case "historiales:create":
     case "historiales:edit":
       return true
 
+    // Baja: admin borra cualquiera; el voluntario solo los que cargó él.
+    // Acá habilitamos la capacidad a cualquier no-participante; la verificación de
+    // autoría (created_by_volunteer_id === user.id) se hace en la API route, no aquí.
     case "historiales:delete":
-      return isAdmin
+      return true
 
     // Talleres: only admin can create/delete; all authenticated non-participant users can edit
     case "talleres:create":

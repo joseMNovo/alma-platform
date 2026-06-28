@@ -95,6 +95,7 @@ export default function HistorialesManager({
   // Delete
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [toDelete, setToDelete] = useState<any>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const fetchHistories = useCallback(async () => {
     setLoading(true)
@@ -341,12 +342,14 @@ export default function HistorialesManager({
 
   const handleDeleteConfirm = async () => {
     if (!toDelete) return
+    setDeleting(true)
     try {
       const res = await fetch(`/api/grupos/historiales/${toDelete.id}`, { method: "DELETE" })
       if (res.ok) fetchHistories()
     } catch (error) {
       console.error("Error deleting historial:", error)
     } finally {
+      setDeleting(false)
       setDeleteOpen(false)
       setToDelete(null)
     }
@@ -617,11 +620,17 @@ export default function HistorialesManager({
               </div>
 
               <DialogFooter className="gap-2">
-                {can(user, "historiales:delete") && (
+                {(user?.role === "admin" || viewing?.created_by_volunteer_id === user?.id) && (
                   <Button
                     variant="outline"
                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    onClick={() => { setToDelete(viewing); setDetailOpen(false); setDeleteOpen(true) }}
+                    onClick={() => {
+                      // Cerrar el detalle y recién después abrir la confirmación: si se solapan,
+                      // Radix deja pointer-events:none pegado en el body y congela la pantalla.
+                      setToDelete(viewing)
+                      setDetailOpen(false)
+                      setTimeout(() => setDeleteOpen(true), 200)
+                    }}
                   >
                     <Trash2 className="w-4 h-4 mr-1" /> Eliminar
                   </Button>
@@ -902,6 +911,7 @@ export default function HistorialesManager({
         onConfirm={handleDeleteConfirm}
         itemName={toDelete?.title || toDelete?.group_name || "este historial"}
         itemType="historial"
+        loading={deleting}
       />
     </div>
   )
