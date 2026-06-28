@@ -84,6 +84,9 @@ export async function PUT(request: NextRequest) {
     // Solo admin puede cambiar is_admin
     if (!session.is_admin) delete data.is_admin
 
+    // Fecha vacía → null: el backend rechaza "" como fecha (422 date parsing)
+    if (data.birth_date === "") data.birth_date = null
+
     const volunteer = await updateVolunteer(id, {
       ...data,
       age: data.age ? Number.parseInt(data.age) : data.age,

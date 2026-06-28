@@ -6,6 +6,10 @@ export type Action =
   | "grupos:create"
   | "grupos:edit"
   | "grupos:delete"
+  | "historiales:view"
+  | "historiales:create"
+  | "historiales:edit"
+  | "historiales:delete"
   | "talleres:create"
   | "talleres:edit"
   | "talleres:delete"
@@ -58,6 +62,16 @@ export function can(user: { role: string } | null, action: Action): boolean {
       return isAdmin
     case "grupos:edit":
       return true
+
+    // Historiales de grupos (fichero de encuentros): datos sensibles, solo personal interno.
+    // Voluntarios y admin pueden ver y cargar/editar; la baja queda reservada al admin.
+    case "historiales:view":
+    case "historiales:create":
+    case "historiales:edit":
+      return true
+
+    case "historiales:delete":
+      return isAdmin
 
     // Talleres: only admin can create/delete; all authenticated non-participant users can edit
     case "talleres:create":

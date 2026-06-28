@@ -830,6 +830,90 @@ export async function deleteIdeaComment(ideaId: number, commentId: number): Prom
 }
 
 // ============================================================
+// Group Histories (Fichero / Historiales de grupos)
+// ============================================================
+
+export interface GroupHistoryAttendee {
+  id?: number
+  person_profile_id?: number | null
+  person_name: string
+  person_age?: number | null
+  patient_name?: string | null
+  patient_age?: number | null
+  relationship?: string | null
+  problematica?: string | null
+  notes?: string | null
+  created_at?: string
+}
+
+export interface GroupHistory {
+  id: number
+  group_id?: number | null
+  group_name?: string | null
+  title?: string | null
+  session_date?: string | null
+  coordinator_volunteer_id?: number | null
+  coordinator_name?: string | null
+  summary?: string | null
+  created_by_volunteer_id: number
+  created_by_name?: string | null
+  attendee_count: number
+  attendees: GroupHistoryAttendee[]
+  created_at?: string
+  updated_at?: string | null
+}
+
+export interface GroupHistoryFilters {
+  group_id?: number
+  q?: string
+}
+
+export interface GroupHistoryPayload {
+  group_id?: number | null
+  group_name?: string | null
+  title?: string | null
+  session_date?: string | null
+  coordinator_volunteer_id?: number | null
+  summary?: string | null
+  created_by_volunteer_id?: number
+  attendees?: GroupHistoryAttendee[]
+}
+
+export interface GroupHistorySuggestion {
+  label: string
+  source: "participante" | "fichero"
+  person_profile_id?: number | null
+}
+
+export async function suggestHistoryAttendees(q: string): Promise<GroupHistorySuggestion[]> {
+  return api.get<GroupHistorySuggestion[]>(`/group-histories/suggest?q=${encodeURIComponent(q)}`)
+}
+
+export async function getGroupHistories(filters: GroupHistoryFilters = {}): Promise<GroupHistory[]> {
+  const params = new URLSearchParams()
+  if (filters.group_id != null) params.set('group_id', String(filters.group_id))
+  if (filters.q) params.set('q', filters.q)
+  const qs = params.toString()
+  return api.get<GroupHistory[]>(`/group-histories/${qs ? `?${qs}` : ''}`)
+}
+
+export async function getGroupHistory(id: number): Promise<GroupHistory> {
+  return api.get<GroupHistory>(`/group-histories/${id}`)
+}
+
+export async function createGroupHistory(data: GroupHistoryPayload): Promise<GroupHistory> {
+  return api.post<GroupHistory>('/group-histories/', data)
+}
+
+export async function updateGroupHistory(id: number, data: GroupHistoryPayload): Promise<GroupHistory> {
+  return api.put<GroupHistory>(`/group-histories/${id}`, data)
+}
+
+export async function deleteGroupHistory(id: number): Promise<void> {
+  await api.delete(`/group-histories/${id}`)
+}
+
+// ============================================================
 // Announcements (Anuncios / Novedades)
 // ============================================================
 

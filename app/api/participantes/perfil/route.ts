@@ -51,6 +51,9 @@ export async function PUT(request: NextRequest) {
       if (key in body) data[key] = body[key]
     }
 
+    // Fecha vacía → null: el backend rechaza "" como fecha (422 date parsing)
+    if (data.birth_date === "") data.birth_date = null
+
     const profile = await upsertParticipantProfile(session.id, data)
 
     logInfo("Perfil de participante guardado", {

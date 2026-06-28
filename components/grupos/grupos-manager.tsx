@@ -16,10 +16,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Plus, Edit, Trash2, Users, CheckCircle2, ChevronDown } from "lucide-react"
+import { Plus, Edit, Trash2, Users, CheckCircle2, ChevronDown, FolderClock } from "lucide-react"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 import { can } from "@/lib/permissions"
 import { toast } from "@/hooks/use-toast"
+import HistorialesManager from "@/components/grupos/historiales-manager"
 
 export default function GruposManager({ user }: { user: any }) {
   const [groups, setGroups] = useState<any[]>([])
@@ -35,6 +36,7 @@ export default function GruposManager({ user }: { user: any }) {
   })
   const [nameTouched, setNameTouched] = useState(false)
   const [expandedId, setExpandedId] = useState<number | null>(null)
+  const [showHistoriales, setShowHistoriales] = useState(false)
 
   // Detail dialog (desktop)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -164,6 +166,10 @@ export default function GruposManager({ user }: { user: any }) {
     return <div className="text-center py-8">Cargando grupos...</div>
   }
 
+  if (showHistoriales) {
+    return <HistorialesManager user={user} groups={groups} onBack={() => setShowHistoriales(false)} />
+  }
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -172,6 +178,16 @@ export default function GruposManager({ user }: { user: any }) {
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Grupos</h2>
           <p className="text-sm text-gray-500">Espacios de contención y apoyo emocional</p>
         </div>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        {can(user, "historiales:view") && (
+          <Button
+            onClick={() => setShowHistoriales(true)}
+            className="w-full sm:w-auto bg-[#4dd0e1] text-white font-semibold shadow-md hover:bg-[#3bc0d1] hover:shadow-lg ring-1 ring-[#4dd0e1]/40 transition-all"
+          >
+            <FolderClock className="w-4 h-4 mr-2" />
+            Fichero de historiales
+          </Button>
+        )}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           {can(user, "grupos:create") && (
             <DialogTrigger asChild>
@@ -231,6 +247,7 @@ export default function GruposManager({ user }: { user: any }) {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* ── MOBILE: Acordeón (< sm) ── */}
