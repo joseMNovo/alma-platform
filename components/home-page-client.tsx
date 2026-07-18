@@ -11,7 +11,8 @@ import { toast } from "@/hooks/use-toast"
 function isVolunteerProfileIncomplete(u: any): boolean {
   if (!u || u.role !== "voluntario") return false
   const missing = (v: any) => v === null || v === undefined || String(v).trim() === ""
-  return missing(u.phone) || missing(u.birth_date)
+  // birth_date es opcional en todo el sistema; no la pedimos en el onboarding.
+  return missing(u.phone)
 }
 
 export default function HomePageClient({ gamesUrl }: { gamesUrl: string }) {
