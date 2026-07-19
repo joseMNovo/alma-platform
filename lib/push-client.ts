@@ -78,10 +78,17 @@ export async function enablePush(): Promise<boolean> {
 
   let sub = await reg.pushManager.getSubscription()
   if (!sub) {
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
-    })
+    try {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
+      })
+    } catch (e) {
+      // Algunos navegadores (ej. Brave con el push de Google desactivado)
+      // rechazan la suscripción. Devolvemos false para mostrar el aviso.
+      console.warn("pushManager.subscribe falló:", e)
+      return false
+    }
   }
 
   const json = sub.toJSON()
