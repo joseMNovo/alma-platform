@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getVolunteers, getPendingTasks, savePendingTasks } from "@/lib/data-manager"
+import { getVolunteers, getPendingTasks, savePendingTasks, logActivityEvent, toUserType } from "@/lib/data-manager"
 import { getSessionUser } from "@/lib/serverAuth"
 import { logError, logWarn } from "@/lib/logger"
 
@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
         }
       }
       await savePendingTasks(body.pendientes)
+      logActivityEvent({ event_type: "edit", module: "pendientes", action: "save", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     }
 
     return NextResponse.json({ success: true, message: "Datos actualizados exitosamente" })

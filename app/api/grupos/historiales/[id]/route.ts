@@ -3,6 +3,8 @@ import {
   getGroupHistory,
   updateGroupHistory,
   deleteGroupHistory,
+  logActivityEvent,
+  toUserType,
 } from "@/lib/data-manager"
 import { getSessionUser } from "@/lib/serverAuth"
 import { can } from "@/lib/permissions"
@@ -53,6 +55,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       attendees: Array.isArray(data.attendees) ? data.attendees : undefined,
     })
     logInfo("Historial actualizado", { module: "group_histories", action: "edit", user: session.id, meta: { id: params.id } })
+    logActivityEvent({ event_type: "edit", module: "group_histories", action: "edit", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json(history)
   } catch (error) {
     logError("Error al actualizar historial", { module: "group_histories", action: "edit", user: session.id, error })
@@ -85,6 +88,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     await deleteGroupHistory(id)
     logInfo("Historial eliminado", { module: "group_histories", action: "delete", user: session.id, meta: { id } })
+    logActivityEvent({ event_type: "delete", module: "group_histories", action: "delete", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json({ success: true })
   } catch (error) {
     logError("Error al eliminar historial", { module: "group_histories", action: "delete", user: session.id, error })

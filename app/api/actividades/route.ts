@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getActivities, createActivity, updateActivity, deleteActivity } from "@/lib/data-manager"
+import { getActivities, createActivity, updateActivity, deleteActivity, logActivityEvent, toUserType } from "@/lib/data-manager"
 import { getSessionUser } from "@/lib/serverAuth"
 import { can } from "@/lib/permissions"
 import { logInfo, logWarn, logError } from "@/lib/logger"
@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
       created_by_volunteer_id: session.id,
     })
     logInfo("Actividad creada", { module: "actividades", action: "create_activity", user: session.id, meta: { id: activity.id, name: activity.name } })
+    logActivityEvent({ event_type: "create", module: "actividades", action: "create_activity", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json(activity)
   } catch (error) {
     logError("Error al crear actividad", { module: "actividades", action: "create_activity", user: session.id, error })
@@ -56,6 +57,7 @@ export async function PUT(request: NextRequest) {
       status: data.status,
     })
     logInfo("Actividad actualizada", { module: "actividades", action: "edit_activity", user: session.id, meta: { id } })
+    logActivityEvent({ event_type: "edit", module: "actividades", action: "edit_activity", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json(activity)
   } catch (error) {
     logError("Error al actualizar actividad", { module: "actividades", action: "edit_activity", user: session.id, error })
@@ -76,6 +78,7 @@ export async function DELETE(request: NextRequest) {
     const id = Number.parseInt(url.searchParams.get("id") || "0")
     await deleteActivity(id)
     logInfo("Actividad eliminada", { module: "actividades", action: "delete_activity", user: session.id, meta: { id } })
+    logActivityEvent({ event_type: "delete", module: "actividades", action: "delete_activity", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json({ success: true })
   } catch (error) {
     logError("Error al eliminar actividad", { module: "actividades", action: "delete_activity", user: session.id, error })

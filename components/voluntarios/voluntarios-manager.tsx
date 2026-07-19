@@ -942,7 +942,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                 <tbody>
                   {filteredVolunteers
                     .map((volunteer) => (
-                    <tr key={volunteer.id} className="group border-t border-gray-50 transition-colors hover:bg-[#f6fdfe]">
+                    <tr key={volunteer.id} className="group border-t border-gray-50 transition-colors even:bg-gray-50/50 hover:bg-[#f6fdfe]">
                       <td className="px-5 py-3 border-t border-r border-gray-100">
                         <div className="flex items-center gap-3">
                           {volunteer.photo ? (

@@ -22,6 +22,12 @@ export default function MisDatosVoluntario({ user }: { user: any }) {
   const [loadingData, setLoadingData] = useState(true)
 
   useEffect(() => {
+    // El admin del entorno (Jose) tiene id=0 y NO es una fila de `voluntarios`:
+    // pedir /voluntarios/0 devuelve 404. Usamos los datos que ya trae `user`.
+    if (!user.id) {
+      setLoadingData(false)
+      return
+    }
     fetch(`/api/voluntarios?id=${user.id}`)
       .then(r => r.ok ? r.json() : null)
       .then(v => {

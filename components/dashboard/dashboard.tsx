@@ -21,6 +21,8 @@ import {
   ClipboardCheck,
   Database,
   Loader2,
+  BarChart3,
+  Megaphone,
 } from "lucide-react"
 
 const GAMES_URL = process.env.NEXT_PUBLIC_GAMES_URL ?? ""
@@ -34,9 +36,11 @@ import PendientesManager from "@/components/pendientes/pendientes-manager"
 import CalendariosManager from "@/components/calendarios/calendarios-manager"
 import IdeasManager from "@/components/ideas/ideas-manager"
 import PersonasDbManager from "@/components/personas/personas-db-manager"
-import MisDatos from "@/components/participantes/mis-datos"
-import MisDatosVoluntario from "@/components/voluntarios/mis-datos-voluntario"
+import MiCuenta from "@/components/cuenta/mi-cuenta"
 import AprobacionesManager from "@/components/voluntarios/aprobaciones-manager"
+import ActividadManager from "@/components/actividad/actividad-manager"
+import NotificationBell from "@/components/notifications/notification-bell"
+import BroadcastManager from "@/components/notifications/broadcast-manager"
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import AlmaFooter from "@/components/ui/alma-footer"
 import ProfileCompletionModal from "@/components/auth/profile-completion-modal"
@@ -75,7 +79,19 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   }, [pathname, isAdmin])
   const roleLabel = ROLE_LABELS[user.role] ?? user.role
 
+  // Tracking de uso: registra una vista por cada módulo/sub-módulo que el usuario realmente abre.
+  useEffect(() => {
+    const module = activeTab === "espacios" ? espaciosSubTab : activeTab
+    fetch("/api/tracking", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ module }),
+    }).catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
+
   const getActiveTab = () => {
+    if (pathname === '/actividad' || pathname.startsWith('/actividad/')) return 'actividad'
     if (pathname.includes('/aprobaciones')) return 'aprobaciones'
     if (pathname.includes('/inventario')) return 'inventario'
     if (pathname.includes('/voluntarios')) return 'voluntarios'
@@ -87,6 +103,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
     if (pathname.includes('/actividades')) return 'espacios'
     if (pathname.includes('/pagos')) return 'pagos'
     if (pathname.includes('/ideas')) return 'ideas'
+    if (pathname.includes('/anuncios')) return 'anuncios'
     if (pathname.includes('/mis-datos')) return 'mis-datos'
     return 'calendarios'
   }
@@ -111,7 +128,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
     setMobileMenuOpen(false)
   }
 
-  const tabTriggerClass = "flex items-center space-x-2 transition-all duration-200 active:scale-95 data-[state=inactive]:hover:bg-[#4dd0e1]/10 data-[state=inactive]:hover:text-[#00838f] data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
+  const tabTriggerClass = "flex items-center gap-1 px-2 text-[13px] transition-all duration-200 active:scale-95 data-[state=inactive]:hover:bg-[#4dd0e1]/10 data-[state=inactive]:hover:text-[#00838f] data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
   const subTabTriggerClass = "flex items-center space-x-2 transition-all duration-200 active:scale-95 data-[state=inactive]:hover:bg-[#4dd0e1]/10 data-[state=inactive]:hover:text-[#00838f] data-[state=active]:bg-[#4dd0e1]/15 data-[state=active]:text-[#4dd0e1] data-[state=active]:font-semibold"
 
   // Tabs que muestran la flor arriba a la derecha; el resto la muestran abajo a la derecha
@@ -161,6 +178,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
             </div>
 
             <div className="flex items-center space-x-4">
+              <NotificationBell />
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-medium text-[#4dd0e1]">{user.name}</p>
                 {/* UI: always show human-readable role label */}
@@ -270,7 +288,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                               onClick={() => handleTabChange("mis-datos")}
                             >
                               <UserCircle className="w-5 h-5 mr-3" />
-                              Mis datos
+                              Mi cuenta
                             </Button>
                           </>
                         ) : (
@@ -368,7 +386,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                               onClick={() => handleTabChange("mis-datos")}
                             >
                               <UserCircle className="w-5 h-5 mr-3" />
-                              Mis datos
+                              Mi cuenta
                             </Button>
                             {isAdmin && (
                               <Button
@@ -383,6 +401,26 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                                     {pendingCount}
                                   </span>
                                 )}
+                              </Button>
+                            )}
+                            {isAdmin && (
+                              <Button
+                                variant={activeTab === "actividad" ? "default" : "ghost"}
+                                className={`w-full justify-start ${activeTab === "actividad" ? "bg-[#4dd0e1] text-white" : ""}`}
+                                onClick={() => handleTabChange("actividad")}
+                              >
+                                <BarChart3 className="w-5 h-5 mr-3" />
+                                Actividad
+                              </Button>
+                            )}
+                            {isAdmin && (
+                              <Button
+                                variant={activeTab === "anuncios" ? "default" : "ghost"}
+                                className={`w-full justify-start ${activeTab === "anuncios" ? "bg-[#4dd0e1] text-white" : ""}`}
+                                onClick={() => handleTabChange("anuncios")}
+                              >
+                                <Megaphone className="w-5 h-5 mr-3" />
+                                Anuncios
                               </Button>
                             )}
                           </>
@@ -432,7 +470,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               </TabsTrigger>
               <TabsTrigger value="mis-datos" className={tabTriggerClass}>
                 <UserCircle className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline">Mis datos</span>
+                <span className="hidden sm:inline">Mi cuenta</span>
               </TabsTrigger>
             </TabsList>
 
@@ -450,7 +488,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                   <>
                     {activeTab === "calendarios" && <CalendarDays className="w-5 h-5 mr-2" />}
                     {activeTab === "mis-datos" && <UserCircle className="w-5 h-5 mr-2" />}
-                    {activeTab === "mis-datos" ? "Mis datos" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                    {activeTab === "mis-datos" ? "Mi cuenta" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
                   </>
                 )}
               </h2>
@@ -481,13 +519,13 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               </Tabs>
             </TabsContent>
             <TabsContent value="mis-datos" className="space-y-6">
-              <MisDatos user={user} />
+              <MiCuenta user={user} />
             </TabsContent>
           </Tabs>
         ) : (
           // ── Vista Voluntario / Admin ───────────────────────────────────
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-            <TabsList className="hidden md:flex md:flex-wrap md:justify-center w-full bg-white border border-gray-200 p-1 rounded-lg gap-1">
+            <TabsList className="hidden md:flex md:flex-nowrap md:justify-center w-full bg-white border border-gray-200 p-1 rounded-lg gap-0.5 overflow-x-auto overflow-y-hidden">
               <TabsTrigger value="calendarios" className={tabTriggerClass}>
                 <CalendarDays className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">Calendarios</span>
@@ -524,7 +562,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               </TabsTrigger>
               <TabsTrigger value="mis-datos" className={tabTriggerClass}>
                 <UserCircle className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline">Mis datos</span>
+                <span className="hidden sm:inline">Mi cuenta</span>
               </TabsTrigger>
               {isAdmin && (
                 <TabsTrigger value="aprobaciones" className={tabTriggerClass}>
@@ -535,6 +573,18 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                       {pendingCount}
                     </span>
                   )}
+                </TabsTrigger>
+              )}
+              {isAdmin && (
+                <TabsTrigger value="actividad" className={tabTriggerClass}>
+                  <BarChart3 className="w-4 h-4 shrink-0" />
+                  <span className="hidden sm:inline">Actividad</span>
+                </TabsTrigger>
+              )}
+              {isAdmin && (
+                <TabsTrigger value="anuncios" className={tabTriggerClass}>
+                  <Megaphone className="w-4 h-4 shrink-0" />
+                  <span className="hidden sm:inline">Anuncios</span>
                 </TabsTrigger>
               )}
             </TabsList>
@@ -559,8 +609,10 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                     {activeTab === "calendarios" && <CalendarDays className="w-5 h-5 mr-2" />}
                     {activeTab === "ideas" && <Lightbulb className="w-5 h-5 mr-2" />}
                     {activeTab === "mis-datos" && <UserCircle className="w-5 h-5 mr-2" />}
+                    {activeTab === "actividad" && <BarChart3 className="w-5 h-5 mr-2" />}
+                    {activeTab === "anuncios" && <Megaphone className="w-5 h-5 mr-2" />}
                     {activeTab === "mis-datos"
-                      ? "Mis datos"
+                      ? "Mi cuenta"
                       : activeTab === "personas"
                         ? "Base de datos"
                         : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
@@ -614,11 +666,21 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               <IdeasManager user={user} />
             </TabsContent>
             <TabsContent value="mis-datos" className="space-y-6">
-              <MisDatosVoluntario user={user} />
+              <MiCuenta user={user} />
             </TabsContent>
             {isAdmin && (
               <TabsContent value="aprobaciones" className="space-y-6">
                 <AprobacionesManager user={user} onPendingCount={setPendingCount} />
+              </TabsContent>
+            )}
+            {isAdmin && (
+              <TabsContent value="actividad" className="space-y-6">
+                <ActividadManager user={user} />
+              </TabsContent>
+            )}
+            {isAdmin && (
+              <TabsContent value="anuncios" className="space-y-6">
+                <BroadcastManager user={user} />
               </TabsContent>
             )}
           </Tabs>

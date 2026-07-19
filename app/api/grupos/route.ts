@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getGroups, createGroup, updateGroup, deleteGroup } from "@/lib/data-manager"
+import { getGroups, createGroup, updateGroup, deleteGroup, logActivityEvent, toUserType } from "@/lib/data-manager"
 import { getSessionUser } from "@/lib/serverAuth"
 import { can } from "@/lib/permissions"
 import { logInfo, logWarn, logError } from "@/lib/logger"
@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
       status: data.status || "activo",
     })
     logInfo("Grupo creado", { module: "grupos", action: "create_group", user: session.id, meta: { id: group.id, name: group.name } })
+    logActivityEvent({ event_type: "create", module: "grupos", action: "create_group", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json(group)
   } catch (error) {
     logError("Error al crear grupo", { module: "grupos", action: "create_group", user: session.id, error })
@@ -62,6 +63,7 @@ export async function PUT(request: NextRequest) {
       status: data.status,
     })
     logInfo("Grupo actualizado", { module: "grupos", action: "edit_group", user: session.id, meta: { id } })
+    logActivityEvent({ event_type: "edit", module: "grupos", action: "edit_group", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json(group)
   } catch (error) {
     logError("Error al actualizar grupo", { module: "grupos", action: "edit_group", user: session.id, error })
@@ -82,6 +84,7 @@ export async function DELETE(request: NextRequest) {
     const id = Number.parseInt(url.searchParams.get("id") || "0")
     await deleteGroup(id)
     logInfo("Grupo eliminado", { module: "grupos", action: "delete_group", user: session.id, meta: { id } })
+    logActivityEvent({ event_type: "delete", module: "grupos", action: "delete_group", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json({ success: true })
   } catch (error) {
     logError("Error al eliminar grupo", { module: "grupos", action: "delete_group", user: session.id, error })

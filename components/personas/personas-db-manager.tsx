@@ -634,7 +634,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
               {filtered.map(p => {
                 const st = personaStatus(p)
                 return (
-                  <tr key={p.id} className="border-b border-gray-100 last:border-0 hover:bg-[#4dd0e1]/[0.04] transition-colors">
+                  <tr key={p.id} className="border-b border-gray-100 last:border-0 even:bg-gray-50/50 hover:bg-[#4dd0e1]/[0.06] transition-colors">
                     <td className="px-4 py-3 font-medium text-gray-900">{p.name || "—"}</td>
                     <td className="px-4 py-3 text-gray-700">{p.last_name || "—"}</td>
                     <td className="px-4 py-3 text-gray-500 tabular-nums">{p.cuit || "—"}</td>

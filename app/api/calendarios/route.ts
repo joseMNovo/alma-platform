@@ -8,6 +8,8 @@ import {
   setCalendarAssignment,
   removeCalendarAssignment,
   setEventVolunteers,
+  logActivityEvent,
+  toUserType,
 } from '@/lib/data-manager'
 import { getSessionUser } from '@/lib/serverAuth'
 import { can, canDeleteCalendarInstance } from '@/lib/permissions'
@@ -63,10 +65,12 @@ export async function POST(req: NextRequest) {
       const updated = await getCalendarInstances(date.getFullYear(), date.getMonth() + 1)
       const found = updated.find(i => i.id === instance.id)
       logInfo('Evento de calendario creado', { module: 'calendar', action: 'create_event', user: session.id, meta: { id: instance.id, date: instance.date } })
+      logActivityEvent({ event_type: 'create', module: 'calendar', action: 'create_event', user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
       return NextResponse.json(found || instance, { status: 201 })
     }
 
     logInfo('Evento de calendario creado', { module: 'calendar', action: 'create_event', user: session.id, meta: { id: instance.id, date: instance.date } })
+    logActivityEvent({ event_type: 'create', module: 'calendar', action: 'create_event', user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json(instance, { status: 201 })
   } catch (err: any) {
     logError('Error al crear evento de calendario', { module: 'calendar', action: 'create_event', user: session?.id, error: err })
@@ -118,6 +122,7 @@ export async function PUT(req: NextRequest) {
     const updated = await getCalendarInstances(date.getFullYear(), date.getMonth() + 1)
     const found = updated.find(i => i.id === instance.id)
     logInfo('Evento de calendario actualizado', { module: 'calendar', action: 'edit_event', user: session.id, meta: { id } })
+    logActivityEvent({ event_type: 'edit', module: 'calendar', action: 'edit_event', user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json(found || instance)
   } catch (err: any) {
     logError('Error al actualizar evento de calendario', { module: 'calendar', action: 'edit_event', user: session?.id, error: err })
@@ -145,6 +150,7 @@ export async function DELETE(req: NextRequest) {
   try {
     await deleteCalendarInstance(id)
     logInfo('Evento de calendario eliminado', { module: 'calendar', action: 'delete_event', user: session.id, meta: { id } })
+    logActivityEvent({ event_type: 'delete', module: 'calendar', action: 'delete_event', user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     logError('Error al eliminar evento de calendario', { module: 'calendar', action: 'delete_event', user: session?.id, error: err })

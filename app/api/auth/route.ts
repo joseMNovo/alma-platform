@@ -5,6 +5,7 @@ import {
   getUserEnrollments,
   getParticipantByEmailForAuth,
   getParticipantProfile,
+  logActivityEvent,
 } from "@/lib/data-manager"
 import { validateAdminCredentials } from "@/lib/config"
 import { verifyPassword } from "@/lib/utils/password"
@@ -101,6 +102,7 @@ export async function POST(request: NextRequest) {
       logInfo("Inicio de sesión exitoso (admin env)", {
         module: "auth", action: "login_success", user: adminCheck.user?.id ?? "admin_env",
       })
+      logActivityEvent({ event_type: "login", user_type: "voluntario", user_id: adminCheck.user?.id ?? 0, role: "admin" }).catch(() => {})
       return makeAuthResponse(adminCheck.user, remember)
     }
     // If it was the admin email but PIN was wrong → reject immediately
@@ -157,6 +159,7 @@ export async function POST(request: NextRequest) {
 
       _clearRL(rlKey)
       logInfo("Inicio de sesión exitoso", { module: "auth", action: "login_success", user: volunteer.id, meta: { role, remember } })
+      logActivityEvent({ event_type: "login", user_type: "voluntario", user_id: volunteer.id, role }).catch(() => {})
       return makeAuthResponse(user, remember)
     }
 
@@ -200,6 +203,7 @@ export async function POST(request: NextRequest) {
 
       _clearRL(rlKey)
       logInfo("Inicio de sesión exitoso", { module: "auth", action: "login_success", user: participant.id, meta: { role: "participante", remember } })
+      logActivityEvent({ event_type: "login", user_type: "participante", user_id: participant.id, role: "participante" }).catch(() => {})
       return makeAuthResponse(user, remember)
     }
 

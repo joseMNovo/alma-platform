@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/serverAuth"
-import { getParticipantProfile, upsertParticipantProfile } from "@/lib/data-manager"
+import { getParticipantProfile, upsertParticipantProfile, logActivityEvent } from "@/lib/data-manager"
 import { logInfo, logWarn, logError } from "@/lib/logger"
 
 /** GET /api/participantes/perfil — Returns the profile of the authenticated participant */
@@ -59,6 +59,7 @@ export async function PUT(request: NextRequest) {
     logInfo("Perfil de participante guardado", {
       module: "participant_profile", action: "save_profile", user: session.id,
     })
+    logActivityEvent({ event_type: "edit", module: "participant_profile", action: "save_profile", user_type: "participante", user_id: session.id, role: session.role }).catch(() => {})
 
     return NextResponse.json({ profile })
   } catch (error) {

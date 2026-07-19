@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getWorkshops, createWorkshop, updateWorkshop, deleteWorkshop } from "@/lib/data-manager"
+import { getWorkshops, createWorkshop, updateWorkshop, deleteWorkshop, logActivityEvent, toUserType } from "@/lib/data-manager"
 import { getSessionUser } from "@/lib/serverAuth"
 import { can } from "@/lib/permissions"
 import { logInfo, logWarn, logError } from "@/lib/logger"
@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
       status: data.status || "activo",
     })
     logInfo("Taller creado", { module: "talleres", action: "create_workshop", user: session.id, meta: { id: workshop.id, name: workshop.name } })
+    logActivityEvent({ event_type: "create", module: "talleres", action: "create_workshop", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json(workshop)
   } catch (error) {
     logError("Error al crear taller", { module: "talleres", action: "create_workshop", user: session.id, error })
@@ -78,6 +79,7 @@ export async function PUT(request: NextRequest) {
       status: data.status,
     })
     logInfo("Taller actualizado", { module: "talleres", action: "edit_workshop", user: session.id, meta: { id } })
+    logActivityEvent({ event_type: "edit", module: "talleres", action: "edit_workshop", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json(workshop)
   } catch (error) {
     logError("Error al actualizar taller", { module: "talleres", action: "edit_workshop", user: session.id, error })
@@ -98,6 +100,7 @@ export async function DELETE(request: NextRequest) {
     const id = Number.parseInt(url.searchParams.get("id") || "0")
     await deleteWorkshop(id)
     logInfo("Taller eliminado", { module: "talleres", action: "delete_workshop", user: session.id, meta: { id } })
+    logActivityEvent({ event_type: "delete", module: "talleres", action: "delete_workshop", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json({ success: true })
   } catch (error) {
     logError("Error al eliminar taller", { module: "talleres", action: "delete_workshop", user: session.id, error })

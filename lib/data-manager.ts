@@ -931,6 +931,63 @@ export async function dismissAnnouncement(id: number, userType: string, userId: 
   await api.post(`/announcements/${id}/dismiss`, { user_type: userType, user_id: userId })
 }
 
+// ============================================================
+// Activity Tracking (Actividad)
+// ============================================================
+
+export interface ActivityEvent {
+  id: number
+  event_type: 'login' | 'view' | 'create' | 'edit' | 'delete'
+  module: string | null
+  action: string | null
+  user_type: string
+  user_id: number
+  role: string
+  created_at?: string
+}
+
+export interface ActivityEventInput {
+  event_type: 'login' | 'view' | 'create' | 'edit' | 'delete'
+  module?: string | null
+  action?: string | null
+  user_type: string
+  user_id: number
+  role: string
+}
+
+export interface ActivityUserSummary {
+  user_type: string
+  user_id: number
+  role: string
+  login_count: number
+  last_login: string | null
+  view_counts: Record<string, number>
+  action_counts: Record<string, number>
+}
+
+/** 'participante' se mapea a sí mismo; todo lo demás (admin/voluntario) vive en la tabla voluntarios. */
+export function toUserType(role: string): string {
+  return role === 'participante' ? 'participante' : 'voluntario'
+}
+
+export async function logActivityEvent(data: ActivityEventInput): Promise<void> {
+  await api.post('/activity/', data)
+}
+
+export async function getActivitySummary(): Promise<ActivityUserSummary[]> {
+  return api.get<ActivityUserSummary[]>('/activity/summary')
+}
+
+export async function getActivityTimeline(
+  userType: string,
+  userId: number,
+  limit = 200,
+): Promise<ActivityEvent[]> {
+  return api.get<ActivityEvent[]>(
+    `/activity/?user_type=${encodeURIComponent(userType)}&user_id=${userId}&limit=${limit}`,
+  )
+}
+
 export async function getPersonasCounts(): Promise<{ volunteers: number; participants: number }> {
   const [volunteers, participants] = await Promise.all([
     api.get<Volunteer[]>('/voluntarios/?status=activo&limit=1000'),
@@ -940,4 +997,76 @@ export async function getPersonasCounts(): Promise<{ volunteers: number; partici
     volunteers: volunteers.length,
     participants: participants.length,
   }
+}
+
+// ============================================================
+// Push Notifications + Notificaciones in-app (campanita)
+// ============================================================
+
+export interface AppNotification {
+  id: number
+  title: string
+  body?: string | null
+  kind: 'announcement' | 'calendar_reminder' | 'calendar_new' | 'system'
+  url?: string | null
+  is_read: boolean
+  read_at?: string | null
+  created_at?: string
+}
+
+export async function savePushSubscription(payload: {
+  user_type: string
+  user_id: number
+  endpoint: string
+  keys: { p256dh: string; auth: string }
+  user_agent?: string
+}): Promise<void> {
+  await api.post('/push/subscribe', payload)
+}
+
+export async function deletePushSubscription(endpoint: string): Promise<void> {
+  await api.post('/push/unsubscribe', { endpoint })
+}
+
+export async function getNotifications(
+  userType: string,
+  userId: number,
+  limit = 30,
+): Promise<AppNotification[]> {
+  return api.get<AppNotification[]>(
+    `/notifications/?user_type=${encodeURIComponent(userType)}&user_id=${userId}&limit=${limit}`,
+  )
+}
+
+export async function getUnreadCount(userType: string, userId: number): Promise<number> {
+  const res = await api.get<{ unread: number }>(
+    `/notifications/unread-count?user_type=${encodeURIComponent(userType)}&user_id=${userId}`,
+  )
+  return res.unread
+}
+
+export async function markNotificationsRead(
+  userType: string,
+  userId: number,
+  id?: number,
+): Promise<void> {
+  const q = `user_type=${encodeURIComponent(userType)}&user_id=${userId}${id != null ? `&id=${id}` : ''}`
+  await api.post(`/notifications/mark-read?${q}`)
+}
+
+export interface BroadcastResult {
+  recipients: number
+  push_sent: number
+  popup_created: boolean
+}
+
+export async function broadcastNotification(payload: {
+  title: string
+  body: string
+  audience: string
+  url?: string | null
+  also_popup: boolean
+  volunteer_ids?: number[] | null
+}): Promise<BroadcastResult> {
+  return api.post<BroadcastResult>('/notifications/broadcast', payload)
 }

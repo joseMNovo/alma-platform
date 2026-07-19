@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getIdeaComments, createIdeaComment, deleteIdeaComment, getIdeas } from "@/lib/data-manager"
+import { getIdeaComments, createIdeaComment, deleteIdeaComment, getIdeas, logActivityEvent, toUserType } from "@/lib/data-manager"
 import { getSessionUser } from "@/lib/serverAuth"
 import { can } from "@/lib/permissions"
 import { logInfo, logWarn, logError } from "@/lib/logger"
@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
     }
     const comment = await createIdeaComment(data.idea_id, data.body.trim(), session.id)
     logInfo("Comentario creado", { module: "ideas", action: "create_comment", user: session.id, meta: { idea_id: data.idea_id } })
+    logActivityEvent({ event_type: "create", module: "ideas", action: "create_comment", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json(comment)
   } catch (error) {
     logError("Error al crear comentario", { module: "ideas", action: "create_comment", user: session.id, error })
@@ -74,6 +75,7 @@ export async function DELETE(request: NextRequest) {
 
     await deleteIdeaComment(ideaId, commentId)
     logInfo("Comentario eliminado", { module: "ideas", action: "delete_comment", user: session.id, meta: { idea_id: ideaId, comment_id: commentId } })
+    logActivityEvent({ event_type: "delete", module: "ideas", action: "delete_comment", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json({ success: true })
   } catch (error) {
     logError("Error al eliminar comentario", { module: "ideas", action: "delete_comment", user: session.id, error })

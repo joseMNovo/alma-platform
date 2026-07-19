@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getIdeas, createIdea, updateIdea, deleteIdea } from "@/lib/data-manager"
+import { getIdeas, createIdea, updateIdea, deleteIdea, logActivityEvent, toUserType } from "@/lib/data-manager"
 import { getSessionUser } from "@/lib/serverAuth"
 import { can } from "@/lib/permissions"
 import { logInfo, logWarn, logError } from "@/lib/logger"
@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
       created_by_volunteer_id: session.id,
     })
     logInfo("Idea creada", { module: "ideas", action: "create_idea", user: session.id, meta: { id: idea.id } })
+    logActivityEvent({ event_type: "create", module: "ideas", action: "create_idea", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json(idea)
   } catch (error) {
     logError("Error al crear idea", { module: "ideas", action: "create_idea", user: session.id, error })
@@ -74,6 +75,7 @@ export async function PUT(request: NextRequest) {
       category: data.category?.trim() || null,
     })
     logInfo("Idea actualizada", { module: "ideas", action: "edit_idea", user: session.id, meta: { id } })
+    logActivityEvent({ event_type: "edit", module: "ideas", action: "edit_idea", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json(idea)
   } catch (error) {
     logError("Error al actualizar idea", { module: "ideas", action: "edit_idea", user: session.id, error })
@@ -95,6 +97,7 @@ export async function DELETE(request: NextRequest) {
     if (!id) return NextResponse.json({ error: "ID requerido" }, { status: 400 })
     await deleteIdea(id)
     logInfo("Idea eliminada", { module: "ideas", action: "delete_idea", user: session.id, meta: { id } })
+    logActivityEvent({ event_type: "delete", module: "ideas", action: "delete_idea", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json({ success: true })
   } catch (error) {
     logError("Error al eliminar idea", { module: "ideas", action: "delete_idea", user: session.id, error })

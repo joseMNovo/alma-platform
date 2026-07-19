@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/serverAuth"
 import { can } from "@/lib/permissions"
-import { getPersonas, createPersona, type PersonaFilters } from "@/lib/data-manager"
+import { getPersonas, createPersona, type PersonaFilters, logActivityEvent, toUserType } from "@/lib/data-manager"
 import { logInfo, logWarn, logError } from "@/lib/logger"
 
 /** GET /api/personas/registros — lista la base de datos de personas (con filtros) */
@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
     }
     const persona = await createPersona(data)
     logInfo("Persona creada", { module: "personas", action: "create", user: session.id, meta: { id: persona.id } })
+    logActivityEvent({ event_type: "create", module: "personas", action: "create", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json(persona)
   } catch (error: any) {
     if (String(error?.message ?? "").includes("409")) {

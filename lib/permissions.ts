@@ -25,6 +25,7 @@ export type Action =
   | "personas:edit"
   | "personas:delete"
   | "participante:edit_profile"
+  | "tracking:view"
 
 /**
  * Returns true if the given user is allowed to perform the given action.
@@ -114,6 +115,10 @@ export function can(user: { role: string } | null, action: Action): boolean {
     // Profile edit: only for participants (handled above)
     case "participante:edit_profile":
       return false
+
+    // Actividad (tracking de uso): solo admin puede ver el resumen y timeline.
+    case "tracking:view":
+      return isAdmin
 
     default:
       return false

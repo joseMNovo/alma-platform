@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getVolunteers, createVolunteer, updateVolunteer, deleteVolunteer, type InventoryItem } from "@/lib/data-manager"
+import { getVolunteers, createVolunteer, updateVolunteer, deleteVolunteer, logActivityEvent, toUserType, type InventoryItem } from "@/lib/data-manager"
 import { api } from "@/lib/api-client"
 import { getSessionUser } from "@/lib/serverAuth"
 import { logInfo, logWarn, logError } from "@/lib/logger"
@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
     })
 
     logInfo("Voluntario creado", { module: "voluntarios", action: "create_volunteer", meta: { id: (volunteer as any)?.id } })
+    logActivityEvent({ event_type: "create", module: "voluntarios", action: "create_volunteer", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json(volunteer)
   } catch (error) {
     logError("Error al crear voluntario", { module: "voluntarios", action: "create_volunteer", error })
@@ -93,6 +94,7 @@ export async function PUT(request: NextRequest) {
     })
 
     logInfo("Voluntario actualizado", { module: "voluntarios", action: "edit_volunteer", user: session.id, meta: { id } })
+    logActivityEvent({ event_type: "edit", module: "voluntarios", action: "edit_volunteer", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json(volunteer)
   } catch (error) {
     logError("Error al actualizar voluntario", { module: "voluntarios", action: "edit_volunteer", user: session.id, error })
@@ -124,6 +126,7 @@ export async function DELETE(request: NextRequest) {
 
     await deleteVolunteer(id)
     logInfo("Voluntario eliminado", { module: "voluntarios", action: "delete_volunteer", meta: { id } })
+    logActivityEvent({ event_type: "delete", module: "voluntarios", action: "delete_volunteer", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json({ success: true })
   } catch (error) {
     logError("Error al eliminar voluntario", { module: "voluntarios", action: "delete_volunteer", error })

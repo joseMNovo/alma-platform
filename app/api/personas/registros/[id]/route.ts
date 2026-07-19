@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/serverAuth"
 import { can } from "@/lib/permissions"
-import { updatePersona, deletePersona } from "@/lib/data-manager"
+import { updatePersona, deletePersona, logActivityEvent, toUserType } from "@/lib/data-manager"
 import { logInfo, logWarn, logError } from "@/lib/logger"
 
 /** PUT /api/personas/registros/[id] — modificación de una persona */
@@ -25,6 +25,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const persona = await updatePersona(personaId, data)
     logInfo("Persona actualizada", { module: "personas", action: "edit", user: session.id, meta: { id: personaId } })
+    logActivityEvent({ event_type: "edit", module: "personas", action: "edit", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json(persona)
   } catch (error: any) {
     if (String(error?.message ?? "").includes("409")) {
@@ -54,6 +55,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     await deletePersona(personaId)
     logInfo("Persona eliminada", { module: "personas", action: "delete", user: session.id, meta: { id: personaId } })
+    logActivityEvent({ event_type: "delete", module: "personas", action: "delete", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json({ success: true })
   } catch (error: any) {
     if (String(error?.message ?? "").includes("404")) {

@@ -3,6 +3,8 @@ import {
   getGroupHistories,
   createGroupHistory,
   type GroupHistoryFilters,
+  logActivityEvent,
+  toUserType,
 } from "@/lib/data-manager"
 import { getSessionUser } from "@/lib/serverAuth"
 import { can } from "@/lib/permissions"
@@ -58,6 +60,7 @@ export async function POST(request: NextRequest) {
       attendees: Array.isArray(data.attendees) ? data.attendees : [],
     })
     logInfo("Historial creado", { module: "group_histories", action: "create", user: session.id, meta: { id: history.id } })
+    logActivityEvent({ event_type: "create", module: "group_histories", action: "create", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json(history)
   } catch (error) {
     logError("Error al crear historial", { module: "group_histories", action: "create", user: session.id, error })
