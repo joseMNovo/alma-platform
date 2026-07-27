@@ -45,8 +45,28 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json() as Promise<T>
 }
 
+/**
+ * Variante que devuelve la respuesta cruda, sin parsear JSON.
+ * La usa el proxy de archivos (/api/files/[guid]/raw) para pasar los bytes
+ * de una imagen tal cual, con su Content-Type y sus headers de cache.
+ */
+async function requestRaw(path: string): Promise<Response> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    headers: { 'X-API-Key': INTERNAL_API_KEY },
+    cache: 'no-store',
+  })
+
+  if (!res.ok) {
+    throw new Error(`API GET ${path} → ${res.status}: ${await res.text()}`)
+  }
+
+  return res
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
+
+  getRaw: (path: string) => requestRaw(path),
 
   post: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'POST', body: body !== undefined ? JSON.stringify(body) : undefined }),

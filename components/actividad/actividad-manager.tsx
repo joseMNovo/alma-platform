@@ -265,7 +265,7 @@ export default function ActividadManager({ user }: { user: CurrentUser }) {
                     tabIndex={0}
                     onClick={() => setExpandedId(isExpanded ? null : key)}
                     onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpandedId(isExpanded ? null : key) } }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer transition-colors active:bg-gray-50"
+                    className="w-full flex items-center gap-3 px-4 py-2 text-left cursor-pointer transition-colors active:bg-gray-50"
                   >
                     <Avatar row={row} />
                     <div className="flex-1 min-w-0">
@@ -315,12 +315,12 @@ export default function ActividadManager({ user }: { user: CurrentUser }) {
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50/80 text-left text-gray-600">
                   <SortableTh label="Usuario" k="name" onClick={toggleSort} SortIcon={SortIcon} />
-                  <th className="px-4 py-3 font-semibold">Rol</th>
+                  <th className="px-4 py-2 font-semibold">Rol</th>
                   <SortableTh label="Ingresos" k="login_count" onClick={toggleSort} SortIcon={SortIcon} />
                   <SortableTh label="Último ingreso" k="last_login" onClick={toggleSort} SortIcon={SortIcon} />
-                  <th className="px-4 py-3 font-semibold">Módulos vistos</th>
+                  <th className="px-4 py-2 font-semibold">Módulos vistos</th>
                   <SortableTh label="Acciones" k="actions" onClick={toggleSort} SortIcon={SortIcon} />
-                  <th className="px-4 py-3 font-semibold text-right"></th>
+                  <th className="px-4 py-2 font-semibold text-right"></th>
                 </tr>
               </thead>
               <tbody>
@@ -329,34 +329,34 @@ export default function ActividadManager({ user }: { user: CurrentUser }) {
                   const modules = Object.entries(row.view_counts)
                   return (
                     <tr key={key} className="border-b border-gray-100 last:border-0 even:bg-gray-50/50 hover:bg-[#4dd0e1]/[0.06] transition-colors">
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2">
                         <div className="flex items-center gap-3">
                           <Avatar row={row} />
                           <span className="font-medium text-gray-900">{displayName(row)}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2">
                         <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${ROLE_STYLES[row.role] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}>
                           {ROLE_LABELS[row.role] ?? row.role}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2">
                         <span className="inline-flex items-center gap-1.5 text-gray-700">
                           <LogIn className="w-3.5 h-3.5 text-gray-400" />
                           <span className="tabular-nums font-medium">{row.login_count}</span>
                         </span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2">
                         <div className="flex flex-col leading-tight">
                           <span className="text-gray-700">{relativeTime(row.last_login)}</span>
                           <span className="text-[11px] text-gray-400">{formatDateTime(row.last_login)}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-4 py-2 whitespace-nowrap">
                         <ModulesSummary modules={modules} />
                       </td>
-                      <td className="px-4 py-3 tabular-nums text-gray-700">{totalActions(row)}</td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-2 tabular-nums text-gray-700">{totalActions(row)}</td>
+                      <td className="px-4 py-2 text-right">
                         <Button
                           variant="ghost" size="sm" onClick={() => openTimeline(row)}
                           className="h-8 gap-1 text-gray-500 hover:text-[#00838f] hover:bg-[#4dd0e1]/10"
@@ -477,7 +477,7 @@ function SortableTh({
   onClick: (k: SortKey) => void; SortIcon: (p: { k: SortKey }) => React.ReactNode
 }) {
   return (
-    <th className="px-4 py-3 font-semibold">
+    <th className="px-4 py-2 font-semibold">
       <button onClick={() => onClick(k)} className="inline-flex items-center gap-1.5 hover:text-[#00838f] transition-colors">
         {label}
         <SortIcon k={k} />

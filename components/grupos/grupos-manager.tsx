@@ -51,14 +51,9 @@ export default function GruposManager({ user }: { user: any }) {
     fetchGroups()
   }, [])
 
-  useEffect(() => {
-    if (isParticipant) {
-      fetch("/api/participantes/inscripciones")
-        .then(r => r.json())
-        .then(data => setEnrolledIds(data.groups || []))
-        .catch(console.error)
-    }
-  }, [isParticipant])
+  // La inscripción dejó de vivir acá: ahora el participante se anota a cada
+  // encuentro desde el Calendario (calendar_event_participants). Ya no se
+  // consulta la inscripción por programa.
 
   const fetchGroups = async () => {
     try {
@@ -273,12 +268,6 @@ export default function GruposManager({ user }: { user: any }) {
                   <span className="font-semibold text-gray-900 text-sm block truncate leading-snug">
                     {group.name}
                   </span>
-                  {!isParticipant && (
-                    <span className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-                      <Users className="w-3 h-3 flex-shrink-0" />
-                      {group.participants} participante{group.participants !== 1 ? "s" : ""}
-                    </span>
-                  )}
                 </div>
                 <Badge
                   variant={group.status === "activo" ? "default" : "secondary"}
@@ -310,22 +299,9 @@ export default function GruposManager({ user }: { user: any }) {
                     </p>
                     <div className="flex gap-2">
                       {isParticipant ? (
-                        <Button
-                          onClick={(e) => { e.stopPropagation(); handleEnrollToggle(group) }}
-                          disabled={enrollingId === group.id}
-                          size="sm"
-                          className={`flex-1 h-9 ${
-                            enrolledIds.includes(group.id)
-                              ? "bg-green-500 hover:bg-green-600 text-white"
-                              : "bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
-                          }`}
-                        >
-                          {enrolledIds.includes(group.id) ? (
-                            <><CheckCircle2 className="w-4 h-4 mr-1.5" />Anotado</>
-                          ) : (
-                            "Quiero participar"
-                          )}
-                        </Button>
+                        <p className="text-xs text-gray-400 py-1">
+                          Anotate a cada encuentro desde la Agenda.
+                        </p>
                       ) : (
                         <>
                           {can(user, "grupos:edit") && (
@@ -382,35 +358,11 @@ export default function GruposManager({ user }: { user: any }) {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {!isParticipant && (
-                <div className="text-sm text-gray-600">
-                  <div className="flex items-center">
-                    <Users className="w-4 h-4 mr-2" />
-                    Participantes: {group.participants}
-                  </div>
-                </div>
-              )}
               <div className="flex gap-2 flex-wrap">
                 {isParticipant ? (
-                  <Button
-                    onClick={() => handleEnrollToggle(group)}
-                    disabled={enrollingId === group.id}
-                    size="sm"
-                    className={`flex-1 ${
-                      enrolledIds.includes(group.id)
-                        ? "bg-green-500 hover:bg-green-600 text-white"
-                        : "bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
-                    }`}
-                  >
-                    {enrolledIds.includes(group.id) ? (
-                      <>
-                        <CheckCircle2 className="w-4 h-4 mr-1" />
-                        Anotado
-                      </>
-                    ) : (
-                      "Quiero participar"
-                    )}
-                  </Button>
+                  <p className="text-xs text-gray-400 py-1">
+                    Anotate a cada encuentro desde la Agenda.
+                  </p>
                 ) : (
                   <>
                     {can(user, "grupos:edit") && (
@@ -467,31 +419,10 @@ export default function GruposManager({ user }: { user: any }) {
               <p className="text-gray-700 text-sm leading-relaxed">
                 {viewingGroup.description || <span className="italic text-gray-400">Sin descripción.</span>}
               </p>
-              {!isParticipant && (
-                <p className="text-sm text-gray-500 flex items-center gap-1">
-                  <Users className="w-4 h-4" />
-                  {viewingGroup.participants} participante{viewingGroup.participants !== 1 ? "s" : ""}
-                </p>
-              )}
               {isParticipant && (
-                <Button
-                  onClick={() => handleEnrollToggle(viewingGroup)}
-                  disabled={enrollingId === viewingGroup.id}
-                  className={`w-full ${
-                    enrolledIds.includes(viewingGroup.id)
-                      ? "bg-green-500 hover:bg-green-600 text-white"
-                      : "bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
-                  }`}
-                >
-                  {enrolledIds.includes(viewingGroup.id) ? (
-                    <>
-                      <CheckCircle2 className="w-4 h-4 mr-2" />
-                      Anotado — Salir del grupo
-                    </>
-                  ) : (
-                    "Quiero participar"
-                  )}
-                </Button>
+                <p className="rounded-lg bg-[#e0f7fa]/50 p-3 text-sm text-gray-600">
+                  Para sumarte, entrá a la <strong>Agenda</strong> y anotate a cada encuentro del grupo.
+                </p>
               )}
             </div>
           )}

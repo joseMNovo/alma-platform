@@ -9,8 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 import {
   Plus, Edit, Trash2, Database, Search, X, ChevronDown,
-  ArrowUpDown, ArrowUp, ArrowDown,
-  Mail, Phone, MapPin, IdCard, UserCheck, UserX, Heart, BadgeCheck, Users,
+  ArrowUpDown, ArrowUp, ArrowDown, Send, Loader2, AlertTriangle,
+  Mail, Phone, MapPin, IdCard, UserCheck, UserX, BadgeCheck, Users, UserCircle,
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { can } from "@/lib/permissions"
@@ -79,12 +79,25 @@ function MemberMark({ active, size = "w-4 h-4" }: { active?: boolean; size?: str
   )
 }
 
-/** Corazón voluntario/a: lleno en color ALMA si es voluntaria, contorno gris si no */
-function VolunteerHeart({ active, size = "w-4 h-4" }: { active?: boolean; size?: string }) {
+/** Flor del logo de ALMA como marca de voluntario/a: en color si es voluntaria,
+ *  en gris (grayscale) si no. Reemplaza al corazón anterior. */
+function VolunteerFlower({ active, size = "w-4 h-4" }: { active?: boolean; size?: string }) {
   return (
-    <Heart
-      className={`${size} ${active ? "fill-[#4dd0e1] text-[#4dd0e1]" : "fill-none text-gray-300"}`}
-      aria-label={active ? "Voluntario/a" : "No voluntario/a"}
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/images/flor.png"
+      alt={active ? "Voluntario/a" : "No voluntario/a"}
+      className={`${size} object-contain transition-all ${active ? "" : "grayscale opacity-40"}`}
+    />
+  )
+}
+
+/** Marca participante: coloreada si tiene login de participante (participant_id). */
+function ParticipantMark({ active, size = "w-4 h-4" }: { active?: boolean; size?: string }) {
+  return (
+    <UserCircle
+      className={`${size} ${active ? "text-[#0097a7]" : "text-gray-300"}`}
+      aria-label={active ? "Participante" : "No participante"}
     />
   )
 }
@@ -115,11 +128,24 @@ export default function PersonasDbManager({ user }: { user: any }) {
   const [expandedId, setExpandedId] = useState<number | null>(null)   // card mobile expandida
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "name", dir: "asc" })
 
-  // Modal alta / edición
+  // Modal alta / edición. En alta (editing=null) el modal tiene DOS pestañas
+  // (participante / voluntario); en edición muestra la ficha simple.
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Persona | null>(null)
   const [form, setForm] = useState<PersonaFormData>(EMPTY_FORM)
   const [submitting, setSubmitting] = useState(false)
+  const [createTab, setCreateTab] = useState<"participante" | "voluntario">("participante")
+  // Pivote de la pestaña participante: con invitación (usuario real) vs. solo
+  // registro de datos (persona suelta, sin cuenta).
+  const [sendInvite, setSendInvite] = useState(false)
+
+  // Invitar a la plataforma desde el tablero (persona con email y sin cuenta)
+  const [invitingId, setInvitingId] = useState<number | null>(null)
+
+  // Revertir voluntario/a → participante (sacar la flor)
+  const [revertOpen, setRevertOpen] = useState(false)
+  const [revertPersona, setRevertPersona] = useState<Persona | null>(null)
+  const [reverting, setReverting] = useState(false)
 
   // Confirmar baja
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -214,6 +240,10 @@ export default function PersonasDbManager({ user }: { user: any }) {
   const openCreate = () => {
     setEditing(null)
     setForm(EMPTY_FORM)
+    setCreateTab("participante")
+    setSendInvite(false)
+    setVolForm({ name: "", last_name: "", email: "", phone: "", birth_date: "" })
+    setVolPersona(null)
     setFormOpen(true)
   }
 
@@ -245,6 +275,12 @@ export default function PersonasDbManager({ user }: { user: any }) {
       toast({ title: "Campo requerido", description: "El apellido es obligatorio", variant: "destructive" })
       return
     }
+    // En alta de participante el email es OBLIGATORIO: es la clave de la persona
+    // y lo necesitamos para poder invitarla (ahora o más adelante).
+    if (!editing && !form.email.trim()) {
+      toast({ title: "Email requerido", description: "El participante necesita un email", variant: "destructive" })
+      return
+    }
     if (form.email.trim() && !EMAIL_RE.test(form.email.trim())) {
       toast({ title: "Email inválido", description: "Revisá el formato del correo electrónico", variant: "destructive" })
       return
@@ -264,13 +300,98 @@ export default function PersonasDbManager({ user }: { user: any }) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.error || "Error al guardar")
       }
-      toast({ title: editing ? "Persona actualizada" : "Persona agregada" })
+      const saved = await res.json().catch(() => null)
+
+      // Alta con invitación: creada la persona, se le manda el mail para que
+      // cree su cuenta. Si la invitación falla, la persona igual quedó cargada.
+      if (!editing && sendInvite && saved?.id) {
+        try {
+          const registered_by_name = `${user?.name ?? ""} ${user?.last_name ?? ""}`.trim()
+          const invRes = await fetch("/api/personas/invitar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ profile_id: saved.id, registered_by_name }),
+          })
+          if (!invRes.ok) {
+            const err = await invRes.json().catch(() => ({}))
+            throw new Error(err.error || "No se pudo enviar la invitación")
+          }
+          toast({ title: "Participante invitado/a", description: `Le enviamos un email a ${form.email.trim()} para que cree su cuenta.` })
+        } catch (invErr: any) {
+          toast({ title: "Persona agregada, pero…", description: invErr.message || "No se pudo enviar la invitación. Podés reenviarla desde el tablero.", variant: "destructive" })
+        }
+      } else {
+        toast({ title: editing ? "Persona actualizada" : "Persona agregada" })
+      }
+
       closeForm()
       fetchPersonas()
     } catch (error: any) {
       toast({ title: "Error", description: error.message || "No se pudo guardar", variant: "destructive" })
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  // ── Invitar a la plataforma (desde el tablero) ──────────────────────
+  const handleInvite = async (p: Persona) => {
+    if (invitingId != null) return
+    setInvitingId(p.id)
+    try {
+      const registered_by_name = `${user?.name ?? ""} ${user?.last_name ?? ""}`.trim()
+      const res = await fetch("/api/personas/invitar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile_id: p.id, registered_by_name }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || "No se pudo invitar")
+      }
+      toast({ title: "Invitación enviada", description: `Le enviamos un email a ${p.email} para que cree su cuenta.` })
+      fetchPersonas()
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "No se pudo invitar", variant: "destructive" })
+    } finally {
+      setInvitingId(null)
+    }
+  }
+
+  // ── Revertir voluntario/a → participante (sacar la flor) ────────────
+  const openRevert = (p: Persona) => {
+    setRevertPersona(p)
+    setRevertOpen(true)
+  }
+
+  const handleRevert = async () => {
+    if (!revertPersona) return
+    setReverting(true)
+    try {
+      const registered_by_name = `${user?.name ?? ""} ${user?.last_name ?? ""}`.trim()
+      const res = await fetch("/api/personas/quitar-voluntario", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ persona_id: revertPersona.id, registered_by_name }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || "No se pudo revertir")
+      }
+      const result = await res.json().catch(() => ({ outcome: "reactivated" }))
+      const msg: Record<string, string> = {
+        reactivated: "Ahora es participante. Ingresa con su PIN de participante de siempre.",
+        reinvited: "Ahora es participante. Le enviamos un email para que cree su PIN.",
+        invited: "Ahora es participante. Le enviamos un email para que cree su cuenta.",
+        no_login: "Se quitó el rol de voluntario/a. No tiene email, así que quedó sin cuenta: cargale un email e invitala.",
+      }
+      toast({ title: "Listo", description: msg[result.outcome] ?? "Rol de voluntario/a quitado." })
+      setRevertOpen(false)
+      setRevertPersona(null)
+      fetchPersonas()
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "No se pudo revertir", variant: "destructive" })
+    } finally {
+      setReverting(false)
     }
   }
 
@@ -326,12 +447,6 @@ export default function PersonasDbManager({ user }: { user: any }) {
   const [volForm, setVolForm] = useState({ name: "", last_name: "", email: "", phone: "", birth_date: "" })
   const [volSubmitting, setVolSubmitting] = useState(false)
 
-  const openNewVolunteer = () => {
-    setVolPersona(null)
-    setVolForm({ name: "", last_name: "", email: "", phone: "", birth_date: "" })
-    setVolFormOpen(true)
-  }
-
   const openEnableVolunteer = (p: Persona) => {
     setVolPersona(p)
     setVolForm({
@@ -377,11 +492,22 @@ export default function PersonasDbManager({ user }: { user: any }) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.error || "No se pudo habilitar")
       }
-      toast({
-        title: "Voluntario/a registrado/a",
-        description: "Quedó pendiente de aprobación del administrador. Le enviamos un email avisándole.",
-      })
+      const nuevo = await res.json().catch(() => null)
+      // Si ya tenía PIN de participante lo heredó y queda 'activo' directo
+      // (ver enroll-from-db en el backend); si no, sigue el flujo de siempre.
+      if (nuevo?.status === "activo") {
+        toast({
+          title: "Voluntario/a activo/a",
+          description: "Conservó su PIN y ya puede ingresar. Le avisamos por email.",
+        })
+      } else {
+        toast({
+          title: "Voluntario/a registrado/a",
+          description: "Quedó pendiente de aprobación del administrador. Le enviamos un email avisándole.",
+        })
+      }
       closeVolForm()
+      closeForm()   // cierra también el modal de alta (cuando se usa desde su pestaña)
       fetchPersonas()
     } catch (error: any) {
       toast({ title: "Error", description: error.message || "No se pudo habilitar", variant: "destructive" })
@@ -405,14 +531,10 @@ export default function PersonasDbManager({ user }: { user: any }) {
           </p>
         </div>
         {canCreate && (
-          <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0 w-full sm:w-auto">
+          <div className="flex-shrink-0 w-full sm:w-auto">
             <Button onClick={openCreate} className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white w-full sm:w-auto">
               <Plus className="w-4 h-4 mr-2" />
               Nueva persona
-            </Button>
-            <Button onClick={openNewVolunteer} variant="outline" className="border-[#4dd0e1] text-[#00838f] hover:bg-[#4dd0e1]/10 w-full sm:w-auto">
-              <Heart className="w-4 h-4 mr-2" />
-              Nuevo voluntario/a
             </Button>
           </div>
         )}
@@ -489,7 +611,8 @@ export default function PersonasDbManager({ user }: { user: any }) {
               <span className="text-xs text-gray-400">· {kpi.participantMembers} socios</span>
             </span>
             <span className="inline-flex items-center gap-1.5" title="Voluntarios/as — y cuántos son socios">
-              <Heart className="w-4 h-4 fill-[#4dd0e1] text-[#4dd0e1]" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/images/flor.png" alt="" className="w-4 h-4 object-contain" />
               <span className="font-semibold text-gray-700">{kpi.volunteers}</span> voluntarios
               <span className="text-xs text-gray-400">· {kpi.volunteerMembers} socios</span>
             </span>
@@ -528,7 +651,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
                   tabIndex={0}
                   onClick={() => setExpandedId(isExpanded ? null : p.id)}
                   onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpandedId(isExpanded ? null : p.id) } }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer transition-colors active:bg-gray-50"
+                  className="w-full flex items-center gap-3 px-4 py-2 text-left cursor-pointer transition-colors active:bg-gray-50"
                 >
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#4dd0e1] to-[#3bc0d1] flex items-center justify-center flex-shrink-0">
                     <span className="text-white font-semibold text-xs">{initials(p)}</span>
@@ -555,9 +678,21 @@ export default function PersonasDbManager({ user }: { user: any }) {
                     ) : (
                       <MemberMark active={!!p.is_member} />
                     )}
-                    {/* Voluntario/a — corazón (toca para habilitar si aún no lo es) */}
+                    {/* Voluntario/a — flor: toca para habilitar (si no lo es) o
+                        para quitar el rol y volverlo participante (si lo es). */}
                     {p.is_volunteer ? (
-                      <span className="p-1" title="Voluntario/a"><VolunteerHeart active /></span>
+                      canCreate ? (
+                        <button
+                          type="button"
+                          onClick={e => { e.stopPropagation(); openRevert(p) }}
+                          title="Voluntario/a — tocar para quitar el rol"
+                          className="p-1 rounded-full transition-transform active:scale-90"
+                        >
+                          <VolunteerFlower active />
+                        </button>
+                      ) : (
+                        <span className="p-1" title="Voluntario/a"><VolunteerFlower active /></span>
+                      )
                     ) : canCreate ? (
                       <button
                         type="button"
@@ -565,9 +700,13 @@ export default function PersonasDbManager({ user }: { user: any }) {
                         title="Habilitar como voluntario/a"
                         className="p-1 rounded-full transition-transform active:scale-90"
                       >
-                        <VolunteerHeart active={false} />
+                        <VolunteerFlower active={false} />
                       </button>
                     ) : null}
+                    {/* Participante — solo indicador (se marca si tiene login propio) */}
+                    {p.participant_id != null && (
+                      <span className="p-1" title="Participante"><ParticipantMark active /></span>
+                    )}
                     <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`} />
                   </div>
                 </div>
@@ -576,7 +715,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
                 <div className={`grid transition-all duration-300 ease-in-out ${isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
                   <div className="overflow-hidden">
                     <div className="px-4 pb-4 pt-3 border-t border-gray-100 space-y-3">
-                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] leading-none font-medium border ${st.cls}`}>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] leading-none font-medium border whitespace-nowrap ${st.cls}`}>
                         <st.Icon className="w-2.5 h-2.5" />
                         {st.label}
                       </span>
@@ -591,6 +730,21 @@ export default function PersonasDbManager({ user }: { user: any }) {
                           <p className="text-gray-400 italic text-xs">Sin datos de contacto</p>
                         )}
                       </div>
+                      {/* Invitar a la plataforma: solo si tiene email y todavía
+                          no tiene cuenta. Aparece "en escalera", sin recargar. */}
+                      {canCreate && !hasUserAccount(p) && !!p.email && (
+                        <Button
+                          variant="outline" size="sm"
+                          onClick={() => handleInvite(p)}
+                          disabled={invitingId === p.id}
+                          className="w-full h-9 gap-1.5 border-[#4dd0e1]/50 text-[#00838f] hover:bg-[#4dd0e1]/10"
+                        >
+                          {invitingId === p.id
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <Send className="w-3.5 h-3.5" />}
+                          Invitar a Comunidad ALMA
+                        </Button>
+                      )}
                       {(canEdit || canDelete) && (
                         <div className="flex gap-2 pt-1">
                           {canEdit && (
@@ -621,13 +775,14 @@ export default function PersonasDbManager({ user }: { user: any }) {
                 <SortableTh label="Nombre" k="name" onClick={toggleSort} SortIcon={SortIcon} />
                 <SortableTh label="Apellido" k="last_name" onClick={toggleSort} SortIcon={SortIcon} />
                 <SortableTh label="CUIT" k="cuit" onClick={toggleSort} SortIcon={SortIcon} />
-                <th className="px-4 py-3 font-semibold">Contacto</th>
+                <th className="px-4 py-2 font-semibold">Contacto</th>
                 <SortableTh label="Localidad" k="city" onClick={toggleSort} SortIcon={SortIcon} />
                 <SortableTh label="Provincia" k="province" onClick={toggleSort} SortIcon={SortIcon} />
-                <th className="px-4 py-3 font-semibold text-center">Socio/a</th>
-                <th className="px-4 py-3 font-semibold text-center">Voluntario/a</th>
-                <th className="px-4 py-3 font-semibold">Estado</th>
-                <th className="px-4 py-3 font-semibold text-right">Acciones</th>
+                <th className="px-4 py-2 font-semibold text-center">Socio/a</th>
+                <th className="px-4 py-2 font-semibold text-center">Voluntario/a</th>
+                <th className="px-4 py-2 font-semibold text-center">Participante</th>
+                <th className="px-4 py-2 font-semibold">Estado</th>
+                <th className="px-4 py-2 font-semibold text-right">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -635,19 +790,19 @@ export default function PersonasDbManager({ user }: { user: any }) {
                 const st = personaStatus(p)
                 return (
                   <tr key={p.id} className="border-b border-gray-100 last:border-0 even:bg-gray-50/50 hover:bg-[#4dd0e1]/[0.06] transition-colors">
-                    <td className="px-4 py-3 font-medium text-gray-900">{p.name || "—"}</td>
-                    <td className="px-4 py-3 text-gray-700">{p.last_name || "—"}</td>
-                    <td className="px-4 py-3 text-gray-500 tabular-nums">{p.cuit || "—"}</td>
-                    <td className="px-4 py-3 text-gray-500">
+                    <td className="px-4 py-2 font-medium text-gray-900">{p.name || "—"}</td>
+                    <td className="px-4 py-2 text-gray-700">{p.last_name || "—"}</td>
+                    <td className="px-4 py-2 text-gray-500 tabular-nums">{p.cuit || "—"}</td>
+                    <td className="px-4 py-2 text-gray-500">
                       <div className="flex flex-col gap-0.5">
                         {p.email && <span className="inline-flex items-center gap-1 truncate max-w-[200px]"><Mail className="w-3 h-3 flex-shrink-0" />{p.email}</span>}
                         {p.phone && <span className="inline-flex items-center gap-1"><Phone className="w-3 h-3 flex-shrink-0" />{p.phone}</span>}
                         {!p.email && !p.phone && "—"}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-700">{p.city || "—"}</td>
-                    <td className="px-4 py-3 text-gray-700">{p.province || "—"}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-2 text-gray-700">{p.city || "—"}</td>
+                    <td className="px-4 py-2 text-gray-700">{p.province || "—"}</td>
+                    <td className="px-4 py-2">
                       <div className="flex justify-center">
                         {canEdit ? (
                           <button
@@ -667,10 +822,21 @@ export default function PersonasDbManager({ user }: { user: any }) {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-2">
                       <div className="flex justify-center">
                         {p.is_volunteer ? (
-                          <div title="Voluntario/a"><VolunteerHeart active /></div>
+                          canCreate ? (
+                            <button
+                              type="button"
+                              onClick={() => openRevert(p)}
+                              title="Voluntario/a — clic para quitar el rol y volverlo participante"
+                              className="p-1 rounded-full transition-transform hover:scale-110 active:scale-95"
+                            >
+                              <VolunteerFlower active />
+                            </button>
+                          ) : (
+                            <div title="Voluntario/a"><VolunteerFlower active /></div>
+                          )
                         ) : canCreate ? (
                           <button
                             type="button"
@@ -678,21 +844,37 @@ export default function PersonasDbManager({ user }: { user: any }) {
                             title="Habilitar como voluntario/a"
                             className="p-1 rounded-full transition-transform hover:scale-110 active:scale-95"
                           >
-                            <VolunteerHeart active={false} />
+                            <VolunteerFlower active={false} />
                           </button>
                         ) : (
-                          <div title="No voluntario/a"><VolunteerHeart active={false} /></div>
+                          <div title="No voluntario/a"><VolunteerFlower active={false} /></div>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] leading-none font-medium border ${st.cls}`}>
+                    <td className="px-4 py-2">
+                      {/* Read-only: participante = tiene login propio (participant_id).
+                          No se "habilita" desde acá; la persona se registra sola. */}
+                      <div className="flex justify-center" title={p.participant_id != null ? "Participante" : "No participante"}>
+                        <ParticipantMark active={p.participant_id != null} />
+                      </div>
+                    </td>
+                    <td className="px-4 py-2">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] leading-none font-medium border whitespace-nowrap ${st.cls}`}>
                         <st.Icon className="w-2.5 h-2.5" />
                         {st.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-2">
                       <div className="flex items-center justify-end gap-1">
+                        {canCreate && !hasUserAccount(p) && !!p.email && (
+                          <Button variant="ghost" size="sm" onClick={() => handleInvite(p)} disabled={invitingId === p.id}
+                            title="Invitar a Comunidad ALMA"
+                            className="h-7 w-7 p-0 text-gray-400 hover:text-[#00838f] hover:bg-[#4dd0e1]/10">
+                            {invitingId === p.id
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <Send className="w-3.5 h-3.5" />}
+                          </Button>
+                        )}
                         {canEdit && (
                           <Button variant="ghost" size="sm" onClick={() => openEdit(p)} title="Editar"
                             className="h-7 w-7 p-0 text-gray-400 hover:text-[#4dd0e1] hover:bg-[#4dd0e1]/10">
@@ -716,12 +898,37 @@ export default function PersonasDbManager({ user }: { user: any }) {
         </>
       )}
 
-      {/* ── Modal: Alta / Edición ────────────────────────────────────── */}
+      {/* ── Modal: Alta (con pestañas) / Edición ─────────────────────── */}
       <Dialog open={formOpen} onOpenChange={o => { if (!o) closeForm() }}>
         <DialogContent className="sm:max-w-2xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar persona" : "Nueva persona"}</DialogTitle>
           </DialogHeader>
+
+          {/* Selector de tipo (solo en alta). Participante crea la persona (con
+              o sin invitación); Voluntario/a crea la ficha pendiente de aprobar. */}
+          {!editing && (
+            <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-gray-100">
+              <button
+                type="button"
+                onClick={() => setCreateTab("participante")}
+                className={`flex items-center justify-center gap-2 h-9 rounded-md text-sm font-medium transition-colors ${createTab === "participante" ? "bg-white text-[#00838f] shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                <UserCircle className="w-4 h-4" /> Participante
+              </button>
+              <button
+                type="button"
+                onClick={() => setCreateTab("voluntario")}
+                className={`flex items-center justify-center gap-2 h-9 rounded-md text-sm font-medium transition-colors ${createTab === "voluntario" ? "bg-white text-[#00838f] shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/images/flor.png" alt="" className="w-4 h-4 object-contain" /> Voluntario/a
+              </button>
+            </div>
+          )}
+
+          {/* ── Ficha Participante (alta) / Edición de persona ── */}
+          {(editing || createTab === "participante") && (
           <div className="space-y-4 mt-1">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Nombre" required>
@@ -730,7 +937,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
               <Field label="Apellido" required>
                 <Input value={form.last_name} onChange={e => setField("last_name", e.target.value)} maxLength={100} placeholder="Apellido" />
               </Field>
-              <Field label="Correo electrónico">
+              <Field label="Correo electrónico" required={!editing}>
                 <Input type="email" value={form.email} onChange={e => setField("email", e.target.value)} maxLength={255} placeholder="correo@ejemplo.com" />
               </Field>
               <Field label="CUIT">
@@ -750,7 +957,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
               role="switch"
               aria-checked={form.is_member}
               onClick={() => setForm(prev => ({ ...prev, is_member: !prev.is_member }))}
-              className={`w-full flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
+              className={`w-full flex items-center justify-between gap-3 rounded-lg border px-4 py-2 text-left transition-colors ${
                 form.is_member ? "border-[#4dd0e1] bg-[#e0f7fa]/50" : "border-gray-200 hover:border-gray-300"
               }`}
             >
@@ -791,14 +998,79 @@ export default function PersonasDbManager({ user }: { user: any }) {
               </div>
             </div>
 
+            {/* Pivote invitación: usuario real (con mail) vs. registro suelto */}
+            {!editing && (
+              <div className="rounded-lg border border-gray-200 overflow-hidden">
+                <button
+                  type="button" role="switch" aria-checked={sendInvite}
+                  onClick={() => setSendInvite(v => !v)}
+                  className={`w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors ${sendInvite ? "bg-[#e0f7fa]/50" : "hover:bg-gray-50"}`}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <Send className={`w-5 h-5 flex-shrink-0 ${sendInvite ? "text-[#00838f]" : "text-gray-400"}`} />
+                    <span>
+                      <span className="block text-sm font-medium text-gray-700">Enviar invitación a Comunidad ALMA</span>
+                      <span className="block text-xs text-gray-500">Le llega un email para crear su cuenta y su PIN.</span>
+                    </span>
+                  </span>
+                  <span className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${sendInvite ? "bg-[#4dd0e1]" : "bg-gray-200"}`}>
+                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${sendInvite ? "translate-x-5" : "translate-x-1"}`} />
+                  </span>
+                </button>
+                <p className="px-4 py-2 text-xs text-gray-500 bg-gray-50 border-t border-gray-100">
+                  {sendInvite
+                    ? "Se crea un participante con cuenta: recibirá el mail para ingresar."
+                    : "Se guarda solo el registro de datos (sin cuenta). Podés invitarla más adelante desde el tablero."}
+                </p>
+              </div>
+            )}
+
             <p className="text-xs text-gray-400 pt-1">* Campos obligatorios</p>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={closeForm} disabled={submitting}>Cancelar</Button>
               <Button onClick={handleSubmit} disabled={submitting} className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white">
-                {submitting ? "Guardando..." : editing ? "Guardar cambios" : "Agregar persona"}
+                {submitting ? "Guardando..." : editing ? "Guardar cambios" : sendInvite ? "Crear e invitar" : "Agregar persona"}
               </Button>
             </div>
           </div>
+          )}
+
+          {/* ── Ficha Voluntario/a (solo alta) ── */}
+          {!editing && createTab === "voluntario" && (
+          <div className="space-y-4 mt-1">
+            <div className="rounded-lg bg-[#e0f7fa]/50 border border-[#4dd0e1]/30 px-4 py-2 text-sm text-[#00838f] flex gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/images/flor.png" alt="" className="w-4 h-4 flex-shrink-0 mt-0.5 object-contain" />
+              <span>
+                Se registrará una nueva persona como voluntario/a. Quedará <strong className="font-semibold">pendiente de aprobación</strong> del administrador y recibirá un email de aviso.
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Nombre" required>
+                <Input value={volForm.name} onChange={e => setVolField("name", e.target.value)} maxLength={100} placeholder="Nombre" />
+              </Field>
+              <Field label="Apellido">
+                <Input value={volForm.last_name} onChange={e => setVolField("last_name", e.target.value)} maxLength={100} placeholder="Apellido" />
+              </Field>
+              <Field label="Correo electrónico" required>
+                <Input type="email" value={volForm.email} onChange={e => setVolField("email", e.target.value)} maxLength={150} placeholder="correo@ejemplo.com" />
+              </Field>
+              <Field label="Teléfono (celular)">
+                <Input value={volForm.phone} onChange={e => setVolField("phone", e.target.value)} maxLength={50} placeholder="Celular" />
+              </Field>
+              <Field label="Fecha de nacimiento">
+                <Input type="date" value={volForm.birth_date} onChange={e => setVolField("birth_date", e.target.value)} />
+              </Field>
+            </div>
+            <p className="text-xs text-gray-400 pt-1">* Campos obligatorios</p>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={closeForm} disabled={volSubmitting}>Cancelar</Button>
+              <Button onClick={handleVolSubmit} disabled={volSubmitting} className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white">
+                {volSubmitting ? "Registrando..." : "Registrar voluntario/a"}
+              </Button>
+            </div>
+          </div>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -809,8 +1081,9 @@ export default function PersonasDbManager({ user }: { user: any }) {
             <DialogTitle>{volPersona ? "Habilitar como voluntario/a" : "Nuevo voluntario/a"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-1">
-            <div className="rounded-lg bg-[#e0f7fa]/50 border border-[#4dd0e1]/30 px-4 py-3 text-sm text-[#00838f] flex gap-2">
-              <Heart className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <div className="rounded-lg bg-[#e0f7fa]/50 border border-[#4dd0e1]/30 px-4 py-2 text-sm text-[#00838f] flex gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/images/flor.png" alt="" className="w-4 h-4 flex-shrink-0 mt-0.5 object-contain" />
               <span>
                 {volPersona
                   ? "Se creará la ficha de voluntario/a vinculada a esta persona. "
@@ -818,6 +1091,21 @@ export default function PersonasDbManager({ user }: { user: any }) {
                 Quedará <strong className="font-semibold">pendiente de aprobación</strong> del administrador y recibirá un email de aviso.
               </span>
             </div>
+
+            {/* Aviso de conversión: una persona no puede ser participante Y
+                voluntaria a la vez. Si ya era participante, deja de serlo, pero
+                CONSERVA su PIN (el backend lo hereda) — entra directo, activa,
+                sin pasar por aprobación. */}
+            {volPersona?.participant_id != null && (
+              <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800 flex gap-2">
+                <UserCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>
+                  Esta persona es <strong>participante</strong>. Al habilitarla como voluntaria
+                  <strong> deja de ser participante</strong> (su cuenta de participante se desactiva),
+                  pero <strong>conserva su PIN</strong>: ingresa directo, sin esperar aprobación.
+                </span>
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Nombre" required>
                 <Input value={volForm.name} onChange={e => setVolField("name", e.target.value)} maxLength={100} placeholder="Nombre" />
@@ -842,6 +1130,38 @@ export default function PersonasDbManager({ user }: { user: any }) {
                 {volSubmitting ? "Registrando..." : volPersona ? "Habilitar" : "Registrar voluntario/a"}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Confirmar reversión voluntario/a → participante ──────────── */}
+      <Dialog open={revertOpen} onOpenChange={o => { if (!o && !reverting) { setRevertOpen(false); setRevertPersona(null) } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>¿Quitar el rol de voluntario/a?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-1">
+            <p className="text-sm text-gray-600">
+              <strong className="text-gray-900">{revertPersona ? fullName(revertPersona) : ""}</strong> dejará de ser
+              voluntario/a y pasará a ser <strong>participante</strong>. Su ficha de voluntario/a
+              se desactiva (no se borra).
+            </p>
+            <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 flex gap-2">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>
+                {revertPersona?.participant_id != null
+                  ? "Cuando vuelva a ingresar, entra como participante con su PIN de participante de siempre."
+                  : revertPersona?.email
+                    ? "Le enviaremos un email para que cree su cuenta de participante y su PIN."
+                    : "Ojo: no tiene email cargado, así que quedará sin cuenta. Cargale un email antes para poder invitarla."}
+              </span>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={() => { setRevertOpen(false); setRevertPersona(null) }} disabled={reverting}>Cancelar</Button>
+            <Button onClick={handleRevert} disabled={reverting} className="bg-amber-500 hover:bg-amber-600 text-white">
+              {reverting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Quitar rol y volver participante"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -909,7 +1229,7 @@ function SortableTh({
   onClick: (k: SortKey) => void; SortIcon: (p: { k: SortKey }) => React.ReactNode
 }) {
   return (
-    <th className="px-4 py-3 font-semibold">
+    <th className="px-4 py-2 font-semibold">
       <button onClick={() => onClick(k)} className="inline-flex items-center gap-1.5 hover:text-[#00838f] transition-colors">
         {label}
         <SortIcon k={k} />

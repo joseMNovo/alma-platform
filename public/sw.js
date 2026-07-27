@@ -28,9 +28,14 @@ self.addEventListener("push", (event) => {
     data = { title: "ALMA", body: event.data ? event.data.text() : "" }
   }
 
-  const title = data.title || "ALMA"
+  const title = data.title || "Comunidad ALMA"
   const options = {
     body: data.body || "",
+    // Declara el idioma de la notificación. El sistema operativo lo usa para
+    // el texto que dibuja ALREDEDOR del mensaje (el "de <app>" que aparece
+    // arriba en iOS). Sin esto, algunos sistemas asumen inglés y muestran "from".
+    lang: "es-AR",
+    dir: "ltr",
     icon: "/images/flor.png",
     badge: "/images/flor.png",
     // La URL a abrir viaja en 'data' para usarla en el click.

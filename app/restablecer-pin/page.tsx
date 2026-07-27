@@ -15,6 +15,10 @@ function RestablecerPinContent() {
   const router = useRouter()
   const token = searchParams.get("token") ?? ""
   const type = searchParams.get("type") ?? ""
+  // `new=1` => el link viene de una INVITACIÓN (la persona todavía no tiene PIN),
+  // no de un "olvidé mi PIN". Cambia el copy para que se entienda que está
+  // creando su cuenta, no restableciendo algo.
+  const isNew = searchParams.get("new") === "1"
 
   const [pin, setPin] = useState("")
   const [pinConfirm, setPinConfirm] = useState("")
@@ -88,7 +92,7 @@ function RestablecerPinContent() {
               <div className="text-center space-y-4">
                 <XCircle className="w-12 h-12 text-red-400 mx-auto" />
                 <h2 className="text-xl font-bold text-gray-800">Link inválido o expirado</h2>
-                <p className="text-gray-600 text-sm">Solicitá un nuevo link de restablecimiento.</p>
+                <p className="text-gray-600 text-sm">{isNew ? "Pedile al equipo de ALMA que te reenvíe la invitación." : "Solicitá un nuevo link de restablecimiento."}</p>
                 <a href="/" className="block w-full bg-[#0099b0] hover:bg-[#007a8e] text-white font-semibold py-2.5 px-4 rounded-lg transition-all text-center shadow-md">
                   Ir al inicio
                 </a>
@@ -98,8 +102,8 @@ function RestablecerPinContent() {
             {status === "success" && (
               <div className="text-center space-y-4">
                 <CheckCircle2 className="w-12 h-12 text-[#0099b0] mx-auto" />
-                <h2 className="text-xl font-bold text-gray-800">¡PIN actualizado!</h2>
-                <p className="text-gray-600 text-sm">Ya podés ingresar con tu nuevo PIN.</p>
+                <h2 className="text-xl font-bold text-gray-800">{isNew ? "¡Cuenta creada!" : "¡PIN actualizado!"}</h2>
+                <p className="text-gray-600 text-sm">Ya podés ingresar con tu {isNew ? "" : "nuevo "}PIN.</p>
                 <p className="text-gray-400 text-sm">
                   Redirigiendo en <span className="font-bold text-[#0099b0]">{countdown}</span> segundos...
                 </p>
@@ -112,8 +116,10 @@ function RestablecerPinContent() {
             {status === "form" && (
               <>
                 <div className="text-center">
-                  <h2 className="text-xl font-bold text-gray-800">Nuevo PIN</h2>
-                  <p className="text-gray-500 text-sm mt-1">Elegí un nuevo PIN de 4 dígitos</p>
+                  <h2 className="text-xl font-bold text-gray-800">{isNew ? "Creá tu PIN" : "Nuevo PIN"}</h2>
+                  <p className="text-gray-500 text-sm mt-1">
+                    {isNew ? "Elegí un PIN de 4 dígitos para ingresar a Comunidad ALMA" : "Elegí un nuevo PIN de 4 dígitos"}
+                  </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -156,7 +162,7 @@ function RestablecerPinContent() {
                     disabled={loading || pin.length !== 4 || pinConfirm.length !== 4}
                     className="w-full bg-[#0099b0] hover:bg-[#007a8e] text-white font-semibold py-2.5 rounded-lg transition-all disabled:bg-gray-100 disabled:text-gray-400 shadow-md hover:shadow-lg"
                   >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Guardar nuevo PIN"}
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : isNew ? "Crear mi PIN e ingresar" : "Guardar nuevo PIN"}
                   </Button>
                 </form>
               </>

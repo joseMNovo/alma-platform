@@ -17,7 +17,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { ChevronLeft, ChevronRight, ChevronDown, Plus, Edit, Trash2, Zap, AlertTriangle, UserCheck, UserPlus } from "lucide-react"
+import { ChevronLeft, ChevronRight, ChevronDown, Plus, Edit, Trash2, Zap, AlertTriangle, UserCheck, UserPlus, Loader2, Check, Bell } from "lucide-react"
+import { toast } from "@/hooks/use-toast"
 import { can, canDeleteCalendarInstance } from "@/lib/permissions"
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -41,8 +42,22 @@ interface CalendarInstance {
   notify_enabled: boolean
   reminder_offsets: number[] | null
   coordinator: VolunteerRef | null
+  /** @deprecated queda con el primero; usar co_coordinators */
   co_coordinator: VolunteerRef | null
+  co_coordinators: VolunteerRef[]
   volunteers: VolunteerRef[]
+  participants_count?: number
+}
+
+/** Estilo único para nombres de personas en el modal de detalle: mismo tono
+ *  teal que el resto de las acciones "de participación", sin importar si es
+ *  coordinador, co-coordinador o voluntario. */
+function NameChip({ person }: { person: VolunteerRef }) {
+  return (
+    <span className="inline-flex items-center rounded-full bg-[#e0f7fa] px-2 py-0.5 text-xs font-medium text-[#0097a7]">
+      {person.name} {person.last_name}
+    </span>
+  )
 }
 
 interface PreviewEntry {
@@ -380,6 +395,72 @@ export default function CalendariosManager({ user }: { user: any }) {
   const [selectedInstance, setSelectedInstance] = useState<CalendarInstance | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
 
+  // Inscripción del participante: a qué eventos ya se anotó (para el botón).
+  const isParticipant = user?.role === "participante"
+  const [myEventIds, setMyEventIds] = useState<number[]>([])
+  const [enrolling, setEnrolling] = useState(false)
+
+  useEffect(() => {
+    if (!isParticipant) return
+    fetch("/api/calendarios/inscripcion")
+      .then(r => r.ok ? r.json() : [])
+      .then(ids => setMyEventIds(Array.isArray(ids) ? ids : []))
+      .catch(() => {})
+  }, [isParticipant])
+
+  // Recordatorio manual: dispara el aviso a los involucrados de ESTE evento.
+  const [notifying, setNotifying] = useState(false)
+
+  const handleNotifyEvent = async () => {
+    if (!selectedInstance) return
+    setNotifying(true)
+    try {
+      const res = await fetch("/api/calendarios/notificar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event_id: selectedInstance.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || "No se pudo enviar")
+
+      if (!data.recipients) {
+        toast({
+          title: "Sin destinatarios",
+          description: data.message || "Este evento no tiene voluntarios asignados ni participantes anotados.",
+        })
+      } else {
+        toast({
+          title: "Recordatorio enviado",
+          description: `Aviso a ${data.recipients} persona${data.recipients === 1 ? "" : "s"}. La campanita ya llegó; los emails salen en segundo plano.`,
+        })
+      }
+    } catch (e: any) {
+      toast({ title: "No se pudo enviar", description: e?.message || "Intentá de nuevo.", variant: "destructive" })
+    } finally {
+      setNotifying(false)
+    }
+  }
+
+  const toggleEnrollment = async (eventId: number) => {
+    const enrolled = myEventIds.includes(eventId)
+    setEnrolling(true)
+    try {
+      const res = enrolled
+        ? await fetch(`/api/calendarios/inscripcion?event_id=${eventId}`, { method: "DELETE" })
+        : await fetch("/api/calendarios/inscripcion", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ event_id: eventId }),
+          })
+      if (!res.ok) throw new Error()
+      setMyEventIds(prev => enrolled ? prev.filter(id => id !== eventId) : [...prev, eventId])
+    } catch {
+      // silencioso: el botón no cambia si falló
+    } finally {
+      setEnrolling(false)
+    }
+  }
+
   // Delete confirmation
   const [deleteOpen, setDeleteOpen] = useState(false)
 
@@ -397,7 +478,7 @@ export default function CalendariosManager({ user }: { user: any }) {
     start_time: "10:00",
     end_time: "12:00",
     coordinator_id: "",
-    co_coordinator_id: "",
+    co_coordinator_ids: [] as number[],
     volunteer_ids: [] as number[],
     notify_enabled: false,
     reminder_offsets: [] as number[],
@@ -566,7 +647,7 @@ export default function CalendariosManager({ user }: { user: any }) {
 
   function isUserAssigned(inst: CalendarInstance): boolean {
     if (inst.type === "actividad") return true
-    return inst.coordinator?.id === user.id || inst.co_coordinator?.id === user.id
+    return inst.coordinator?.id === user.id || (inst.co_coordinators ?? []).some(c => c.id === user.id)
   }
 
   function getSourceItems(module: string): any[] {
@@ -598,7 +679,7 @@ export default function CalendariosManager({ user }: { user: any }) {
     if (filterType !== "all" && inst.type !== filterType) return false
     if (filterVolunteer !== "all") {
       const volId = parseInt(filterVolunteer)
-      if (inst.coordinator?.id !== volId && inst.co_coordinator?.id !== volId) return false
+      if (inst.coordinator?.id !== volId && !(inst.co_coordinators ?? []).some(c => c.id === volId)) return false
     }
     if (filterMine && !isUserAssigned(inst)) return false
     return true
@@ -637,7 +718,7 @@ export default function CalendariosManager({ user }: { user: any }) {
       start_time: "10:00",
       end_time: "12:00",
       coordinator_id: "",
-      co_coordinator_id: "",
+      co_coordinator_ids: [] as number[],
       volunteer_ids: [],
       notify_enabled: false,
       reminder_offsets: [],
@@ -661,7 +742,7 @@ export default function CalendariosManager({ user }: { user: any }) {
       start_time: formatTime(inst.start_time),
       end_time: formatTime(inst.end_time),
       coordinator_id: inst.coordinator ? String(inst.coordinator.id) : "",
-      co_coordinator_id: inst.co_coordinator ? String(inst.co_coordinator.id) : "",
+      co_coordinator_ids: (inst.co_coordinators ?? (inst.co_coordinator ? [inst.co_coordinator] : [])).map(c => c.id),
       volunteer_ids: (inst.volunteers || []).map(v => v.id),
       notify_enabled: inst.notify_enabled ?? false,
       reminder_offsets: inst.reminder_offsets || [],
@@ -721,8 +802,7 @@ export default function CalendariosManager({ user }: { user: any }) {
         title: instanceForm.title.trim() || null,
         coordinator_id: instanceForm.module !== "actividad" && instanceForm.coordinator_id
           ? parseInt(instanceForm.coordinator_id) : null,
-        co_coordinator_id: instanceForm.module !== "actividad" && instanceForm.co_coordinator_id
-          ? parseInt(instanceForm.co_coordinator_id) : null,
+        co_coordinator_ids: instanceForm.module !== "actividad" ? instanceForm.co_coordinator_ids : [],
         volunteer_ids: instanceForm.volunteer_ids,
         notify_enabled: instanceForm.notify_enabled,
         reminder_offsets: instanceForm.notify_enabled ? instanceForm.reminder_offsets : null,
@@ -1055,28 +1135,34 @@ export default function CalendariosManager({ user }: { user: any }) {
             </SelectContent>
           </Select>
 
-          <Select value={filterVolunteer} onValueChange={setFilterVolunteer}>
-            <SelectTrigger className="w-52">
-              <SelectValue placeholder="Todos los voluntarios" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los voluntarios</SelectItem>
-              {volunteers.map(v => (
-                <SelectItem key={v.id} value={String(v.id)}>
-                  {v.name} {v.last_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Filtro por voluntario y "Solo los míos": son de gestión. El
+              participante no ve quién coordina, así que estos no le aplican. */}
+          {!isParticipant && (
+            <>
+              <Select value={filterVolunteer} onValueChange={setFilterVolunteer}>
+                <SelectTrigger className="w-52">
+                  <SelectValue placeholder="Todos los voluntarios" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los voluntarios</SelectItem>
+                  {volunteers.map(v => (
+                    <SelectItem key={v.id} value={String(v.id)}>
+                      {v.name} {v.last_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-          <Button
-            variant={filterMine ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilterMine(!filterMine)}
-            className={filterMine ? "bg-[#4dd0e1] hover:bg-[#26c6da] text-white" : ""}
-          >
-            {filterMine ? "✓ Solo los míos" : "Solo los míos"}
-          </Button>
+              <Button
+                variant={filterMine ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilterMine(!filterMine)}
+                className={filterMine ? "bg-[#4dd0e1] hover:bg-[#26c6da] text-white" : ""}
+              >
+                {filterMine ? "✓ Solo los míos" : "Solo los míos"}
+              </Button>
+            </>
+          )}
 
           {(filterType !== "all" || filterVolunteer !== "all" || filterMine) && (
             <Button
@@ -1178,7 +1264,7 @@ export default function CalendariosManager({ user }: { user: any }) {
 
       {/* ── Detail Dialog ────────────────────────────────────────── */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Badge
@@ -1200,94 +1286,143 @@ export default function CalendariosManager({ user }: { user: any }) {
           </DialogHeader>
 
           {selectedInstance && (
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Horario</span>
-                <span className="font-medium">
-                  {formatTime(selectedInstance.start_time)} – {formatTime(selectedInstance.end_time)}
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center">
-                <span className="text-gray-500">Estado</span>
-                <Badge
-                  variant="outline"
-                  className={
-                    selectedInstance.status === "programado"
-                      ? "border-blue-400 text-blue-600"
-                      : selectedInstance.status === "realizado"
-                      ? "border-green-500 text-green-700"
-                      : "border-red-400 text-red-600"
-                  }
-                >
-                  {STATUS_LABELS[selectedInstance.status]}
-                </Badge>
-              </div>
-
-              {selectedInstance.type !== "actividad" && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Coordinador</span>
-                    <span className="font-medium text-right">
-                      {selectedInstance.coordinator
-                        ? `${selectedInstance.coordinator.name} ${selectedInstance.coordinator.last_name}`
-                        : <span className="text-gray-400 italic">Sin asignar</span>}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Co-coordinador</span>
-                    <span className="font-medium text-right">
-                      {selectedInstance.co_coordinator
-                        ? `${selectedInstance.co_coordinator.name} ${selectedInstance.co_coordinator.last_name}`
-                        : <span className="text-gray-400 italic">Sin asignar</span>}
-                    </span>
-                  </div>
-                </>
-              )}
-
-              {selectedInstance.volunteers && selectedInstance.volunteers.length > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Voluntarios</span>
-                  <span className="font-medium text-right">
-                    {selectedInstance.volunteers.map(v => `${v.name} ${v.last_name}`).join(", ")}
+            <div className="text-sm">
+              <div className="grid grid-cols-[90px_1fr] gap-x-3 gap-y-0 sm:grid-cols-[110px_1fr] sm:gap-x-4">
+                <div className="contents">
+                  <span className="border-b border-gray-100 py-2 text-gray-500">Horario</span>
+                  <span className="border-b border-gray-100 py-2 font-medium">
+                    {formatTime(selectedInstance.start_time)} – {formatTime(selectedInstance.end_time)}
                   </span>
                 </div>
-              )}
 
-              {selectedInstance.notify_enabled && (
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-500">Notificación</span>
-                  <Badge variant="outline" className="border-[#4dd0e1] text-[#0097a7]">
-                    {(selectedInstance.reminder_offsets || [])
-                      .map(o => REMINDER_OPTIONS.find(r => r.value === o)?.label ?? `${o}d`)
-                      .join(" · ") || "Activada"}
-                  </Badge>
+                <div className="contents">
+                  <span className="border-b border-gray-100 py-2 text-gray-500">Estado</span>
+                  <span className="border-b border-gray-100 py-2">
+                    <Badge
+                      variant="outline"
+                      className={
+                        selectedInstance.status === "programado"
+                          ? "border-blue-400 text-blue-600"
+                          : selectedInstance.status === "realizado"
+                          ? "border-green-500 text-green-700"
+                          : "border-red-400 text-red-600"
+                      }
+                    >
+                      {STATUS_LABELS[selectedInstance.status]}
+                    </Badge>
+                  </span>
                 </div>
-              )}
 
-              {selectedInstance.notes && (
-                <div>
-                  <span className="text-gray-500">Notas: </span>
-                  <span>{selectedInstance.notes}</span>
-                </div>
-              )}
+                {/* Coordinación y equipo: info interna. El participante no la ve. */}
+                {!isParticipant && selectedInstance.type !== "actividad" && (
+                  <>
+                    <div className="contents">
+                      <span className="border-b border-gray-100 py-2 text-gray-500">Coordinador</span>
+                      <span className="border-b border-gray-100 py-2">
+                        {selectedInstance.coordinator ? (
+                          <NameChip person={selectedInstance.coordinator} />
+                        ) : (
+                          <span className="text-gray-400 italic">Sin asignar</span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="contents">
+                      <span className="border-b border-gray-100 py-2 text-gray-500">
+                        {(selectedInstance.co_coordinators?.length ?? 0) > 1 ? "Co-coordinadores" : "Co-coordinador"}
+                      </span>
+                      <span className="border-b border-gray-100 py-2">
+                        {(selectedInstance.co_coordinators?.length ?? 0) > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {selectedInstance.co_coordinators!.map(c => <NameChip key={c.id} person={c} />)}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 italic">Sin asignar</span>
+                        )}
+                      </span>
+                    </div>
+                  </>
+                )}
 
-              <div className="pt-2 border-t flex flex-wrap gap-2">
+                {!isParticipant && selectedInstance.volunteers && selectedInstance.volunteers.length > 0 && (
+                  <div className="contents">
+                    <span className="border-b border-gray-100 py-2 text-gray-500">Voluntarios</span>
+                    <span className="border-b border-gray-100 py-2">
+                      <div className="flex flex-wrap gap-1">
+                        {selectedInstance.volunteers.map(v => <NameChip key={v.id} person={v} />)}
+                      </div>
+                    </span>
+                  </div>
+                )}
+
+                {/* Conteo real de anotados a ESTE encuentro (staff). */}
                 {can(user, "calendar:edit") && (
-                  <Button size="sm" variant="outline" onClick={() => openEditInstance(selectedInstance)}>
+                  <div className="contents">
+                    <span className="border-b border-gray-100 py-2 text-gray-500">Anotados</span>
+                    <span className="border-b border-gray-100 py-2 font-medium">
+                      {selectedInstance.participants_count ?? 0}
+                    </span>
+                  </div>
+                )}
+
+                {selectedInstance.notify_enabled && (
+                  <div className="contents">
+                    <span className="border-b border-gray-100 py-2 text-gray-500">Notificación</span>
+                    <span className="border-b border-gray-100 py-2">
+                      <Badge variant="outline" className="border-[#4dd0e1] text-[#0097a7]">
+                        {(selectedInstance.reminder_offsets || [])
+                          .map(o => REMINDER_OPTIONS.find(r => r.value === o)?.label ?? `${o}d`)
+                          .join(" · ") || "Activada"}
+                      </Badge>
+                    </span>
+                  </div>
+                )}
+
+                {selectedInstance.notes && (
+                  <div className="contents">
+                    <span className="py-2 text-gray-500">Notas</span>
+                    <span className="py-2">{selectedInstance.notes}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-3 pt-3 border-t grid grid-cols-2 gap-2">
+                {/* Participante: se anota / desanota de ESTE encuentro. */}
+                {isParticipant && selectedInstance.status === "programado" && (() => {
+                  const enrolled = myEventIds.includes(selectedInstance.id)
+                  return (
+                    <Button
+                      size="sm"
+                      disabled={enrolling}
+                      onClick={() => toggleEnrollment(selectedInstance.id)}
+                      className={"col-span-2 " + (enrolled
+                        ? "bg-white text-[#0097a7] border border-[#4dd0e1] hover:bg-red-50 hover:text-red-500 hover:border-red-300"
+                        : "bg-[#4dd0e1] hover:bg-[#3bb8c9] text-white")}
+                    >
+                      {enrolling
+                        ? <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        : enrolled ? <Check className="h-3 w-3 mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
+                      {enrolled ? "Anotado — quitarme" : "Me anoto"}
+                    </Button>
+                  )
+                })()}
+                {can(user, "calendar:edit") && (
+                  <Button size="sm" variant="outline" className="justify-center" onClick={() => openEditInstance(selectedInstance)}>
                     <Edit className="h-3 w-3 mr-1" />
                     Editar
                   </Button>
                 )}
-                {canDeleteCalendarInstance(user, selectedInstance) && (
+                {/* Recordatorio manual: respaldo del cron. Avisa a los involucrados
+                    (voluntarios asignados + participantes anotados) de este evento. */}
+                {can(user, "calendar:edit") && selectedInstance.status === "programado" && (
                   <Button
                     size="sm"
                     variant="outline"
-                    className="text-red-500 border-red-300 hover:bg-red-50"
-                    onClick={() => setDeleteOpen(true)}
+                    disabled={notifying}
+                    onClick={handleNotifyEvent}
+                    className="justify-center border-[#4dd0e1] text-[#0097a7] hover:bg-[#4dd0e1]/10"
                   >
-                    <Trash2 className="h-3 w-3 mr-1" />
-                    Eliminar
+                    {notifying ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Bell className="h-3 w-3 mr-1" />}
+                    {notifying ? "Enviando…" : "Enviar recordatorio"}
                   </Button>
                 )}
                 {can(user, "calendar:edit") && selectedInstance?.type !== "actividad" && (
@@ -1295,7 +1430,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-[#0097a7] border-[#4dd0e1] hover:bg-[#e0f7fa]"
+                      className="justify-center text-[#0097a7] border-[#4dd0e1] hover:bg-[#e0f7fa]"
                       onClick={() => handleSelfAssign("coordinator")}
                     >
                       <UserCheck className="h-3 w-3 mr-1" />
@@ -1304,13 +1439,24 @@ export default function CalendariosManager({ user }: { user: any }) {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-purple-700 border-purple-400 hover:bg-purple-50"
+                      className="justify-center text-[#0097a7] border-[#4dd0e1] hover:bg-[#e0f7fa]"
                       onClick={() => handleSelfAssign("co_coordinator")}
                     >
                       <UserPlus className="h-3 w-3 mr-1" />
                       Co-coordinar
                     </Button>
                   </>
+                )}
+                {canDeleteCalendarInstance(user, selectedInstance) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="col-span-2 justify-center text-red-500 border-red-300 hover:bg-red-50"
+                    onClick={() => setDeleteOpen(true)}
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Eliminar
+                  </Button>
                 )}
               </div>
             </div>
@@ -1896,7 +2042,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                 <Label>Módulo</Label>
                 <Select
                   value={instanceForm.module}
-                  onValueChange={(v: any) => setInstanceForm(f => ({ ...f, module: v, source_id: "", coordinator_id: "", co_coordinator_id: "" }))}
+                  onValueChange={(v: any) => setInstanceForm(f => ({ ...f, module: v, source_id: "", coordinator_id: "", co_coordinator_ids: [] }))}
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -2052,27 +2198,44 @@ export default function CalendariosManager({ user }: { user: any }) {
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label>Co-coordinador</Label>
-                  <Select
-                    value={instanceForm.co_coordinator_id || "none"}
-                    onValueChange={v => setInstanceForm(f => {
-                      const co_coordinator_id = v === "none" ? "" : v
-                      const removedId = co_coordinator_id ? parseInt(co_coordinator_id) : null
+                  <Label>Co-coordinadores</Label>
+                  {/* Varios por evento: se pidió poder asignar más de uno.
+                      Se excluye al coordinador para que nadie ocupe dos roles. */}
+                  {(() => {
+                    const coordId = instanceForm.coordinator_id ? parseInt(instanceForm.coordinator_id) : null
+                    const elegibles = volunteers
+                      .filter(v => v.id !== coordId)
+                      .sort((a, b) => `${a.name} ${a.last_name}`.localeCompare(`${b.name} ${b.last_name}`))
+                    const toggle = (id: number) => setInstanceForm(f => {
+                      const yaEsta = f.co_coordinator_ids.includes(id)
+                      const co_coordinator_ids = yaEsta
+                        ? f.co_coordinator_ids.filter(x => x !== id)
+                        : [...f.co_coordinator_ids, id]
                       return {
                         ...f,
-                        co_coordinator_id,
-                        volunteer_ids: removedId ? f.volunteer_ids.filter(id => id !== removedId) : f.volunteer_ids,
+                        co_coordinator_ids,
+                        // Si pasa a co-coordinador, sale de la lista de voluntarios.
+                        volunteer_ids: yaEsta ? f.volunteer_ids : f.volunteer_ids.filter(x => x !== id),
                       }
-                    })}
-                  >
-                    <SelectTrigger><SelectValue placeholder="Sin asignar" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sin asignar</SelectItem>
-                      {volunteers.map(v => (
-                        <SelectItem key={v.id} value={String(v.id)}>{v.name} {v.last_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    })
+                    return (
+                      <div className="max-h-32 overflow-y-auto rounded-md border p-2 space-y-1">
+                        {elegibles.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">No hay voluntarios</p>
+                        ) : (
+                          elegibles.map(v => (
+                            <label key={v.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                              <Checkbox
+                                checked={instanceForm.co_coordinator_ids.includes(v.id)}
+                                onCheckedChange={() => toggle(v.id)}
+                              />
+                              {v.name} {v.last_name}
+                            </label>
+                          ))
+                        )}
+                      </div>
+                    )
+                  })()}
                 </div>
               </>
             )}
@@ -2096,8 +2259,10 @@ export default function CalendariosManager({ user }: { user: any }) {
               </button>
               {volunteersOpen && (() => {
                 const coordId = instanceForm.coordinator_id ? parseInt(instanceForm.coordinator_id) : null
-                const coCoordId = instanceForm.co_coordinator_id ? parseInt(instanceForm.co_coordinator_id) : null
-                const assignable = volunteers.filter(v => v.id !== coordId && v.id !== coCoordId)
+                const coCoordIds = instanceForm.co_coordinator_ids
+                const assignable = volunteers
+                  .filter(v => v.id !== coordId && !coCoordIds.includes(v.id))
+                  .sort((a, b) => `${a.name} ${a.last_name}`.localeCompare(`${b.name} ${b.last_name}`))
                 return (
                   <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
                     {assignable.length === 0 ? (

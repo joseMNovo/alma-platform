@@ -8,6 +8,7 @@ import {
   setCalendarAssignment,
   removeCalendarAssignment,
   setEventVolunteers,
+  setEventCoCoordinators,
   logActivityEvent,
   toUserType,
 } from '@/lib/data-manager'
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { coordinator_id, co_coordinator_id, volunteer_ids, ...instanceData } = body
+    const { coordinator_id, co_coordinator_id, co_coordinator_ids, volunteer_ids, ...instanceData } = body
 
     // Registra al usuario que crea el evento, para permitir que lo borre luego sin ser admin
     const instance = await createCalendarInstance({ ...instanceData, created_by_volunteer_id: session.id })
@@ -52,15 +53,20 @@ export async function POST(req: NextRequest) {
     if (coordinator_id) {
       await setCalendarAssignment(instance.id, 'coordinator', coordinator_id)
     }
-    if (co_coordinator_id) {
-      await setCalendarAssignment(instance.id, 'co_coordinator', co_coordinator_id)
+    // Un evento puede tener VARIOS co-coordinadores. Se acepta la lista nueva
+    // y también el campo viejo singular, por si queda algún consumidor.
+    const coCoords: number[] = Array.isArray(co_coordinator_ids)
+      ? co_coordinator_ids
+      : co_coordinator_id ? [co_coordinator_id] : []
+    if (coCoords.length > 0) {
+      await setEventCoCoordinators(instance.id, coCoords)
     }
     if (Array.isArray(volunteer_ids)) {
       await setEventVolunteers(instance.id, volunteer_ids)
     }
 
     // Re-fetch with assignments if any were set
-    if (coordinator_id || co_coordinator_id || (Array.isArray(volunteer_ids) && volunteer_ids.length > 0)) {
+    if (coordinator_id || coCoords.length > 0 || (Array.isArray(volunteer_ids) && volunteer_ids.length > 0)) {
       const date = new Date(instance.date + 'T12:00:00')
       const updated = await getCalendarInstances(date.getFullYear(), date.getMonth() + 1)
       const found = updated.find(i => i.id === instance.id)
@@ -92,7 +98,7 @@ export async function PUT(req: NextRequest) {
     if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
     const body = await req.json()
-    const { coordinator_id, co_coordinator_id, volunteer_ids, ...instanceData } = body
+    const { coordinator_id, co_coordinator_id, co_coordinator_ids, volunteer_ids, ...instanceData } = body
 
     const instance = await updateCalendarInstance(id, instanceData)
 
@@ -112,6 +118,10 @@ export async function PUT(req: NextRequest) {
       } else {
         await removeCalendarAssignment(id, 'co_coordinator')
       }
+    }
+    // Un evento puede tener VARIOS co-coordinadores: reemplaza la lista completa.
+    if (Array.isArray(co_coordinator_ids)) {
+      await setEventCoCoordinators(id, co_coordinator_ids)
     }
     if (Array.isArray(volunteer_ids)) {
       await setEventVolunteers(id, volunteer_ids)

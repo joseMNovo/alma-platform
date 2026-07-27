@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useRef, type ReactNode } from "react"
+import { createPortal } from "react-dom"
 import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -11,11 +12,9 @@ import {
   Activity,
   CreditCard,
   Package,
-  Heart,
   CheckSquare,
   CalendarDays,
   UserCircle,
-  LayoutGrid,
   Lightbulb,
   Gamepad2,
   ClipboardCheck,
@@ -23,6 +22,9 @@ import {
   Loader2,
   BarChart3,
   Megaphone,
+  GraduationCap,
+  KeyRound,
+  ChevronDown,
 } from "lucide-react"
 
 const GAMES_URL = process.env.NEXT_PUBLIC_GAMES_URL ?? ""
@@ -36,14 +38,25 @@ import PendientesManager from "@/components/pendientes/pendientes-manager"
 import CalendariosManager from "@/components/calendarios/calendarios-manager"
 import IdeasManager from "@/components/ideas/ideas-manager"
 import PersonasDbManager from "@/components/personas/personas-db-manager"
+import ParticipantesManager from "@/components/participantes/participantes-manager"
+import InscripcionesManager from "@/components/espacios/inscripciones-manager"
 import MiCuenta from "@/components/cuenta/mi-cuenta"
 import AprobacionesManager from "@/components/voluntarios/aprobaciones-manager"
 import ActividadManager from "@/components/actividad/actividad-manager"
+import CapacitacionesManager from "@/components/capacitaciones/capacitaciones-manager"
+import AccesosManager from "@/components/accesos/accesos-manager"
+import { visibleModules, visibleChildren, type Grant } from "@/lib/access"
+import { getModule, resolveRoute, MODULES } from "@/lib/modules"
 import NotificationBell from "@/components/notifications/notification-bell"
 import BroadcastManager from "@/components/notifications/broadcast-manager"
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import AlmaFooter from "@/components/ui/alma-footer"
 import ProfileCompletionModal from "@/components/auth/profile-completion-modal"
+import ParticipanteOnboarding from "@/components/participantes/onboarding-modal"
 import AnnouncementModal from "@/components/announcements/announcement-modal"
 import { Menu } from "lucide-react"
 
@@ -54,17 +67,37 @@ const ROLE_LABELS: Record<string, string> = {
   participante: "Participante",
 }
 
-const ESPACIOS_TABS = ["grupos", "talleres", "actividades"]
 
 export default function Dashboard({ user, onLogout }: { user: any, onLogout: () => void }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
   const [navigating, setNavigating] = useState(false)
+  // Habilitaciones del usuario (person_access_grants). Se usan SOLO para
+  // decidir qué pestañas pintar; el acceso real lo verifica el servidor en
+  // cada endpoint. Ver lib/access.ts.
+  const [grants, setGrants] = useState<Grant[]>([])
   const router = useRouter()
   const pathname = usePathname()
 
+  // Dropdown de sub-módulos al hacer hover (desktop). Se porta a document.body
+  // porque la barra de módulos tiene overflow-x-auto/overflow-y-hidden (scroll
+  // horizontal cuando hay muchas pestañas) y eso recorta cualquier hijo
+  // posicionado absoluto que sobresalga hacia abajo.
+  const [navSubmenu, setNavSubmenu] = useState<{ key: string; left: number; top: number } | null>(null)
+  const navSubmenuCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const openNavSubmenu = (key: string, el: HTMLElement) => {
+    if (navSubmenuCloseTimer.current) { clearTimeout(navSubmenuCloseTimer.current); navSubmenuCloseTimer.current = null }
+    const rect = el.getBoundingClientRect()
+    setNavSubmenu({ key, left: rect.left + rect.width / 2, top: rect.bottom })
+  }
+  const scheduleCloseNavSubmenu = () => {
+    navSubmenuCloseTimer.current = setTimeout(() => setNavSubmenu(null), 150)
+  }
+  const cancelCloseNavSubmenu = () => {
+    if (navSubmenuCloseTimer.current) { clearTimeout(navSubmenuCloseTimer.current); navSubmenuCloseTimer.current = null }
+  }
+
   const isAdmin = user.role === "admin"
-  const isParticipant = user.role === "participante"
 
   // Pagos oculto por ahora (el módulo todavía no existe). Para reactivarlo: poner true.
   const SHOW_PAGOS = false
@@ -77,11 +110,55 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       .then(data => setPendingCount(Array.isArray(data) ? data.length : 0))
       .catch(() => {})
   }, [pathname, isAdmin])
+  useEffect(() => {
+    fetch("/api/accesos/mios")
+      .then(r => r.ok ? r.json() : { grants: [] })
+      .then(data => setGrants(Array.isArray(data?.grants) ? data.grants : []))
+      .catch(() => {})
+  }, [])
+
   const roleLabel = ROLE_LABELS[user.role] ?? user.role
+
+  /**
+   * Módulos que ve este usuario: rol (lib/permissions) OR habilitación
+   * (person_access_grants). Una sola lista alimenta el nav mobile, las
+   * pestañas de escritorio, el breadcrumb y el contenido.
+   */
+  const navModules = useMemo(() => visibleModules(user, grants), [user, grants])
+
+  /** Contenido de cada módulo. La clave tiene que coincidir con la del registro. */
+  const MODULE_CONTENT: Record<string, ReactNode> = {
+    calendarios: <CalendariosManager user={user} />,
+    inventario: <InventarioManager user={user} />,
+    pendientes: <PendientesManager user={user} />,
+    voluntarios: <VoluntariosManager user={user} />,
+    personas: <PersonasDbManager user={user} />,
+    participantes: <ParticipantesManager user={user} />,
+    talleres: <TalleresManager user={user} />,
+    grupos: <GruposManager user={user} />,
+    actividades: <ActividadesManager user={user} />,
+    inscripciones: <InscripcionesManager />,
+    capacitaciones: <CapacitacionesManager user={user} />,
+    accesos: <AccesosManager user={user} />,
+    ideas: <IdeasManager user={user} />,
+    pagos: <PagosManager user={user} />,
+    aprobaciones: <AprobacionesManager user={user} onPendingCount={setPendingCount} />,
+    actividad: <ActividadManager user={user} />,
+    anuncios: <BroadcastManager user={user} />,
+    "mis-datos": <MiCuenta user={user} />,
+  }
+
+  // Tailwind necesita las clases completas en el código para generarlas:
+  // `grid-cols-${n}` interpolado no existiría en el CSS final.
+  const GRID_COLS: Record<number, string> = {
+    1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4",
+  }
+
 
   // Tracking de uso: registra una vista por cada módulo/sub-módulo que el usuario realmente abre.
   useEffect(() => {
-    const module = activeTab === "espacios" ? espaciosSubTab : activeTab
+    const r = resolveRoute(pathname)
+    const module = r?.child?.key ?? r?.group.key ?? "desconocido"
     fetch("/api/tracking", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -90,41 +167,35 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname])
 
-  const getActiveTab = () => {
-    if (pathname === '/actividad' || pathname.startsWith('/actividad/')) return 'actividad'
-    if (pathname.includes('/aprobaciones')) return 'aprobaciones'
-    if (pathname.includes('/inventario')) return 'inventario'
-    if (pathname.includes('/voluntarios')) return 'voluntarios'
-    if (pathname.includes('/personas')) return 'personas'
-    if (pathname.includes('/pendientes')) return 'pendientes'
-    if (pathname.includes('/calendarios')) return 'calendarios'
-    if (pathname.includes('/talleres')) return 'espacios'
-    if (pathname.includes('/grupos')) return 'espacios'
-    if (pathname.includes('/actividades')) return 'espacios'
-    if (pathname.includes('/pagos')) return 'pagos'
-    if (pathname.includes('/ideas')) return 'ideas'
-    if (pathname.includes('/anuncios')) return 'anuncios'
-    if (pathname.includes('/mis-datos')) return 'mis-datos'
-    return 'calendarios'
-  }
+  /**
+   * Ruta → grupo activo + sub-módulo activo.
+   *
+   * Todo sale del registro (lib/modules.ts): agregar un módulo no obliga a
+   * tocar esta función. Antes había una cadena de ifs que había que ampliar
+   * a mano en cada alta.
+   */
+  const resolved = resolveRoute(pathname)
+  const activeGroup = resolved?.group ?? MODULES[0]
+  const activeTab = activeGroup.key
+  const activeChild = resolved?.child
 
-  const getEspaciosSubTab = () => {
-    if (pathname.includes('/talleres')) return 'talleres'
-    if (pathname.includes('/grupos')) return 'grupos'
-    if (pathname.includes('/actividades')) return 'actividades'
-    return 'talleres'
-  }
+  /** Sub-módulo activo dentro del grupo (primero visible si la ruta no lo dice). */
+  const groupChildren = visibleChildren(user, activeGroup, grants)
+  const activeSubTab = activeChild?.key ?? groupChildren[0]?.key ?? activeGroup.key
 
-  const activeTab = getActiveTab()
-  const espaciosSubTab = getEspaciosSubTab()
+  const activeModule = activeChild ?? activeGroup
+  const ActiveIcon = activeModule.icon
+  const activeTabLabel = activeModule.label
 
   const handleTabChange = (value: string) => {
     setNavigating(true)
-    if (value === "espacios") {
-      router.push(`/${espaciosSubTab}`)
-    } else {
-      router.push(`/${value}`)
-    }
+    const group = getModule(value)
+    // Al tocar un grupo se entra por su primer sub-módulo visible: el usuario
+    // nunca cae en una pestaña vacía por no tener permiso sobre el primero.
+    const target = group?.children?.length
+      ? (visibleChildren(user, group, grants)[0]?.route ?? group.route)
+      : (group?.route ?? `/${value}`)
+    router.push(target)
     setMobileMenuOpen(false)
   }
 
@@ -134,7 +205,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   // Tabs que muestran la flor arriba a la derecha; el resto la muestran abajo a la derecha
   const flowerTop = ['voluntarios', 'espacios', 'pendientes', 'ideas'].includes(activeTab)
 
-  const espaciosLabel = espaciosSubTab.charAt(0).toUpperCase() + espaciosSubTab.slice(1)
 
   return (
     <div className="min-h-screen bg-gray-50 relative overflow-hidden">
@@ -173,7 +243,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
             {/* Título centrado */}
             <div className="flex-1 flex justify-center">
               <h1 className="text-lg sm:text-xl font-bold text-center">
-                Plataforma <span className="text-[#4dd0e1]">alma</span>
+                Comunidad <span className="text-[#4dd0e1]">ALMA</span>
               </h1>
             </div>
 
@@ -221,7 +291,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                         <img src="/images/flor.png" alt="ALMA" className="h-8 w-auto" />
                         <div>
                           <h2 className="text-lg font-bold">
-                            Plataforma <span className="text-[#4dd0e1]">alma</span>
+                            Comunidad <span className="text-[#4dd0e1]">ALMA</span>
                           </h2>
                         </div>
                       </div>
@@ -243,188 +313,64 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                     </div>
                     <div className="flex-1 overflow-auto p-4">
                       <nav className="space-y-2">
-                        {isParticipant ? (
-                          // Participante: calendarios, espacios (grupos/talleres/actividades), mis datos
-                          <>
+                        {navModules.map((mod) => {
+                          const Icon = mod.icon
+                          const isActive = activeTab === mod.key
+                          // Solo los hijos que este usuario puede ver: si no,
+                          // un voluntario vería "Aprobaciones", que es de admin.
+                          const kids = visibleChildren(user, mod, grants)
+
+                          // Con varios hijos, el grupo es una sección con título.
+                          // Con uno solo (Agenda) cae abajo y se dibuja plano:
+                          // un encabezado con un único ítem debajo es ruido.
+                          if (kids.length > 1) {
+                            return (
+                              <div key={mod.key}>
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1">
+                                  {mod.label}
+                                </p>
+                                {kids.map((child) => {
+                                  const ChildIcon = child.icon
+                                  const childActive = activeSubTab === child.key
+                                  return (
+                                    <Button
+                                      key={child.key}
+                                      variant={childActive ? "default" : "ghost"}
+                                      className={`w-full justify-start pl-8 ${childActive ? "bg-[#4dd0e1] text-white" : ""}`}
+                                      onClick={() => { setNavigating(true); router.push(child.route); setMobileMenuOpen(false) }}
+                                    >
+                                      <ChildIcon className="w-5 h-5 mr-3" />
+                                      {child.label}
+                                      {/* El badge va en el HIJO: el grupo ya no dibuja botón propio */}
+                                      {child.key === "aprobaciones" && pendingCount > 0 && (
+                                        <span className="ml-auto inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full bg-red-500 text-white">
+                                          {pendingCount}
+                                        </span>
+                                      )}
+                                    </Button>
+                                  )
+                                })}
+                              </div>
+                            )
+                          }
+
+                          return (
                             <Button
-                              variant={activeTab === "calendarios" ? "default" : "ghost"}
-                              className={`w-full justify-start ${activeTab === "calendarios" ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange("calendarios")}
+                              key={mod.key}
+                              variant={isActive ? "default" : "ghost"}
+                              className={`w-full justify-start ${isActive ? "bg-[#4dd0e1] text-white" : ""}`}
+                              onClick={() => handleTabChange(mod.key)}
                             >
-                              <CalendarDays className="w-5 h-5 mr-3" />
-                              Calendarios
+                              <Icon className="w-5 h-5 mr-3" />
+                              {mod.label}
+                              {mod.key === "comunidad" && pendingCount > 0 && (
+                                <span className="ml-auto inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full bg-red-500 text-white">
+                                  {pendingCount}
+                                </span>
+                              )}
                             </Button>
-                            {/* Espacios group */}
-                            <div>
-                              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1">Espacios</p>
-                              <Button
-                                variant={activeTab === "espacios" && espaciosSubTab === "talleres" ? "default" : "ghost"}
-                                className={`w-full justify-start pl-8 ${activeTab === "espacios" && espaciosSubTab === "talleres" ? "bg-[#4dd0e1] text-white" : ""}`}
-                                onClick={() => { setNavigating(true); router.push("/talleres"); setMobileMenuOpen(false) }}
-                              >
-                                <Calendar className="w-5 h-5 mr-3" />
-                                Talleres
-                              </Button>
-                              <Button
-                                variant={activeTab === "espacios" && espaciosSubTab === "grupos" ? "default" : "ghost"}
-                                className={`w-full justify-start pl-8 ${activeTab === "espacios" && espaciosSubTab === "grupos" ? "bg-[#4dd0e1] text-white" : ""}`}
-                                onClick={() => { setNavigating(true); router.push("/grupos"); setMobileMenuOpen(false) }}
-                              >
-                                <Users className="w-5 h-5 mr-3" />
-                                Grupos
-                              </Button>
-                              <Button
-                                variant={activeTab === "espacios" && espaciosSubTab === "actividades" ? "default" : "ghost"}
-                                className={`w-full justify-start pl-8 ${activeTab === "espacios" && espaciosSubTab === "actividades" ? "bg-[#4dd0e1] text-white" : ""}`}
-                                onClick={() => { setNavigating(true); router.push("/actividades"); setMobileMenuOpen(false) }}
-                              >
-                                <Activity className="w-5 h-5 mr-3" />
-                                Actividades
-                              </Button>
-                            </div>
-                            <Button
-                              variant={activeTab === "mis-datos" ? "default" : "ghost"}
-                              className={`w-full justify-start ${activeTab === "mis-datos" ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange("mis-datos")}
-                            >
-                              <UserCircle className="w-5 h-5 mr-3" />
-                              Mi cuenta
-                            </Button>
-                          </>
-                        ) : (
-                          // Voluntario / Admin: vista completa
-                          <>
-                            <Button
-                              variant={activeTab === "calendarios" ? "default" : "ghost"}
-                              className={`w-full justify-start ${activeTab === "calendarios" ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange("calendarios")}
-                            >
-                              <CalendarDays className="w-5 h-5 mr-3" />
-                              Calendarios
-                            </Button>
-                            <Button
-                              variant={activeTab === "inventario" ? "default" : "ghost"}
-                              className={`w-full justify-start ${activeTab === "inventario" ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange("inventario")}
-                            >
-                              <Package className="w-5 h-5 mr-3" />
-                              Inventario
-                            </Button>
-                            <Button
-                              variant={activeTab === "pendientes" ? "default" : "ghost"}
-                              className={`w-full justify-start ${activeTab === "pendientes" ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange("pendientes")}
-                            >
-                              <CheckSquare className="w-5 h-5 mr-3" />
-                              Pendientes
-                            </Button>
-                            <Button
-                              variant={activeTab === "voluntarios" ? "default" : "ghost"}
-                              className={`w-full justify-start ${activeTab === "voluntarios" ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange("voluntarios")}
-                            >
-                              <Heart className="w-5 h-5 mr-3" />
-                              Voluntarios
-                            </Button>
-                            <Button
-                              variant={activeTab === "personas" ? "default" : "ghost"}
-                              className={`w-full justify-start ${activeTab === "personas" ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange("personas")}
-                            >
-                              <Database className="w-5 h-5 mr-3" />
-                              Base de datos
-                            </Button>
-                            {/* Espacios group */}
-                            <div>
-                              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1">Espacios</p>
-                              <Button
-                                variant={activeTab === "espacios" && espaciosSubTab === "talleres" ? "default" : "ghost"}
-                                className={`w-full justify-start pl-8 ${activeTab === "espacios" && espaciosSubTab === "talleres" ? "bg-[#4dd0e1] text-white" : ""}`}
-                                onClick={() => { setNavigating(true); router.push("/talleres"); setMobileMenuOpen(false) }}
-                              >
-                                <Calendar className="w-5 h-5 mr-3" />
-                                Talleres
-                              </Button>
-                              <Button
-                                variant={activeTab === "espacios" && espaciosSubTab === "grupos" ? "default" : "ghost"}
-                                className={`w-full justify-start pl-8 ${activeTab === "espacios" && espaciosSubTab === "grupos" ? "bg-[#4dd0e1] text-white" : ""}`}
-                                onClick={() => { setNavigating(true); router.push("/grupos"); setMobileMenuOpen(false) }}
-                              >
-                                <Users className="w-5 h-5 mr-3" />
-                                Grupos
-                              </Button>
-                              <Button
-                                variant={activeTab === "espacios" && espaciosSubTab === "actividades" ? "default" : "ghost"}
-                                className={`w-full justify-start pl-8 ${activeTab === "espacios" && espaciosSubTab === "actividades" ? "bg-[#4dd0e1] text-white" : ""}`}
-                                onClick={() => { setNavigating(true); router.push("/actividades"); setMobileMenuOpen(false) }}
-                              >
-                                <Activity className="w-5 h-5 mr-3" />
-                                Actividades
-                              </Button>
-                            </div>
-                            {SHOW_PAGOS && (
-                              <Button
-                                variant={activeTab === "pagos" ? "default" : "ghost"}
-                                className={`w-full justify-start ${activeTab === "pagos" ? "bg-[#4dd0e1] text-white" : ""}`}
-                                onClick={() => handleTabChange("pagos")}
-                              >
-                                <CreditCard className="w-5 h-5 mr-3" />
-                                Pagos
-                              </Button>
-                            )}
-                            <Button
-                              variant={activeTab === "ideas" ? "default" : "ghost"}
-                              className={`w-full justify-start ${activeTab === "ideas" ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange("ideas")}
-                            >
-                              <Lightbulb className="w-5 h-5 mr-3" />
-                              Ideas
-                            </Button>
-                            <Button
-                              variant={activeTab === "mis-datos" ? "default" : "ghost"}
-                              className={`w-full justify-start ${activeTab === "mis-datos" ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange("mis-datos")}
-                            >
-                              <UserCircle className="w-5 h-5 mr-3" />
-                              Mi cuenta
-                            </Button>
-                            {isAdmin && (
-                              <Button
-                                variant={activeTab === "aprobaciones" ? "default" : "ghost"}
-                                className={`w-full justify-start ${activeTab === "aprobaciones" ? "bg-[#4dd0e1] text-white" : ""}`}
-                                onClick={() => handleTabChange("aprobaciones")}
-                              >
-                                <ClipboardCheck className="w-5 h-5 mr-3" />
-                                Aprobaciones
-                                {pendingCount > 0 && (
-                                  <span className="ml-auto inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full bg-red-500 text-white">
-                                    {pendingCount}
-                                  </span>
-                                )}
-                              </Button>
-                            )}
-                            {isAdmin && (
-                              <Button
-                                variant={activeTab === "actividad" ? "default" : "ghost"}
-                                className={`w-full justify-start ${activeTab === "actividad" ? "bg-[#4dd0e1] text-white" : ""}`}
-                                onClick={() => handleTabChange("actividad")}
-                              >
-                                <BarChart3 className="w-5 h-5 mr-3" />
-                                Actividad
-                              </Button>
-                            )}
-                            {isAdmin && (
-                              <Button
-                                variant={activeTab === "anuncios" ? "default" : "ghost"}
-                                className={`w-full justify-start ${activeTab === "anuncios" ? "bg-[#4dd0e1] text-white" : ""}`}
-                                onClick={() => handleTabChange("anuncios")}
-                              >
-                                <Megaphone className="w-5 h-5 mr-3" />
-                                Anuncios
-                              </Button>
-                            )}
-                          </>
-                        )}
+                          )
+                        })}
                       </nav>
                       {GAMES_URL && (
                         <a
@@ -456,241 +402,155 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
             </div>
           </div>
         )}
-        {isParticipant ? (
-          // ── Vista Participante ─────────────────────────────────────────
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-            <TabsList className="hidden md:grid w-full grid-cols-3 bg-white border border-gray-200 p-1 rounded-lg">
-              <TabsTrigger value="calendarios" className={tabTriggerClass}>
-                <CalendarDays className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline">Calendarios</span>
-              </TabsTrigger>
-              <TabsTrigger value="espacios" className={tabTriggerClass}>
-                <LayoutGrid className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline">Espacios</span>
-              </TabsTrigger>
-              <TabsTrigger value="mis-datos" className={tabTriggerClass}>
-                <UserCircle className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline">Mi cuenta</span>
-              </TabsTrigger>
-            </TabsList>
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+          {/*
+            Las pestañas salen del registro de módulos (lib/modules.ts) filtrado
+            por rol + habilitaciones (lib/access.ts). Agregar un módulo nuevo es
+            una entrada en el registro y una en MODULE_CONTENT — no hay que tocar
+            el nav mobile, ni la lista, ni el breadcrumb.
+          */}
+          <TabsList
+            className={
+              GRID_COLS[navModules.length]
+                ? `hidden md:grid w-full ${GRID_COLS[navModules.length]} bg-white border border-gray-200 p-1 rounded-lg`
+                : "hidden md:flex md:flex-nowrap md:justify-center w-full bg-white border border-gray-200 p-1 rounded-lg gap-0.5 overflow-x-auto overflow-y-hidden"
+            }
+          >
+            {navModules.map((mod) => {
+              const Icon = mod.icon
+              const submenu = visibleChildren(user, mod, grants)
+              const hasSubmenu = submenu.length > 1
+              return (
+                <div
+                  key={mod.key}
+                  className="relative"
+                  onMouseEnter={hasSubmenu ? (e) => openNavSubmenu(mod.key, e.currentTarget) : undefined}
+                  onMouseLeave={hasSubmenu ? scheduleCloseNavSubmenu : undefined}
+                >
+                  <TabsTrigger value={mod.key} className={tabTriggerClass + " w-full"}>
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span className="hidden sm:inline">{mod.label}</span>
+                    {mod.key === "aprobaciones" && pendingCount > 0 && (
+                      <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-red-500 text-white">
+                        {pendingCount}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                </div>
+              )
+            })}
+          </TabsList>
 
-            {/* Mobile breadcrumb */}
-            <div className="md:hidden bg-white p-3 rounded-lg shadow-sm mb-4">
-              <h2 className="text-lg font-medium flex items-center">
-                {activeTab === "espacios" ? (
-                  <>
-                    {espaciosSubTab === "talleres" && <Calendar className="w-5 h-5 mr-2" />}
-                    {espaciosSubTab === "grupos" && <Users className="w-5 h-5 mr-2" />}
-                    {espaciosSubTab === "actividades" && <Activity className="w-5 h-5 mr-2" />}
-                    {espaciosLabel}
-                  </>
-                ) : (
-                  <>
-                    {activeTab === "calendarios" && <CalendarDays className="w-5 h-5 mr-2" />}
-                    {activeTab === "mis-datos" && <UserCircle className="w-5 h-5 mr-2" />}
-                    {activeTab === "mis-datos" ? "Mi cuenta" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
-                  </>
-                )}
-              </h2>
-            </div>
+          {typeof document !== "undefined" && navSubmenu && createPortal(
+            (() => {
+              const mod = navModules.find((m) => m.key === navSubmenu.key)
+              if (!mod) return null
+              const submenu = visibleChildren(user, mod, grants)
+              return (
+                <div
+                  className="fixed z-[100] -translate-x-1/2 pt-1"
+                  style={{ left: navSubmenu.left, top: navSubmenu.top }}
+                  onMouseEnter={cancelCloseNavSubmenu}
+                  onMouseLeave={scheduleCloseNavSubmenu}
+                >
+                  <div className="flex min-w-[170px] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                    {submenu.map((child) => {
+                      const ChildIcon = child.icon
+                      return (
+                        <button
+                          key={child.key}
+                          type="button"
+                          onClick={() => { setNavigating(true); setNavSubmenu(null); router.push(child.route) }}
+                          className="flex items-center gap-2 px-3 py-2 text-left text-[13px] text-gray-700 transition-colors hover:bg-[#4dd0e1]/10 hover:text-[#00838f]"
+                        >
+                          <ChildIcon className="w-4 h-4 shrink-0" />
+                          {child.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })(),
+            document.body,
+          )}
 
-            <TabsContent value="calendarios" className="space-y-6">
-              <CalendariosManager user={user} />
-            </TabsContent>
-            <TabsContent value="espacios" className="space-y-4">
-              <Tabs value={espaciosSubTab} onValueChange={(v) => { setNavigating(true); router.push(`/${v}`) }} className="space-y-4">
-                <TabsList className="bg-white border border-gray-200 p-1 rounded-lg w-auto">
-                  <TabsTrigger value="talleres" className={subTabTriggerClass}>
-                    <Calendar className="w-4 h-4 shrink-0" />
-                    <span>Talleres</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="grupos" className={subTabTriggerClass}>
-                    <Users className="w-4 h-4 shrink-0" />
-                    <span>Grupos</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="actividades" className={subTabTriggerClass}>
-                    <Activity className="w-4 h-4 shrink-0" />
-                    <span>Actividades</span>
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="talleres">{espaciosSubTab === "talleres" && <TalleresManager user={user} />}</TabsContent>
-                <TabsContent value="grupos">{espaciosSubTab === "grupos" && <GruposManager user={user} />}</TabsContent>
-                <TabsContent value="actividades">{espaciosSubTab === "actividades" && <ActividadesManager user={user} />}</TabsContent>
-              </Tabs>
-            </TabsContent>
-            <TabsContent value="mis-datos" className="space-y-6">
-              <MiCuenta user={user} />
-            </TabsContent>
-          </Tabs>
-        ) : (
-          // ── Vista Voluntario / Admin ───────────────────────────────────
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-            <TabsList className="hidden md:flex md:flex-nowrap md:justify-center w-full bg-white border border-gray-200 p-1 rounded-lg gap-0.5 overflow-x-auto overflow-y-hidden">
-              <TabsTrigger value="calendarios" className={tabTriggerClass}>
-                <CalendarDays className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline">Calendarios</span>
-              </TabsTrigger>
-              <TabsTrigger value="inventario" className={tabTriggerClass}>
-                <Package className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline">Inventario</span>
-              </TabsTrigger>
-              <TabsTrigger value="pendientes" className={tabTriggerClass}>
-                <CheckSquare className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline">Pendientes</span>
-              </TabsTrigger>
-              <TabsTrigger value="voluntarios" className={tabTriggerClass}>
-                <Heart className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline">Voluntarios</span>
-              </TabsTrigger>
-              <TabsTrigger value="personas" className={tabTriggerClass}>
-                <Database className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline">Base de datos</span>
-              </TabsTrigger>
-              <TabsTrigger value="espacios" className={tabTriggerClass}>
-                <LayoutGrid className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline">Espacios</span>
-              </TabsTrigger>
-              {SHOW_PAGOS && (
-                <TabsTrigger value="pagos" className={tabTriggerClass}>
-                  <CreditCard className="w-4 h-4 shrink-0" />
-                  <span className="hidden sm:inline">Pagos</span>
-                </TabsTrigger>
-              )}
-              <TabsTrigger value="ideas" className={tabTriggerClass}>
-                <Lightbulb className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline">Ideas</span>
-              </TabsTrigger>
-              <TabsTrigger value="mis-datos" className={tabTriggerClass}>
-                <UserCircle className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline">Mi cuenta</span>
-              </TabsTrigger>
-              {isAdmin && (
-                <TabsTrigger value="aprobaciones" className={tabTriggerClass}>
-                  <ClipboardCheck className="w-4 h-4 shrink-0" />
-                  <span className="hidden sm:inline">Aprobaciones</span>
-                  {pendingCount > 0 && (
-                    <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-red-500 text-white">
-                      {pendingCount}
-                    </span>
-                  )}
-                </TabsTrigger>
-              )}
-              {isAdmin && (
-                <TabsTrigger value="actividad" className={tabTriggerClass}>
-                  <BarChart3 className="w-4 h-4 shrink-0" />
-                  <span className="hidden sm:inline">Actividad</span>
-                </TabsTrigger>
-              )}
-              {isAdmin && (
-                <TabsTrigger value="anuncios" className={tabTriggerClass}>
-                  <Megaphone className="w-4 h-4 shrink-0" />
-                  <span className="hidden sm:inline">Anuncios</span>
-                </TabsTrigger>
-              )}
-            </TabsList>
+          {/* Breadcrumb mobile */}
+          <div className="md:hidden bg-white p-3 rounded-lg shadow-sm mb-4">
+            <h2 className="text-lg font-medium flex items-center">
+              {ActiveIcon && <ActiveIcon className="w-5 h-5 mr-2" />}
+              {activeTabLabel}
+            </h2>
+          </div>
 
-            {/* Mobile breadcrumb */}
-            <div className="md:hidden bg-white p-3 rounded-lg shadow-sm mb-4">
-              <h2 className="text-lg font-medium flex items-center">
-                {activeTab === "espacios" ? (
-                  <>
-                    {espaciosSubTab === "talleres" && <Calendar className="w-5 h-5 mr-2" />}
-                    {espaciosSubTab === "grupos" && <Users className="w-5 h-5 mr-2" />}
-                    {espaciosSubTab === "actividades" && <Activity className="w-5 h-5 mr-2" />}
-                    {espaciosLabel}
-                  </>
-                ) : (
-                  <>
-                    {activeTab === "pagos" && <CreditCard className="w-5 h-5 mr-2" />}
-                    {activeTab === "inventario" && <Package className="w-5 h-5 mr-2" />}
-                    {activeTab === "voluntarios" && <Heart className="w-5 h-5 mr-2" />}
-                    {activeTab === "personas" && <Database className="w-5 h-5 mr-2" />}
-                    {activeTab === "pendientes" && <CheckSquare className="w-5 h-5 mr-2" />}
-                    {activeTab === "calendarios" && <CalendarDays className="w-5 h-5 mr-2" />}
-                    {activeTab === "ideas" && <Lightbulb className="w-5 h-5 mr-2" />}
-                    {activeTab === "mis-datos" && <UserCircle className="w-5 h-5 mr-2" />}
-                    {activeTab === "actividad" && <BarChart3 className="w-5 h-5 mr-2" />}
-                    {activeTab === "anuncios" && <Megaphone className="w-5 h-5 mr-2" />}
-                    {activeTab === "mis-datos"
-                      ? "Mi cuenta"
-                      : activeTab === "personas"
-                        ? "Base de datos"
-                        : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
-                  </>
-                )}
-              </h2>
-            </div>
+          {/* Los módulos del menú del avatar no están en la barra, pero SÍ
+              necesitan su TabsContent: si no, /mis-datos quedaría en blanco. */}
+          {navModules.map((mod) => {
+            const children = visibleChildren(user, mod, grants)
 
-            <TabsContent value="inventario" className="space-y-6">
-              <InventarioManager user={user} />
-            </TabsContent>
-            <TabsContent value="pendientes" className="space-y-6">
-              <PendientesManager user={user} />
-            </TabsContent>
-            <TabsContent value="voluntarios" className="space-y-6">
-              <VoluntariosManager user={user} />
-            </TabsContent>
-            <TabsContent value="personas" className="space-y-6">
-              <PersonasDbManager user={user} />
-            </TabsContent>
-            <TabsContent value="calendarios" className="space-y-6">
-              <CalendariosManager user={user} />
-            </TabsContent>
-            <TabsContent value="espacios" className="space-y-4">
-              <Tabs value={espaciosSubTab} onValueChange={(v) => { setNavigating(true); router.push(`/${v}`) }} className="space-y-4">
-                <TabsList className="bg-white border border-gray-200 p-1 rounded-lg w-auto">
-                  <TabsTrigger value="talleres" className={subTabTriggerClass}>
-                    <Calendar className="w-4 h-4 shrink-0" />
-                    <span>Talleres</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="grupos" className={subTabTriggerClass}>
-                    <Users className="w-4 h-4 shrink-0" />
-                    <span>Grupos</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="actividades" className={subTabTriggerClass}>
-                    <Activity className="w-4 h-4 shrink-0" />
-                    <span>Actividades</span>
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="talleres">{espaciosSubTab === "talleres" && <TalleresManager user={user} />}</TabsContent>
-                <TabsContent value="grupos">{espaciosSubTab === "grupos" && <GruposManager user={user} />}</TabsContent>
-                <TabsContent value="actividades">{espaciosSubTab === "actividades" && <ActividadesManager user={user} />}</TabsContent>
-              </Tabs>
-            </TabsContent>
-            {SHOW_PAGOS && (
-              <TabsContent value="pagos" className="space-y-6">
-                <PagosManager user={user} />
+            // Sin hijos visibles: el grupo es el módulo.
+            if (children.length === 0) {
+              return (
+                <TabsContent key={mod.key} value={mod.key} className="space-y-6">
+                  {MODULE_CONTENT[mod.key] ?? null}
+                </TabsContent>
+              )
+            }
+
+            // Un solo hijo (ej. Agenda → Calendarios): no tiene sentido dibujar
+            // una barra de sub-pestañas con una sola opción.
+            if (children.length === 1) {
+              return (
+                <TabsContent key={mod.key} value={mod.key} className="space-y-6">
+                  {MODULE_CONTENT[children[0].key] ?? null}
+                </TabsContent>
+              )
+            }
+
+            return (
+              <TabsContent key={mod.key} value={mod.key} className="space-y-4">
+                <Tabs
+                  value={activeSubTab}
+                  onValueChange={(v) => { setNavigating(true); router.push(getModule(v)?.route ?? `/${v}`) }}
+                  className="space-y-4"
+                >
+                  <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-white border border-gray-200 p-1 rounded-lg sm:w-auto">
+                    {children.map((child) => {
+                      const ChildIcon = child.icon
+                      return (
+                        <TabsTrigger key={child.key} value={child.key} className={subTabTriggerClass}>
+                          <ChildIcon className="w-4 h-4 shrink-0" />
+                          <span>{child.label}</span>
+                          {child.key === "aprobaciones" && pendingCount > 0 && (
+                            <span className="ml-1 inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-red-500 text-white">
+                              {pendingCount}
+                            </span>
+                          )}
+                        </TabsTrigger>
+                      )
+                    })}
+                  </TabsList>
+                  {children.map((child) => (
+                    <TabsContent key={child.key} value={child.key}>
+                      {/* Solo se monta el sub-módulo activo: evita fetches en paralelo */}
+                      {activeSubTab === child.key && MODULE_CONTENT[child.key]}
+                    </TabsContent>
+                  ))}
+                </Tabs>
               </TabsContent>
-            )}
-            <TabsContent value="ideas" className="space-y-6">
-              <IdeasManager user={user} />
-            </TabsContent>
-            <TabsContent value="mis-datos" className="space-y-6">
-              <MiCuenta user={user} />
-            </TabsContent>
-            {isAdmin && (
-              <TabsContent value="aprobaciones" className="space-y-6">
-                <AprobacionesManager user={user} onPendingCount={setPendingCount} />
-              </TabsContent>
-            )}
-            {isAdmin && (
-              <TabsContent value="actividad" className="space-y-6">
-                <ActividadManager user={user} />
-              </TabsContent>
-            )}
-            {isAdmin && (
-              <TabsContent value="anuncios" className="space-y-6">
-                <BroadcastManager user={user} />
-              </TabsContent>
-            )}
-          </Tabs>
-        )}
+            )
+          })}
+        </Tabs>
       </main>
 
       <AlmaFooter borderTop />
       </div>{/* fin z-[1] */}
 
-      <ProfileCompletionModal user={user} />
+      {/* Participante: onboarding inline (pide nombre/apellido). Para el resto,
+          la invitación clásica a completar el perfil. Uno u otro, nunca los dos. */}
+      {user.role === "participante"
+        ? <ParticipanteOnboarding user={user} />
+        : <ProfileCompletionModal user={user} />}
       <AnnouncementModal user={user} />
     </div>
   )

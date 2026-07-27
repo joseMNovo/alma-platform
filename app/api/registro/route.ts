@@ -7,13 +7,31 @@ interface RegisterResponse {
   id: number
   email: string
   role: string
+  email_verified: boolean
+  verification_sent_to?: string | null
+}
+
+/** PUT /api/registro — reenvía el mail de verificación. */
+export async function PUT(request: NextRequest) {
+  try {
+    const { email } = await request.json()
+    if (!email) return NextResponse.json({ error: "Falta el email" }, { status: 400 })
+
+    // El backend responde siempre lo mismo exista o no la cuenta, para que
+    // nadie pueda averiguar qué direcciones están registradas.
+    await api.post("/register/participante/reenviar", { email })
+    return NextResponse.json({ message: "Si la cuenta existe y está pendiente, te reenviamos el email." })
+  } catch (error) {
+    logError("Error al reenviar la verificación", { module: "registro", action: "resend_verification", error })
+    return NextResponse.json({ error: "Error del servidor" }, { status: 500 })
+  }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, pin, alma_token, role } = await request.json()
+    const { email, pin, role } = await request.json()
 
-    if (!email || !pin || !alma_token || !role) {
+    if (!email || !pin || !role) {
       return NextResponse.json({ error: "Todos los campos son requeridos" }, { status: 400 })
     }
 
@@ -21,20 +39,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "El PIN debe ser exactamente 4 dígitos" }, { status: 400 })
     }
 
-    if (!/^\d{6}$/.test(String(alma_token))) {
-      return NextResponse.json({ error: "El Token ALMA debe tener 6 dígitos" }, { status: 400 })
-    }
-
-    if (role !== "voluntario" && role !== "participante") {
-      return NextResponse.json({ error: "Rol inválido" }, { status: 400 })
+    // Solo participantes: el alta de voluntario/a va por /api/voluntarios/register,
+    // que tiene su propio flujo (queda 'pendiente' hasta que un admin aprueba).
+    if (role !== "participante") {
+      return NextResponse.json(
+        { error: "Para registrarte como voluntario/a usá el formulario de voluntarios" },
+        { status: 400 },
+      )
     }
 
     const pin_hash = await hashPassword(String(pin))
 
+    // El PIN en claro nunca sale de acá: al backend viaja solo el hash bcrypt.
     const result = await api.post<RegisterResponse>(`/register/${role}`, {
       email,
       pin_hash,
-      alma_token,
     })
 
     return NextResponse.json(result, { status: 201 })
@@ -43,7 +62,11 @@ export async function POST(request: NextRequest) {
 
     // Propagar errores del backend con su código de estado
     if (message.includes("409")) {
-      return NextResponse.json({ error: "El email ya está registrado" }, { status: 409 })
+      // El backend distingue "ya tenés cuenta" de "ese mail es de un voluntario";
+      // se propaga su texto porque le dice a la persona qué hacer.
+      const match = message.match(/409:\s*(.+)$/)
+      const detail = match ? match[1].replace(/^"|"$/g, "") : "El email ya está registrado"
+      return NextResponse.json({ error: detail }, { status: 409 })
     }
     if (message.includes("400")) {
       // Intentar extraer el detail del backend

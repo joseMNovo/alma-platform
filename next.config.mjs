@@ -30,11 +30,17 @@ const nextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              // youtube.com + s.ytimg.com: la IFrame API del player de capacitaciones
+              // (se carga desde el cliente para saber la posición del video).
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://s.ytimg.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "img-src 'self' data: blob:",
+              // i.ytimg.com: miniaturas de los videos.
+              "img-src 'self' data: blob: https://i.ytimg.com https://img.youtube.com",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self'",
+              "connect-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",
+              // Sin frame-src, el iframe del player caería en default-src 'self'
+              // y YouTube quedaría bloqueado: el video no se vería nunca.
+              "frame-src https://www.youtube-nocookie.com https://www.youtube.com",
               "frame-ancestors 'none'",
             ].join("; "),
           },

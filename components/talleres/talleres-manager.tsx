@@ -51,14 +51,8 @@ export default function TalleresManager({ user }: { user: any }) {
     fetchWorkshops()
   }, [])
 
-  useEffect(() => {
-    if (isParticipant) {
-      fetch("/api/participantes/inscripciones")
-        .then(r => r.json())
-        .then(data => setEnrolledIds(data.workshops || []))
-        .catch(console.error)
-    }
-  }, [isParticipant])
+  // La inscripción dejó de vivir acá: ahora el participante se anota a cada
+  // encuentro desde el Calendario (calendar_event_participants).
 
   const fetchWorkshops = async () => {
     try {
@@ -295,25 +289,9 @@ export default function TalleresManager({ user }: { user: any }) {
             <CardContent>
               <div className="flex gap-2 flex-wrap">
                 {isParticipant ? (
-                  <Button
-                    onClick={() => handleEnrollToggle(workshop)}
-                    disabled={enrollingId === workshop.id}
-                    size="sm"
-                    className={`flex-1 ${
-                      enrolledIds.includes(workshop.id)
-                        ? "bg-green-500 hover:bg-green-600 text-white"
-                        : "bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
-                    }`}
-                  >
-                    {enrolledIds.includes(workshop.id) ? (
-                      <>
-                        <CheckCircle2 className="w-4 h-4 mr-1" />
-                        Anotado
-                      </>
-                    ) : (
-                      "Quiero participar"
-                    )}
-                  </Button>
+                  <p className="text-xs text-gray-400 py-1">
+                    Anotate a cada encuentro desde la Agenda.
+                  </p>
                 ) : (
                   <>
                     {can(user, "talleres:edit") && (
@@ -371,24 +349,9 @@ export default function TalleresManager({ user }: { user: any }) {
                 {viewingWorkshop.description || <span className="italic text-gray-400">Sin descripción.</span>}
               </p>
               {isParticipant && (
-                <Button
-                  onClick={() => handleEnrollToggle(viewingWorkshop)}
-                  disabled={enrollingId === viewingWorkshop.id}
-                  className={`w-full ${
-                    enrolledIds.includes(viewingWorkshop.id)
-                      ? "bg-green-500 hover:bg-green-600 text-white"
-                      : "bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
-                  }`}
-                >
-                  {enrolledIds.includes(viewingWorkshop.id) ? (
-                    <>
-                      <CheckCircle2 className="w-4 h-4 mr-2" />
-                      Anotado — Salir del taller
-                    </>
-                  ) : (
-                    "Quiero participar"
-                  )}
-                </Button>
+                <p className="rounded-lg bg-[#e0f7fa]/50 p-3 text-sm text-gray-600">
+                  Para anotarte, entrá a la <strong>Agenda</strong> y elegí el encuentro al que querés ir.
+                </p>
               )}
             </div>
           )}

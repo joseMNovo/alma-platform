@@ -12,6 +12,10 @@ const PROTECTED_PATHS = [
   '/pagos',
   '/ajustes',
   '/mis-datos',
+  '/capacitaciones',
+  '/accesos',
+  '/participantes',
+  '/inscripciones',
 ]
 
 export async function middleware(request: NextRequest) {
@@ -57,5 +61,9 @@ export const config = {
     '/pagos/:path*',
     '/ajustes/:path*',
     '/mis-datos/:path*',
+    '/capacitaciones/:path*',
+    '/accesos/:path*',
+    '/participantes/:path*',
+    '/inscripciones/:path*',
   ],
 }

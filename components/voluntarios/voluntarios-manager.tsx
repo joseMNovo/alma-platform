@@ -56,7 +56,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
   const [volunteerToDelete, setVolunteerToDelete] = useState<Volunteer | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [expandedId, setExpandedId] = useState<number | null>(null)
-  const [viewMode, setViewMode] = useState<"cards" | "list">("cards")
+  const [viewMode, setViewMode] = useState<"cards" | "list">("list")
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [filters, setFilters] = useState({
     name: "",
@@ -109,7 +109,9 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
       const response = await fetch("/api/voluntarios")
       if (response.ok) {
         const data = await response.json()
-        setVolunteers(data.filter((v: any) => v.status !== "pendiente"))
+        // Se ocultan los 'pendiente' (aún sin aprobar) y los 'inactivo'
+        // (revertidos a participante): esta lista es de voluntarios vigentes.
+        setVolunteers(data.filter((v: any) => v.status !== "pendiente" && v.status !== "inactivo"))
       }
     } catch (error) {
       console.error("Error fetching voluntarios:", error)
@@ -930,20 +932,20 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
               <table className="w-full text-sm border-separate border-spacing-0">
                 <thead>
                   <tr className="text-left text-[11px] font-semibold text-[#00838f]/70 uppercase tracking-wider bg-[#e0f7fa]/40">
-                    <th className="px-5 py-3.5 font-semibold border-r border-gray-100">Voluntario</th>
-                    <th className="px-5 py-3.5 font-semibold border-r border-gray-100">Edad</th>
-                    <th className="px-5 py-3.5 font-semibold border-r border-gray-100">Teléfono</th>
-                    <th className="px-5 py-3.5 font-semibold border-r border-gray-100">Email</th>
-                    <th className="px-5 py-3.5 font-semibold border-r border-gray-100">Registrado</th>
-                    <th className="px-5 py-3.5 font-semibold border-r border-gray-100">Especialidades</th>
-                    <th className="px-5 py-3.5 font-semibold text-right">Acciones</th>
+                    <th className="px-5 py-2.5 font-semibold border-r border-gray-100">Voluntario</th>
+                    <th className="px-5 py-2.5 font-semibold border-r border-gray-100">Edad</th>
+                    <th className="px-5 py-2.5 font-semibold border-r border-gray-100">Teléfono</th>
+                    <th className="px-5 py-2.5 font-semibold border-r border-gray-100">Email</th>
+                    <th className="px-5 py-2.5 font-semibold border-r border-gray-100">Registrado</th>
+                    <th className="px-5 py-2.5 font-semibold border-r border-gray-100">Especialidades</th>
+                    <th className="px-5 py-2.5 font-semibold text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredVolunteers
                     .map((volunteer) => (
                     <tr key={volunteer.id} className="group border-t border-gray-50 transition-colors even:bg-gray-50/50 hover:bg-[#f6fdfe]">
-                      <td className="px-5 py-3 border-t border-r border-gray-100">
+                      <td className="px-5 py-2 border-t border-r border-gray-100">
                         <div className="flex items-center gap-3">
                           {volunteer.photo ? (
                             <img
@@ -959,11 +961,11 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                           <span className="font-semibold text-gray-800">{getFullName(volunteer)}</span>
                         </div>
                       </td>
-                      <td className="px-5 py-3 border-t border-r border-gray-100 text-gray-500 whitespace-nowrap">{volunteer.age ? `${volunteer.age} años` : "—"}</td>
-                      <td className="px-5 py-3 border-t border-r border-gray-100 text-gray-500 tabular-nums whitespace-nowrap">{volunteer.phone || "—"}</td>
-                      <td className="px-5 py-3 border-t border-r border-gray-100 text-gray-500">{volunteer.email || "—"}</td>
-                      <td className="px-5 py-3 border-t border-r border-gray-100 text-gray-500 tabular-nums whitespace-nowrap">{formatLocalDate(volunteer.registration_date)}</td>
-                      <td className="px-5 py-3 border-t border-r border-gray-100">
+                      <td className="px-5 py-2 border-t border-r border-gray-100 text-gray-500 whitespace-nowrap">{volunteer.age ? `${volunteer.age} años` : "—"}</td>
+                      <td className="px-5 py-2 border-t border-r border-gray-100 text-gray-500 tabular-nums whitespace-nowrap">{volunteer.phone || "—"}</td>
+                      <td className="px-5 py-2 border-t border-r border-gray-100 text-gray-500">{volunteer.email || "—"}</td>
+                      <td className="px-5 py-2 border-t border-r border-gray-100 text-gray-500 tabular-nums whitespace-nowrap">{formatLocalDate(volunteer.registration_date)}</td>
+                      <td className="px-5 py-2 border-t border-r border-gray-100">
                         {volunteer.specialties && volunteer.specialties.length > 0 ? (
                           <div className="flex flex-wrap gap-1.5 max-w-[220px]">
                             {volunteer.specialties.map((specialty, index) => (
@@ -979,7 +981,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                           <span className="text-gray-300">—</span>
                         )}
                       </td>
-                      <td className="px-5 py-3 border-t border-gray-100">
+                      <td className="px-5 py-2 border-t border-gray-100">
                         <div className="flex items-center justify-end gap-1 opacity-60 transition-opacity group-hover:opacity-100">
                           {canEditVolunteer(volunteer) && (
                             <button

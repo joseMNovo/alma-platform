@@ -7,8 +7,8 @@ import { Toaster } from "@/components/ui/toaster"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "ALMA - Alzheimer Rosario",
-  description: "Plataforma de gestión para ALMA",
+  title: "Comunidad ALMA",
+  description: "Comunidad ALMA — plataforma de gestión de ALMA Rosario",
   icons: {
     icon: "/images/flor.png",
     shortcut: "/images/flor.png",

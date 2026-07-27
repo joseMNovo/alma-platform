@@ -17,7 +17,8 @@ export default function RegisterForm() {
   // Campos participante
   const [email, setEmail] = useState("")
   const [pin, setPin] = useState("")
-  const [almaToken, setAlmaToken] = useState("")
+  const [sentTo, setSentTo] = useState("")
+  const [resending, setResending] = useState(false)
 
   // Campos voluntario
   const [name, setName] = useState("")
@@ -32,10 +33,6 @@ export default function RegisterForm() {
     setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
   }
 
-  const handleTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setAlmaToken(e.target.value.replace(/\D/g, "").slice(0, 6))
-  }
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError("")
@@ -47,15 +44,15 @@ export default function RegisterForm() {
       if (role === "participante") {
         if (!email) { setError("El email es requerido"); setLoading(false); return }
         if (pin.length !== 4) { setError("El PIN debe tener exactamente 4 dígitos"); setLoading(false); return }
-        if (almaToken.length !== 6) { setError("El Token ALMA debe tener exactamente 6 dígitos"); setLoading(false); return }
 
         const res = await fetch("/api/registro", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, pin, alma_token: almaToken, role }),
+          body: JSON.stringify({ email, pin, role }),
         })
         const data = await res.json()
         if (res.ok) {
+          setSentTo(data.verification_sent_to || email)
           setSuccess(true)
         } else {
           setError(data.error || "Error al registrarse")
@@ -124,7 +121,7 @@ export default function RegisterForm() {
               </h1>
               <p className="text-white/95 text-lg md:text-xl font-normal" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.12)" }}>
                 {role === "participante"
-                  ? "Necesitás el Token ALMA para registrarte."
+                  ? "Te enviamos un email para confirmar tu cuenta."
                   : role === "voluntario"
                   ? "Tu cuenta será revisada por el equipo antes de activarse."
                   : "Seleccioná tu tipo de cuenta para continuar."}
@@ -147,10 +144,33 @@ export default function RegisterForm() {
                 ) : (
                   <>
                     <CheckCircle2 className="w-12 h-12 text-[#0099b0] mx-auto" />
-                    <h2 className="text-xl font-bold text-gray-800">¡Cuenta creada!</h2>
+                    <h2 className="text-xl font-bold text-gray-800">Revisá tu email</h2>
                     <p className="text-gray-600 text-sm">
-                      Revisá tu email para verificar tu cuenta. Después ya podés iniciar sesión.
+                      Te mandamos un link a <strong className="text-gray-800">{sentTo}</strong> para
+                      confirmar tu cuenta. Es válido por 30 minutos.
                     </p>
+                    <p className="text-gray-500 text-xs">
+                      Si no lo ves, fijate en spam o correo no deseado.
+                    </p>
+                    <button
+                      type="button"
+                      disabled={resending}
+                      onClick={async () => {
+                        setResending(true)
+                        try {
+                          await fetch("/api/registro", {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ email: sentTo }),
+                          })
+                        } finally {
+                          setResending(false)
+                        }
+                      }}
+                      className="text-[#0099b0] text-sm font-semibold underline underline-offset-2 disabled:opacity-50"
+                    >
+                      {resending ? "Enviando…" : "Reenviar email"}
+                    </button>
                   </>
                 )}
                 <a
@@ -248,19 +268,6 @@ export default function RegisterForm() {
                         onChange={handlePinChange}
                         placeholder="••••"
                         maxLength={4}
-                        className="border-[#b2ebf2] focus:border-[#0099b0] focus:ring-2 focus:ring-[#4dd0e1]/30 focus:ring-offset-0 tracking-widest text-center text-lg"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="alma_token" className="text-gray-800 font-semibold text-sm">Token ALMA (6 dígitos)</Label>
-                      <Input
-                        id="alma_token"
-                        type="password"
-                        inputMode="numeric"
-                        value={almaToken}
-                        onChange={handleTokenChange}
-                        placeholder="••••••"
-                        maxLength={6}
                         className="border-[#b2ebf2] focus:border-[#0099b0] focus:ring-2 focus:ring-[#4dd0e1]/30 focus:ring-offset-0 tracking-widest text-center text-lg"
                       />
                     </div>

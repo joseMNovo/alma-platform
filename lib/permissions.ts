@@ -26,6 +26,14 @@ export type Action =
   | "personas:delete"
   | "participante:edit_profile"
   | "tracking:view"
+  | "files:upload"
+  | "files:edit"
+  | "files:delete"
+  | "capacitaciones:view"
+  | "capacitaciones:manage"
+  | "capacitaciones:report"
+  | "accesos:view"
+  | "accesos:manage"
 
 /**
  * Returns true if the given user is allowed to perform the given action.
@@ -42,9 +50,12 @@ export function can(user: { role: string } | null, action: Action): boolean {
   const isAdmin = user.role === "admin"
   const isParticipant = user.role === "participante"
 
-  // Participantes: solo pueden editar su propio perfil
+  // Participantes: su propio perfil y el módulo de capacitaciones.
+  // Ojo: "capacitaciones:view" habilita a ENTRAR al módulo, no a ver el
+  // contenido. Qué capacitación puede abrir lo decide la habilitación
+  // (person_access_grants), que se verifica en la API route. Ver lib/access.ts.
   if (isParticipant) {
-    return action === "participante:edit_profile"
+    return action === "participante:edit_profile" || action === "capacitaciones:view"
   }
 
   switch (action) {
@@ -110,6 +121,29 @@ export function can(user: { role: string } | null, action: Action): boolean {
       return true
 
     case "personas:delete":
+      return isAdmin
+
+    // Capacitaciones: voluntarios y admin entran y ven todo el contenido gratis.
+    // Cargar/editar capacitaciones y su contenido queda para el admin.
+    case "capacitaciones:view":
+      return true
+
+    case "capacitaciones:manage":
+    case "capacitaciones:report":
+      return isAdmin
+
+    // Accesos (habilitaciones por persona): es dar y quitar acceso pago, admin.
+    case "accesos:view":
+    case "accesos:manage":
+      return isAdmin
+
+    // Archivos: voluntarios y admin pueden subir y reasignar (portadas, imágenes).
+    // El borrado definitivo (purge, irreversible) queda para el admin.
+    case "files:upload":
+    case "files:edit":
+      return true
+
+    case "files:delete":
       return isAdmin
 
     // Profile edit: only for participants (handled above)

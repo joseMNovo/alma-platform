@@ -186,6 +186,23 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 })
       }
 
+      // El email tiene que estar verificado. Se chequea DESPUÉS del PIN a
+      // propósito: si avisáramos antes, cualquiera podría averiguar qué
+      // direcciones están registradas sin saber la clave.
+      if (!participant.email_verified) {
+        logWarn("Intento de ingreso con email sin verificar", {
+          module: "auth", action: "login_unverified", user: participant.id, meta: { email },
+        })
+        return NextResponse.json(
+          {
+            error: "Todavía no confirmaste tu email. Revisá tu correo y hacé click en el link.",
+            needs_verification: true,
+            email,
+          },
+          { status: 403 },
+        )
+      }
+
       // Fetch profile to populate name in header
       const profile = await getParticipantProfile(participant.id)
 

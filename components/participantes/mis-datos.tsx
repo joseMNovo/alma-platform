@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Save, User, Phone, MapPin, AlertCircle, CheckCircle2 } from "lucide-react"
 
@@ -94,6 +93,17 @@ export default function MisDatos({ user }: { user: any }) {
           Todos los campos son opcionales. Completá solo lo que quieras compartir.
         </p>
       </div>
+
+      {/* Aviso suave si todavía no cargó su nombre: es lo que el equipo usa
+          para reconocerlo. Guiado por datos, no molesta si ya lo tiene. */}
+      {!profile.name?.trim() && (
+        <div className="flex items-start gap-2 rounded-lg border border-[#4dd0e1]/40 bg-[#e0f7fa]/50 p-3 text-sm text-[#00838f]">
+          <User className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            Cargá al menos tu <strong>nombre y apellido</strong> para que el equipo de ALMA te reconozca.
+          </span>
+        </div>
+      )}
 
       {/* Datos personales */}
       <Card className="border-[#b2ebf2]">
@@ -249,30 +259,13 @@ export default function MisDatos({ user }: { user: any }) {
               className="border-[#b2ebf2] focus:border-[#0099b0] min-h-[80px]"
             />
           </div>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <Checkbox
-                id="notif"
-                checked={!!profile.accepts_notifications}
-                onCheckedChange={v => handleChange("accepts_notifications", !!v)}
-                className="border-[#4dd0e1] data-[state=checked]:bg-[#0099b0]"
-              />
-              <Label htmlFor="notif" className="text-sm text-gray-700 cursor-pointer">
-                Acepto recibir notificaciones por email sobre actividades de ALMA
-              </Label>
-            </div>
-            <div className="flex items-center gap-3">
-              <Checkbox
-                id="wa"
-                checked={!!profile.accepts_whatsapp}
-                onCheckedChange={v => handleChange("accepts_whatsapp", !!v)}
-                className="border-[#4dd0e1] data-[state=checked]:bg-[#0099b0]"
-              />
-              <Label htmlFor="wa" className="text-sm text-gray-700 cursor-pointer">
-                Acepto recibir mensajes de WhatsApp con novedades de ALMA
-              </Label>
-            </div>
-          </div>
+          {/*
+            Se quitaron los checkboxes de consentimiento (email / WhatsApp):
+            no había lógica que los usara (ningún envío los consultaba y no hay
+            integración de WhatsApp), así que eran promesas vacías al usuario.
+            Las columnas accepts_notifications / accepts_whatsapp quedan en la
+            base, listas para reconectarse cuando exista el envío real.
+          */}
         </CardContent>
       </Card>
 
