@@ -95,34 +95,34 @@ export default function CapacitacionesManager({ user }: { user: any }) {
         </div>
 
         {isManager && (
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             {/* Ver / Administrar: dos modos separados, no una pestaña más
                 mezclada con la lista de cursos (confundía). */}
             <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
               <button
                 onClick={() => setView("ver")}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition sm:px-3 ${
                   view === "ver" ? "bg-[#4dd0e1] text-white" : "text-gray-500 hover:bg-gray-50"
                 }`}
               >
-                <Eye className="h-4 w-4" />
+                <Eye className="h-4 w-4 shrink-0" />
                 Ver
               </button>
               <button
                 onClick={() => setView("administrar")}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition sm:px-3 ${
                   view === "administrar" ? "bg-[#9A8BC2] text-white" : "text-gray-500 hover:bg-gray-50"
                 }`}
               >
-                <Settings className="h-4 w-4" />
+                <Settings className="h-4 w-4 shrink-0" />
                 Administrar
               </button>
             </div>
             <Button
               onClick={() => { setView("administrar"); setNewTrainingSignal((n) => n + 1) }}
-              className="bg-[#4dd0e1] hover:bg-[#3bb8c9]"
+              className="flex-1 bg-[#4dd0e1] hover:bg-[#3bb8c9] sm:flex-none"
             >
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="mr-2 h-4 w-4 shrink-0" />
               Nueva capacitación
             </Button>
           </div>

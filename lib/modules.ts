@@ -6,7 +6,7 @@ import {
   Users,
   Database,
   Calendar,
-  Activity,
+  Sparkles,
   Lightbulb,
   CreditCard,
   ClipboardCheck,
@@ -79,7 +79,7 @@ export const MODULES: ModuleDef[] = [
     children: [
       { key: "talleres", label: "Talleres", route: "/talleres", icon: Calendar, defaultRoles: ["admin", "voluntario", "participante"], grantable: false },
       { key: "grupos", label: "Grupos", route: "/grupos", icon: Users, defaultRoles: ["admin", "voluntario", "participante"], grantable: false },
-      { key: "actividades", label: "Actividades", route: "/actividades", icon: Activity, defaultRoles: ["admin", "voluntario", "participante"], grantable: false },
+      { key: "actividades", label: "Actividades", route: "/actividades", icon: Sparkles, defaultRoles: ["admin", "voluntario", "participante"], grantable: false },
       // Inscripciones: solo staff. El participante se anota desde el Calendario.
       { key: "inscripciones", label: "Inscripciones", route: "/inscripciones", icon: ClipboardCheck, defaultRoles: ["admin", "voluntario"], grantable: false },
     ],

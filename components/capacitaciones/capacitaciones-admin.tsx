@@ -15,7 +15,7 @@ import { toast } from "@/hooks/use-toast"
 import type { Training, TrainingItem } from "@/lib/data-manager"
 import {
   Plus, Pencil, Trash2, ArrowUp, ArrowDown, Eye, EyeOff,
-  CheckCircle2, AlertTriangle, Loader2, Youtube, FileText,
+  CheckCircle2, AlertTriangle, Loader2, Youtube, FileText, GraduationCap,
 } from "lucide-react"
 
 /**
@@ -193,6 +193,14 @@ export default function CapacitacionesAdmin({
           <strong>contenido</strong> (videos, textos) desde cada tarjeta.
         </p>
       </div>
+
+      {trainings.length === 0 && (
+        <div className="text-center py-12">
+          <GraduationCap className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No hay capacitaciones creadas</h3>
+          <p className="text-gray-600">Crea la primera capacitación para comenzar.</p>
+        </div>
+      )}
 
       {trainings.map((t) => (
         <Card key={t.id}>

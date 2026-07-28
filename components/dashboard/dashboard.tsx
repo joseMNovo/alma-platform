@@ -58,6 +58,7 @@ import AlmaFooter from "@/components/ui/alma-footer"
 import ProfileCompletionModal from "@/components/auth/profile-completion-modal"
 import ParticipanteOnboarding from "@/components/participantes/onboarding-modal"
 import AnnouncementModal from "@/components/announcements/announcement-modal"
+import ImpersonationBanner from "@/components/admin/impersonation-banner"
 import { Menu } from "lucide-react"
 
 // Human-readable role labels (UI)
@@ -241,9 +242,10 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       `}</style>
 
       {/* Todo el contenido por encima de la flor */}
-      <div className="relative z-[1]">
+      <div className={`relative z-[1] flex min-h-screen flex-col ${user.impersonating ? "pt-9" : ""}`}>
+      {user.impersonating && <ImpersonationBanner user={user} />}
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
+      <header className={`bg-white shadow-sm border-b border-gray-200 sticky z-10 ${user.impersonating ? "top-9" : "top-0"}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
@@ -403,7 +405,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       </header>
 
       {/* Main Content */}
-      <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+      <main className="relative flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 md:py-8">
         {navigating && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-gray-50/70 backdrop-blur-[1px] rounded-lg min-h-[200px]">
             <div className="flex flex-col items-center gap-3">

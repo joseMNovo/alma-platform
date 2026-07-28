@@ -794,6 +794,14 @@ function cleanPersonaPayload(data: Partial<Persona>): Record<string, any> {
   return out
 }
 
+export async function getPersonaById(id: number): Promise<Persona | null> {
+  try {
+    return await api.get<Persona>(`/personas/${id}`)
+  } catch {
+    return null
+  }
+}
+
 export async function getPersonas(filters: PersonaFilters = {}): Promise<Persona[]> {
   const qs = new URLSearchParams()
   for (const [key, value] of Object.entries(filters)) {

@@ -10,7 +10,7 @@ import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 import {
   Plus, Edit, Trash2, Database, Search, X, ChevronDown,
   ArrowUpDown, ArrowUp, ArrowDown, Send, Loader2, AlertTriangle,
-  Mail, Phone, MapPin, IdCard, UserCheck, UserX, BadgeCheck, Users, UserCircle,
+  Mail, Phone, MapPin, IdCard, UserCheck, UserX, BadgeCheck, Users, UserCircle, LogIn,
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { can } from "@/lib/permissions"
@@ -137,6 +137,42 @@ export default function PersonasDbManager({ user }: { user: any }) {
   const canCreate = can(user, "personas:create")
   const canEdit = can(user, "personas:edit")
   const canDelete = can(user, "personas:delete")
+  const isAdmin = user.role === "admin"
+
+  // Impersonar: el admin entra a la app como esa persona (voluntario/a o
+  // participante), para ver exactamente lo que ve. Si tiene las dos fichas,
+  // primero pregunta cuál. Requiere email (es la identidad mínima).
+  const [impersonateChoice, setImpersonateChoice] = useState<Persona | null>(null)
+  const [impersonatingId, setImpersonatingId] = useState<number | null>(null)
+
+  const startImpersonate = async (p: Persona, targetType: "voluntario" | "participante") => {
+    setImpersonatingId(p.id)
+    try {
+      const res = await fetch("/api/admin/impersonate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ person_id: p.id, target_type: targetType }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || "No se pudo ingresar como esa persona")
+      localStorage.setItem("alma_user", JSON.stringify(data.user))
+      document.cookie = "alma_session=1; path=/; SameSite=Strict; max-age=2592000"
+      window.location.href = "/calendarios"
+    } catch (error: any) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" })
+      setImpersonatingId(null)
+    }
+  }
+
+  const handleImpersonateClick = (p: Persona) => {
+    if (p.volunteer_id && p.participant_id) {
+      setImpersonateChoice(p)
+    } else if (p.volunteer_id) {
+      startImpersonate(p, "voluntario")
+    } else if (p.participant_id) {
+      startImpersonate(p, "participante")
+    }
+  }
 
   // ── Carga ──────────────────────────────────────────────────────────
   const fetchPersonas = async () => {
@@ -724,6 +760,19 @@ export default function PersonasDbManager({ user }: { user: any }) {
                           Invitar a Comunidad ALMA
                         </Button>
                       )}
+                      {isAdmin && !!p.email && (p.volunteer_id || p.participant_id) && (
+                        <Button
+                          variant="outline" size="sm"
+                          onClick={() => handleImpersonateClick(p)}
+                          disabled={impersonatingId === p.id}
+                          className="w-full h-9 gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50"
+                        >
+                          {impersonatingId === p.id
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <LogIn className="w-3.5 h-3.5" />}
+                          Ingresar como esta persona
+                        </Button>
+                      )}
                       {(canEdit || canDelete) && (
                         <div className="flex gap-2 pt-1">
                           {canEdit && (
@@ -747,8 +796,8 @@ export default function PersonasDbManager({ user }: { user: any }) {
         </div>
 
         {/* ── DESKTOP: tabla (≥ lg) ── */}
-        <div className="hidden lg:block overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-          <table className="w-full min-w-[980px] text-sm">
+        <div className="hidden lg:block rounded-xl border border-gray-200 bg-white shadow-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50/80 text-left text-gray-600">
                 <SortableTh label="Nombre" k="name" onClick={toggleSort} SortIcon={SortIcon} />
@@ -852,6 +901,15 @@ export default function PersonasDbManager({ user }: { user: any }) {
                             {invitingId === p.id
                               ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                               : <Send className="w-3.5 h-3.5" />}
+                          </Button>
+                        )}
+                        {isAdmin && !!p.email && (p.volunteer_id || p.participant_id) && (
+                          <Button variant="ghost" size="sm" onClick={() => handleImpersonateClick(p)}
+                            disabled={impersonatingId === p.id} title="Ingresar como esta persona"
+                            className="h-7 w-7 p-0 text-gray-400 hover:text-amber-600 hover:bg-amber-50">
+                            {impersonatingId === p.id
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <LogIn className="w-3.5 h-3.5" />}
                           </Button>
                         )}
                         {canEdit && (
@@ -1157,6 +1215,32 @@ export default function PersonasDbManager({ user }: { user: any }) {
         action="delete"
         loading={deleting}
       />
+
+      {/* ── Impersonar: elegir ficha cuando tiene las dos ──────────────── */}
+      <Dialog open={!!impersonateChoice} onOpenChange={(o) => !o && setImpersonateChoice(null)}>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle>¿Ingresar como voluntario/a o participante?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-500">
+            {impersonateChoice ? fullName(impersonateChoice) : ""} tiene las dos fichas — elegí con cuál entrar.
+          </p>
+          <div className="flex flex-col gap-2 pt-1">
+            <Button
+              variant="outline"
+              onClick={() => { if (impersonateChoice) startImpersonate(impersonateChoice, "voluntario"); setImpersonateChoice(null) }}
+            >
+              <VolunteerFlower active size="w-4 h-4" /> <span className="ml-2">Como voluntario/a</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => { if (impersonateChoice) startImpersonate(impersonateChoice, "participante"); setImpersonateChoice(null) }}
+            >
+              <ParticipantMark active size="w-4 h-4" /> <span className="ml-2">Como participante</span>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
