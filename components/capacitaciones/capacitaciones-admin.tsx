@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 import ImageUpload from "@/components/ui/image-upload"
 import { toast } from "@/hooks/use-toast"
@@ -188,7 +189,7 @@ export default function CapacitacionesAdmin({
       <div>
         <h3 className="font-semibold text-gray-900">Gestión de contenidos</h3>
         <p className="text-sm text-gray-500">
-          Con <strong>Nueva capacitación</strong> (arriba) creás el curso; después cargale su{" "}
+          Con <strong>Nueva capacitación</strong> creás el curso; después cargale su{" "}
           <strong>contenido</strong> (videos, textos) desde cada tarjeta.
         </p>
       </div>
@@ -355,29 +356,27 @@ function TrainingDialog({
             </div>
             <div>
               <Label>Estado</Label>
-              <select
-                className="h-10 w-full rounded-md border border-gray-200 px-3 text-sm"
-                value={value.status ?? "borrador"}
-                onChange={(e) => onChange({ ...value, status: e.target.value })}
-              >
-                <option value="borrador">Borrador</option>
-                <option value="publicada">Publicada</option>
-                <option value="archivada">Archivada</option>
-              </select>
+              <Select value={value.status ?? "borrador"} onValueChange={(v) => onChange({ ...value, status: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="borrador">Borrador</SelectItem>
+                  <SelectItem value="publicada">Publicada</SelectItem>
+                  <SelectItem value="archivada">Archivada</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Acceso</Label>
-              <select
-                className="h-10 w-full rounded-md border border-gray-200 px-3 text-sm"
-                value={value.access_mode ?? "grant"}
-                onChange={(e) => onChange({ ...value, access_mode: e.target.value })}
-              >
-                <option value="grant">Requiere habilitación</option>
-                <option value="abierta">Abierta (gratuita)</option>
-              </select>
+              <Select value={value.access_mode ?? "grant"} onValueChange={(v) => onChange({ ...value, access_mode: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="grant">Requiere habilitación</SelectItem>
+                  <SelectItem value="abierta">Abierta (gratuita)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Vencimiento (días)</Label>
@@ -462,14 +461,13 @@ function ItemDialog({
         <div className="space-y-4">
           <div>
             <Label>Tipo</Label>
-            <select
-              className="h-10 w-full rounded-md border border-gray-200 px-3 text-sm"
-              value={value.kind ?? "video"}
-              onChange={(e) => onChange({ ...value, kind: e.target.value })}
-            >
-              <option value="video">Video de YouTube</option>
-              <option value="texto">Texto</option>
-            </select>
+            <Select value={value.kind ?? "video"} onValueChange={(v) => onChange({ ...value, kind: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="video">Video de YouTube</SelectItem>
+                <SelectItem value="texto">Texto</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {isVideo && (

@@ -79,6 +79,17 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   const router = useRouter()
   const pathname = usePathname()
 
+  /** Navega mostrando la barra de progreso — salvo que el destino sea la
+   *  ruta actual: ahí Next no dispara ningún cambio, pathname nunca vuelve a
+   *  actualizarse, y el efecto que apaga `navigating` (depende de pathname)
+   *  no se vuelve a correr — quedaba la barra cargando para siempre al
+   *  tocar la pestaña en la que ya estás. */
+  const navigateTo = (target: string) => {
+    if (target === pathname) return
+    setNavigating(true)
+    router.push(target)
+  }
+
   // Dropdown de sub-módulos al hacer hover (desktop). Se porta a document.body
   // porque la barra de módulos tiene overflow-x-auto/overflow-y-hidden (scroll
   // horizontal cuando hay muchas pestañas) y eso recorta cualquier hijo
@@ -188,14 +199,13 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   const activeTabLabel = activeModule.label
 
   const handleTabChange = (value: string) => {
-    setNavigating(true)
     const group = getModule(value)
     // Al tocar un grupo se entra por su primer sub-módulo visible: el usuario
     // nunca cae en una pestaña vacía por no tener permiso sobre el primero.
     const target = group?.children?.length
       ? (visibleChildren(user, group, grants)[0]?.route ?? group.route)
       : (group?.route ?? `/${value}`)
-    router.push(target)
+    navigateTo(target)
     setMobileMenuOpen(false)
   }
 
@@ -337,7 +347,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                                       key={child.key}
                                       variant={childActive ? "default" : "ghost"}
                                       className={`w-full justify-start pl-8 ${childActive ? "bg-[#4dd0e1] text-white" : ""}`}
-                                      onClick={() => { setNavigating(true); router.push(child.route); setMobileMenuOpen(false) }}
+                                      onClick={() => { navigateTo(child.route); setMobileMenuOpen(false) }}
                                     >
                                       <ChildIcon className="w-5 h-5 mr-3" />
                                       {child.label}
@@ -460,7 +470,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                         <button
                           key={child.key}
                           type="button"
-                          onClick={() => { setNavigating(true); setNavSubmenu(null); router.push(child.route) }}
+                          onClick={() => { setNavSubmenu(null); navigateTo(child.route) }}
                           className="flex items-center gap-2 px-3 py-2 text-left text-[13px] text-gray-700 transition-colors hover:bg-[#4dd0e1]/10 hover:text-[#00838f]"
                         >
                           <ChildIcon className="w-4 h-4 shrink-0" />
@@ -511,7 +521,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               <TabsContent key={mod.key} value={mod.key} className="space-y-4">
                 <Tabs
                   value={activeSubTab}
-                  onValueChange={(v) => { setNavigating(true); router.push(getModule(v)?.route ?? `/${v}`) }}
+                  onValueChange={(v) => navigateTo(getModule(v)?.route ?? `/${v}`)}
                   className="space-y-4"
                 >
                   <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-white border border-gray-200 p-1 rounded-lg sm:w-auto">

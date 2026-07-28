@@ -343,9 +343,10 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div className="text-center sm:text-left">
           <div className="flex items-center justify-center sm:justify-start gap-3">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-              <Users className="w-6 h-6 mr-3 text-[#4dd0e1]" />
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Users className="w-6 h-6 text-[#4dd0e1]" />
               Gestión de voluntarios
+              <Badge variant="secondary">{volunteers.length}</Badge>
             </h2>
             {/* Toggle de vista: tarjetas / lista (solo desktop) */}
             <div className="hidden sm:inline-flex items-center bg-gray-100 rounded-lg p-0.5">
@@ -931,14 +932,14 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-separate border-spacing-0">
                 <thead>
-                  <tr className="text-left text-[11px] font-semibold text-[#00838f]/70 uppercase tracking-wider bg-[#e0f7fa]/40">
+                  <tr className="text-center text-[11px] font-semibold text-[#00838f]/70 uppercase tracking-wider bg-[#e0f7fa]/40">
                     <th className="px-5 py-2.5 font-semibold border-r border-gray-100">Voluntario</th>
                     <th className="px-5 py-2.5 font-semibold border-r border-gray-100">Edad</th>
                     <th className="px-5 py-2.5 font-semibold border-r border-gray-100">Teléfono</th>
                     <th className="px-5 py-2.5 font-semibold border-r border-gray-100">Email</th>
                     <th className="px-5 py-2.5 font-semibold border-r border-gray-100">Registrado</th>
                     <th className="px-5 py-2.5 font-semibold border-r border-gray-100">Especialidades</th>
-                    <th className="px-5 py-2.5 font-semibold text-right">Acciones</th>
+                    <th className="px-5 py-2.5 font-semibold">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -947,16 +948,12 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                     <tr key={volunteer.id} className="group border-t border-gray-50 transition-colors even:bg-gray-50/50 hover:bg-[#f6fdfe]">
                       <td className="px-5 py-2 border-t border-r border-gray-100">
                         <div className="flex items-center gap-3">
-                          {volunteer.photo ? (
+                          {volunteer.photo && (
                             <img
                               src={volunteer.photo}
                               alt={getFullName(volunteer)}
                               className="w-9 h-9 rounded-full object-cover flex-shrink-0 ring-2 ring-white shadow-sm"
                             />
-                          ) : (
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#4dd0e1] to-[#3bc0d1] flex items-center justify-center flex-shrink-0 ring-2 ring-white shadow-sm">
-                              <User className="w-4 h-4 text-white" />
-                            </div>
                           )}
                           <span className="font-semibold text-gray-800">{getFullName(volunteer)}</span>
                         </div>

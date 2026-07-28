@@ -15,6 +15,7 @@ import {
 import { toast } from "@/hooks/use-toast"
 import { can } from "@/lib/permissions"
 import type { Persona } from "@/lib/data-manager"
+import { VolunteerFlower, ParticipantMark } from "@/components/personas/role-marks"
 
 // ── Tipos internos ─────────────────────────────────────────────────────
 interface PersonaFormData {
@@ -79,28 +80,6 @@ function MemberMark({ active, size = "w-4 h-4" }: { active?: boolean; size?: str
   )
 }
 
-/** Flor del logo de ALMA como marca de voluntario/a: en color si es voluntaria,
- *  en gris (grayscale) si no. Reemplaza al corazón anterior. */
-function VolunteerFlower({ active, size = "w-4 h-4" }: { active?: boolean; size?: string }) {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src="/images/flor.png"
-      alt={active ? "Voluntario/a" : "No voluntario/a"}
-      className={`${size} object-contain transition-all ${active ? "" : "grayscale opacity-40"}`}
-    />
-  )
-}
-
-/** Marca participante: coloreada si tiene login de participante (participant_id). */
-function ParticipantMark({ active, size = "w-4 h-4" }: { active?: boolean; size?: string }) {
-  return (
-    <UserCircle
-      className={`${size} ${active ? "text-[#0097a7]" : "text-gray-300"}`}
-      aria-label={active ? "Participante" : "No participante"}
-    />
-  )
-}
 
 /** Tiene cuenta en la plataforma si tiene login de participante (participant_id)
  *  O ficha de voluntario (volunteer_id) — los voluntarios se loguean por la tabla

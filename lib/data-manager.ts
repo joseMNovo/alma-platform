@@ -1461,6 +1461,8 @@ export interface AccessAuditEntry {
   detail?: Record<string, any> | null
   created_at?: string
   actor_name?: string | null
+  person_name?: string | null
+  resource_label?: string | null
 }
 
 export async function getMyAccess(

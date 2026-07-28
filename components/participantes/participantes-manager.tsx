@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import FilterChip from "@/components/ui/filter-chip"
 import { toast } from "@/hooks/use-toast"
 import type { ParticipanteGestion } from "@/lib/data-manager"
 import {
   UserCircle, Search, Loader2, KeyRound, MailCheck, MailWarning,
-  GraduationCap, ClipboardList, Send,
+  GraduationCap, ClipboardList, Send, ChevronDown, X,
 } from "lucide-react"
 
 /**
@@ -27,6 +28,10 @@ export default function ParticipantesManager({ user }: { user: any }) {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [pinTarget, setPinTarget] = useState<ParticipanteGestion | null>(null)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [verifiedOnly, setVerifiedOnly] = useState(false)
+  const [enrolledOnly, setEnrolledOnly] = useState(false)
+  const [trainingOnly, setTrainingOnly] = useState(false)
 
   const isAdmin = user.role === "admin"
 
@@ -50,11 +55,20 @@ export default function ParticipantesManager({ user }: { user: any }) {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return rows
-    return rows.filter((r) =>
-      `${r.name ?? ""} ${r.last_name ?? ""} ${r.email ?? ""}`.toLowerCase().includes(q),
-    )
-  }, [rows, search])
+    return rows
+      .filter((r) => !q || `${r.name ?? ""} ${r.last_name ?? ""} ${r.email ?? ""}`.toLowerCase().includes(q))
+      .filter((r) => !verifiedOnly || r.email_verified)
+      .filter((r) => !enrolledOnly || r.enrollments_count > 0)
+      .filter((r) => !trainingOnly || r.has_training_access)
+      .sort((a, b) =>
+        `${a.name ?? ""} ${a.last_name ?? ""}`.trim().toLowerCase().localeCompare(
+          `${b.name ?? ""} ${b.last_name ?? ""}`.trim().toLowerCase(),
+        ),
+      )
+  }, [rows, search, verifiedOnly, enrolledOnly, trainingOnly])
+
+  const activeFilterCount = [verifiedOnly, enrolledOnly, trainingOnly].filter(Boolean).length
+  const clearFilters = () => { setVerifiedOnly(false); setEnrolledOnly(false); setTrainingOnly(false) }
 
   const pendientes = rows.filter((r) => !r.email_verified).length
 
@@ -87,6 +101,46 @@ export default function ParticipantesManager({ user }: { user: any }) {
         <div className="relative min-w-[220px] flex-1 sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input className="pl-9" placeholder="Buscar por nombre o email…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+      </div>
+
+      {/* ── Acordeón de filtros ── */}
+      <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+        <button
+          type="button"
+          onClick={() => setFiltersOpen((o) => !o)}
+          className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-gray-50/50"
+        >
+          <span className="flex items-center gap-2 text-sm font-medium text-gray-600">
+            <Search className="h-4 w-4 text-[#4dd0e1]" />
+            Filtros
+            {activeFilterCount > 0 && (
+              <Badge variant="outline" className="border-[#4dd0e1] text-xs text-[#00838f]">
+                {activeFilterCount}
+              </Badge>
+            )}
+          </span>
+          <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-300 ${filtersOpen ? "rotate-180" : ""}`} />
+        </button>
+        <div className={`grid transition-all duration-300 ease-in-out ${filtersOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+          <div className="overflow-hidden">
+            <div className="flex flex-wrap items-center gap-1.5 border-t border-gray-100 px-4 py-3">
+              <FilterChip active={verifiedOnly} onClick={() => setVerifiedOnly((v) => !v)}>
+                Verificado
+              </FilterChip>
+              <FilterChip active={enrolledOnly} onClick={() => setEnrolledOnly((v) => !v)}>
+                Con inscripción
+              </FilterChip>
+              <FilterChip active={trainingOnly} onClick={() => setTrainingOnly((v) => !v)}>
+                Capacitación
+              </FilterChip>
+              {activeFilterCount > 0 && (
+                <button onClick={clearFilters} className="ml-1 flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600">
+                  <X className="h-3.5 w-3.5" /> Limpiar
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

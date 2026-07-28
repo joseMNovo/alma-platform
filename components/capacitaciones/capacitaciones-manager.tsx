@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/hooks/use-toast"
 import { can } from "@/lib/permissions"
 import TrainingPlayer from "@/components/capacitaciones/training-player"
@@ -12,7 +11,7 @@ import CapacitacionesAdmin from "@/components/capacitaciones/capacitaciones-admi
 import type { Training, TrainingItem } from "@/lib/data-manager"
 import {
   GraduationCap, Lock, CheckCircle2, PlayCircle, FileText,
-  Loader2, Clock, Settings, ExternalLink, Plus,
+  Loader2, Clock, Settings, ExternalLink, Plus, ChevronDown, Eye,
 } from "lucide-react"
 
 /**
@@ -24,14 +23,20 @@ import {
  */
 export default function CapacitacionesManager({ user }: { user: any }) {
   const [trainings, setTrainings] = useState<Training[]>([])
+  // Catálogo completo (todos los estados: borrador/publicada/archivada) para
+  // la pestaña Gestión. `trainings` (de /mis) solo trae publicadas — un admin
+  // recién creando un borrador no se vería a sí mismo ahí.
+  const [managedTrainings, setManagedTrainings] = useState<Training[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTraining, setActiveTraining] = useState<string>("")
   const [activeItemId, setActiveItemId] = useState<number | null>(null)
-  // Señal para que el botón "Nueva capacitación" del header abra el formulario
-  // de alta dentro de la vista de Gestión.
-  const [newTrainingSignal, setNewTrainingSignal] = useState(0)
-
+  // El admin arranca en "administrar" (su trabajo real); el participante, en
+  // "ver" con la primera capacitación que puede ver.
   const isManager = can(user, "capacitaciones:manage")
+  const [view, setView] = useState<"ver" | "administrar">(isManager ? "administrar" : "ver")
+  // Señal para que el botón "Nueva capacitación" del header abra el formulario
+  // de alta dentro de la vista de administración.
+  const [newTrainingSignal, setNewTrainingSignal] = useState(0)
 
   const load = async () => {
     setLoading(true)
@@ -40,9 +45,13 @@ export default function CapacitacionesManager({ user }: { user: any }) {
       if (!res.ok) throw new Error("No se pudieron cargar las capacitaciones")
       const data: Training[] = await res.json()
       setTrainings(data)
-      // El admin cae directo en Gestión (su trabajo real); el participante,
-      // en la primera capacitación que puede ver.
-      setActiveTraining((prev) => prev || (isManager ? "gestion" : (data[0] ? String(data[0].id) : "")))
+      setActiveTraining((prev) => prev || (data[0] ? String(data[0].id) : ""))
+
+      if (isManager) {
+        const resAll = await fetch("/api/capacitaciones?include_items=true")
+        if (!resAll.ok) throw new Error("No se pudo cargar el catálogo de gestión")
+        setManagedTrainings(await resAll.json())
+      }
     } catch {
       toast({
         title: "Error",
@@ -84,70 +93,134 @@ export default function CapacitacionesManager({ user }: { user: any }) {
           <GraduationCap className="h-6 w-6 text-[#4dd0e1]" />
           <h2 className="text-xl font-bold text-gray-900">Capacitaciones</h2>
         </div>
-        {/* Siempre visible para el admin, esté donde esté: salta a Gestión y
-            abre el formulario de alta. */}
+
         {isManager && (
-          <Button
-            onClick={() => { setActiveTraining("gestion"); setNewTrainingSignal((n) => n + 1) }}
-            className="bg-[#4dd0e1] hover:bg-[#3bb8c9]"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Nueva capacitación
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Ver / Administrar: dos modos separados, no una pestaña más
+                mezclada con la lista de cursos (confundía). */}
+            <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
+              <button
+                onClick={() => setView("ver")}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                  view === "ver" ? "bg-[#4dd0e1] text-white" : "text-gray-500 hover:bg-gray-50"
+                }`}
+              >
+                <Eye className="h-4 w-4" />
+                Ver
+              </button>
+              <button
+                onClick={() => setView("administrar")}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                  view === "administrar" ? "bg-[#9A8BC2] text-white" : "text-gray-500 hover:bg-gray-50"
+                }`}
+              >
+                <Settings className="h-4 w-4" />
+                Administrar
+              </button>
+            </div>
+            <Button
+              onClick={() => { setView("administrar"); setNewTrainingSignal((n) => n + 1) }}
+              className="bg-[#4dd0e1] hover:bg-[#3bb8c9]"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Nueva capacitación
+            </Button>
+          </div>
         )}
       </div>
 
-      <Tabs value={activeTraining} onValueChange={(v) => { setActiveTraining(v); setActiveItemId(null) }}>
-        {/* Con muchas capacitaciones las sub-pestañas se envuelven en varias
-            filas en vez de desbordar la pantalla. */}
-        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-white p-1">
-          {trainings.map((t) => (
-            <TabsTrigger
-              key={t.id}
-              value={String(t.id)}
-              className="flex items-center gap-2 data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
-            >
-              {t.has_access ? <PlayCircle className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-              {t.title}
-            </TabsTrigger>
-          ))}
-          {isManager && (
-            <TabsTrigger
-              value="gestion"
-              className="ml-auto flex items-center gap-2 data-[state=active]:bg-gray-800 data-[state=active]:text-white"
-            >
-              <Settings className="h-4 w-4" />
-              Gestión
-            </TabsTrigger>
-          )}
-        </TabsList>
-
-        {trainings.map((t) => (
-          <TabsContent key={t.id} value={String(t.id)} className="mt-6">
-            <TrainingView
-              training={t}
-              item={String(t.id) === activeTraining ? currentItem : null}
-              onSelectItem={setActiveItemId}
-              user={user}
-            />
-          </TabsContent>
-        ))}
-
-        {isManager && (
-          <TabsContent value="gestion" className="mt-6">
-            <CapacitacionesAdmin user={user} trainings={trainings} onChanged={load} openNewSignal={newTrainingSignal} />
-          </TabsContent>
-        )}
-      </Tabs>
-
-      {trainings.length === 0 && (
+      {view === "administrar" && isManager ? (
+        <CapacitacionesAdmin user={user} trainings={managedTrainings} onChanged={load} openNewSignal={newTrainingSignal} />
+      ) : trainings.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-14 text-center text-gray-500">
             <GraduationCap className="h-10 w-10 text-gray-300" />
             <p className="font-medium">Todavía no hay capacitaciones publicadas</p>
-            {isManager && <p className="text-sm">Creá la primera desde la pestaña Gestión.</p>}
+            {isManager && <p className="text-sm">Creá la primera desde «Administrar».</p>}
           </CardContent>
         </Card>
+      ) : (
+        <div className="space-y-6">
+          {/* Selector tipo acordeón: colapsado por defecto, no crece a lo
+              ancho por más capacitaciones que haya. Con una sola, ni se
+              muestra — no tiene sentido elegir entre una opción. */}
+          {trainings.length > 1 && (
+            <TrainingPicker
+              trainings={trainings}
+              activeId={activeTraining}
+              onSelect={(id) => { setActiveTraining(id); setActiveItemId(null) }}
+            />
+          )}
+
+          {current && (
+            <TrainingView
+              training={current}
+              item={currentItem}
+              onSelectItem={setActiveItemId}
+              user={user}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Selector de capacitación (acordeón) ─────────────────────────────────
+
+function TrainingPicker({
+  trainings,
+  activeId,
+  onSelect,
+}: {
+  trainings: Training[]
+  activeId: string
+  onSelect: (id: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const current = trainings.find((t) => String(t.id) === activeId)
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left"
+      >
+        <span className="flex min-w-0 items-center gap-2 font-medium text-gray-800">
+          {current ? (
+            current.has_access ? (
+              <PlayCircle className="h-4 w-4 shrink-0 text-[#4dd0e1]" />
+            ) : (
+              <Lock className="h-4 w-4 shrink-0 text-gray-400" />
+            )
+          ) : (
+            <GraduationCap className="h-4 w-4 shrink-0 text-gray-400" />
+          )}
+          <span className="truncate">{current ? current.title : "Elegí una capacitación"}</span>
+        </span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="max-h-72 space-y-0.5 overflow-y-auto border-t border-gray-100 p-1">
+          {trainings.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => { onSelect(String(t.id)); setOpen(false) }}
+              className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition ${
+                String(t.id) === activeId
+                  ? "bg-[#4dd0e1]/10 font-medium text-[#00838f]"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              {t.has_access ? (
+                <PlayCircle className="h-4 w-4 shrink-0" />
+              ) : (
+                <Lock className="h-4 w-4 shrink-0 text-gray-400" />
+              )}
+              <span className="min-w-0 flex-1 truncate">{t.title}</span>
+            </button>
+          ))}
+        </div>
       )}
     </div>
   )

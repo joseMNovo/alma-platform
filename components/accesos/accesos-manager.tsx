@@ -5,15 +5,20 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
-import GrantDialog, { type GrantTarget } from "@/components/accesos/grant-dialog"
+import FilterChip from "@/components/ui/filter-chip"
+import GrantWizard from "@/components/accesos/grant-wizard"
+import PaymentDialog from "@/components/accesos/payment-dialog"
+import { VolunteerFlower, ParticipantMark } from "@/components/personas/role-marks"
 import { toast } from "@/hooks/use-toast"
 import { GRANTABLE_MODULES } from "@/lib/modules"
 import type { AccessMatrixRow, Training, PersonPayment, AccessAuditEntry, SharedAccountAlert } from "@/lib/data-manager"
 import {
-  KeyRound, Search, Loader2, UserCheck, UserX, Check, X, DollarSign,
-  History, AlertTriangle, TrendingUp, Trash2, HeartHandshake,
+  KeyRound, Search, Loader2, X, DollarSign,
+  History, AlertTriangle, TrendingUp, Trash2, UserPlus,
 } from "lucide-react"
 
 /**
@@ -32,8 +37,16 @@ export default function AccesosManager({ user }: { user: any }) {
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Set<number>>(new Set())
-  const [grantTarget, setGrantTarget] = useState<GrantTarget | null>(null)
+  const [wizard, setWizard] = useState<{ personIds: number[] } | null>(null)
+  const [paymentTarget, setPaymentTarget] = useState<AccessMatrixRow | null>(null)
   const [revokeTarget, setRevokeTarget] = useState<{ row: AccessMatrixRow; resourceId: number; label: string } | null>(null)
+
+  // Filtros rápidos. `trainingFilterId` es un <select> (no un chip por curso):
+  // con pocas capacitaciones un chip por cada una anda bien, pero con muchas
+  // se vuelve una fila infinita — un desplegable escala sin cambiar de forma.
+  const [roleFilter, setRoleFilter] = useState<"all" | "voluntario" | "participante">("all")
+  const [noAccessOnly, setNoAccessOnly] = useState(false)
+  const [trainingFilterId, setTrainingFilterId] = useState<number | null>(null)
 
   /** Columnas de la matriz: las capacitaciones, o una sola columna de acceso
    *  para los módulos que se habilitan enteros. */
@@ -69,35 +82,6 @@ export default function AccesosManager({ user }: { user: any }) {
     return () => clearTimeout(timer)
   }, [loadMatrix, search])
 
-  const openGrant = (row: AccessMatrixRow, resourceId: number, label: string) => {
-    const training = trainings.find((t) => t.id === resourceId)
-    setGrantTarget({
-      personIds: [row.person_id],
-      personLabel: `${row.name ?? ""} ${row.last_name ?? ""}`.trim() || row.email || `Persona #${row.person_id}`,
-      moduleKey,
-      resourceId,
-      resourceLabel: label,
-      suggestedDays: training?.default_access_days ?? null,
-      suggestedAmount: training ? Number(training.price) || null : null,
-    })
-  }
-
-  const openBulkGrant = (resourceId: number, label: string) => {
-    if (selected.size === 0) {
-      toast({ title: "Seleccioná al menos una persona", variant: "destructive" })
-      return
-    }
-    const training = trainings.find((t) => t.id === resourceId)
-    setGrantTarget({
-      personIds: [...selected],
-      personLabel: `${selected.size} personas seleccionadas`,
-      moduleKey,
-      resourceId,
-      resourceLabel: label,
-      suggestedDays: training?.default_access_days ?? null,
-    })
-  }
-
   const revoke = async () => {
     if (!revokeTarget) return
     try {
@@ -120,6 +104,34 @@ export default function AccesosManager({ user }: { user: any }) {
     }
   }
 
+  /** Sin acceso primero (son los que probablemente hay que atender), y
+   *  alfabético dentro de cada grupo. */
+  const sortedRows = useMemo(() => {
+    const hasAny = (row: AccessMatrixRow) => columns.some((c) => row.grants?.[String(c.id)] === true)
+    const nameOf = (row: AccessMatrixRow) => `${row.name ?? ""} ${row.last_name ?? ""}`.trim().toLowerCase()
+    return [...rows].sort((a, b) => {
+      const diff = Number(hasAny(a)) - Number(hasAny(b))
+      return diff !== 0 ? diff : nameOf(a).localeCompare(nameOf(b))
+    })
+  }, [rows, columns])
+
+  const visibleRows = useMemo(() => {
+    return sortedRows.filter((row) => {
+      if (roleFilter === "voluntario" && !row.is_volunteer) return false
+      if (roleFilter === "participante" && !row.has_login) return false
+      const hasAny = columns.some((c) => row.grants?.[String(c.id)] === true)
+      if (noAccessOnly && hasAny) return false
+      if (trainingFilterId != null && row.grants?.[String(trainingFilterId)] !== true) return false
+      return true
+    })
+  }, [sortedRows, roleFilter, noAccessOnly, trainingFilterId, columns])
+
+  const filtersActive = roleFilter !== "all" || noAccessOnly || trainingFilterId != null
+  const clearFilters = () => { setRoleFilter("all"); setNoAccessOnly(false); setTrainingFilterId(null) }
+
+  const subTabTriggerClass =
+    "flex items-center gap-2 transition-all duration-200 active:scale-95 data-[state=inactive]:hover:bg-[#4dd0e1]/10 data-[state=inactive]:hover:text-[#00838f] data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
+
   const toggleSelect = (personId: number) => {
     setSelected((prev) => {
       const next = new Set(prev)
@@ -134,6 +146,7 @@ export default function AccesosManager({ user }: { user: any }) {
         <div className="flex items-center gap-2">
           <KeyRound className="h-6 w-6 text-[#4dd0e1]" />
           <h2 className="text-xl font-bold text-gray-900">Accesos</h2>
+          <Badge variant="secondary">{rows.length}</Badge>
         </div>
         <p className="mt-1 text-sm text-gray-500">
           Quién puede ver cada capacitación paga, y el registro de pagos.
@@ -141,35 +154,27 @@ export default function AccesosManager({ user }: { user: any }) {
       </div>
 
       <Tabs defaultValue="matriz" className="space-y-4">
-        <TabsList className="bg-white">
-          <TabsTrigger value="matriz">Habilitaciones</TabsTrigger>
-          <TabsTrigger value="pagos">Pagos</TabsTrigger>
-          <TabsTrigger value="auditoria">Auditoría</TabsTrigger>
-          <TabsTrigger value="alertas">Alertas</TabsTrigger>
+        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-white border border-gray-200 p-1 rounded-lg sm:w-auto">
+          <TabsTrigger value="matriz" className={subTabTriggerClass}>Habilitaciones</TabsTrigger>
+          <TabsTrigger value="pagos" className={subTabTriggerClass}>Pagos</TabsTrigger>
+          <TabsTrigger value="auditoria" className={subTabTriggerClass}>Auditoría</TabsTrigger>
+          <TabsTrigger value="alertas" className={subTabTriggerClass}>Alertas</TabsTrigger>
         </TabsList>
 
         {/* ── Matriz ────────────────────────────────────────────────── */}
         <TabsContent value="matriz" className="space-y-4">
-          <div className="rounded-lg border border-[#4dd0e1]/30 bg-[#e0f7fa]/40 p-3 text-sm text-gray-600">
-            Cada fila es una persona; cada columna, una capacitación.{" "}
-            <strong className="text-gray-800">Tocá un casillero para darle acceso</strong> (y, si querés,
-            registrar el pago). Verde = tiene acceso — tocalo de nuevo para quitárselo. La última columna
-            muestra cuánto pagó esa persona en total.
-          </div>
-
           <div className="flex flex-wrap items-center gap-2">
             {/* Desplegable solo si hubiera más de un módulo habilitable. Hoy la
                 única cosa que se habilita por persona es Capacitaciones. */}
             {GRANTABLE_MODULES.length > 1 && (
-              <select
-                className="h-10 rounded-md border border-gray-200 px-3 text-sm"
-                value={moduleKey}
-                onChange={(e) => { setModuleKey(e.target.value); setSelected(new Set()) }}
-              >
-                {GRANTABLE_MODULES.map((m) => (
-                  <option key={m.key} value={m.key}>{m.label}</option>
-                ))}
-              </select>
+              <Select value={moduleKey} onValueChange={(v) => { setModuleKey(v); setSelected(new Set()) }}>
+                <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {GRANTABLE_MODULES.map((m) => (
+                    <SelectItem key={m.key} value={m.key}>{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
 
             <div className="relative min-w-[220px] flex-1">
@@ -183,17 +188,59 @@ export default function AccesosManager({ user }: { user: any }) {
             </div>
 
             {selected.size > 0 && (
-              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-                <Badge variant="secondary">{selected.size} seleccionadas</Badge>
+              <Badge variant="secondary" className="shrink-0">{selected.size} seleccionadas</Badge>
+            )}
+            <Button
+              size="sm"
+              disabled={selected.size === 0}
+              onClick={() => setWizard({ personIds: [...selected] })}
+              className={`shrink-0 ${selected.size > 0 ? "bg-[#4dd0e1] hover:bg-[#3bb8c9]" : ""}`}
+            >
+              <UserPlus className="mr-1.5 h-4 w-4" />
+              Habilitar acceso
+            </Button>
+            {selected.size > 0 && (
+              <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+
+          {/* Filtros rápidos. El de capacitación es un <select>, no un chip
+              por curso: con 50 capacitaciones un chip por cada una se vuelve
+              inmanejable, un desplegable no. */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <FilterChip active={roleFilter === "voluntario"} onClick={() => setRoleFilter((f) => (f === "voluntario" ? "all" : "voluntario"))}>
+              Voluntarios
+            </FilterChip>
+            <FilterChip active={roleFilter === "participante"} onClick={() => setRoleFilter((f) => (f === "participante" ? "all" : "participante"))}>
+              Participantes
+            </FilterChip>
+            <FilterChip active={noAccessOnly} onClick={() => setNoAccessOnly((v) => !v)}>
+              Sin accesos
+            </FilterChip>
+            <Select
+              value={trainingFilterId != null ? String(trainingFilterId) : "todas"}
+              onValueChange={(v) => setTrainingFilterId(v === "todas" ? null : Number(v))}
+            >
+              <SelectTrigger
+                className={`h-7 w-auto gap-1 rounded-full border px-2.5 text-xs font-medium [&>svg]:h-3 [&>svg]:w-3 ${
+                  trainingFilterId != null ? "border-[#4dd0e1] bg-[#4dd0e1]/10 text-[#00838f]" : "border-gray-300 text-gray-500"
+                }`}
+              >
+                <SelectValue placeholder="Acceso a…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Acceso a…</SelectItem>
                 {columns.map((c) => (
-                  <Button key={c.id} size="sm" variant="outline" onClick={() => openBulkGrant(c.id, c.label)}>
-                    Habilitar «{c.label}»
-                  </Button>
+                  <SelectItem key={c.id} value={String(c.id)}>{c.label}</SelectItem>
                 ))}
-                <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+              </SelectContent>
+            </Select>
+            {filtersActive && (
+              <button onClick={clearFilters} className="text-xs text-gray-400 underline hover:text-gray-600">
+                Limpiar filtros
+              </button>
             )}
           </div>
 
@@ -201,157 +248,85 @@ export default function AccesosManager({ user }: { user: any }) {
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-[#4dd0e1]" />
             </div>
-          ) : rows.length === 0 ? (
+          ) : visibleRows.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center text-gray-500">
                 No se encontraron personas.
               </CardContent>
             </Card>
           ) : (
-            <>
-            {/* Mobile: una tarjeta por persona. Una tabla de N columnas es
-                inusable en un teléfono, y este módulo se usa desde el celular. */}
-            <div className="space-y-2 md:hidden">
-              {rows.map((row) => (
-                <Card key={row.person_id}>
-                  <CardContent className="space-y-3 py-3">
-                    <div className="flex items-start gap-2">
-                      <input
-                        type="checkbox"
-                        className="mt-1"
-                        checked={selected.has(row.person_id)}
-                        onChange={() => toggleSelect(row.person_id)}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="truncate font-medium text-gray-800">
-                            {`${row.name ?? ""} ${row.last_name ?? ""}`.trim() || "Sin nombre"}
-                          </span>
-                          {row.has_login ? (
-                            <UserCheck className="h-3.5 w-3.5 shrink-0 text-green-500" />
-                          ) : (
-                            <UserX className="h-3.5 w-3.5 shrink-0 text-gray-300" />
-                          )}
-                          {row.is_volunteer && <HeartHandshake className="h-3.5 w-3.5 shrink-0 text-[#4dd0e1]" />}
-                        </div>
-                        <p className="truncate text-xs text-gray-400">{row.email || "sin email"}</p>
-                      </div>
-                      {Number(row.total_paid) > 0 && (
-                        <Badge variant="secondary" className="shrink-0">
-                          ${Number(row.total_paid).toLocaleString("es-AR")}
-                        </Badge>
-                      )}
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {columns.map((c) => {
-                        const live = row.grants?.[String(c.id)] === true
-                        return (
-                          <button
-                            key={c.id}
-                            onClick={() =>
-                              live
-                                ? setRevokeTarget({ row, resourceId: c.id, label: c.label })
-                                : openGrant(row, c.id, c.label)
-                            }
-                            className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition ${
-                              live
-                                ? "border-green-500 bg-green-50 text-green-700"
-                                : "border-gray-300 text-gray-500"
-                            }`}
-                          >
-                            {live ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-                            <span className="max-w-[140px] truncate">{c.label}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            <Card className="hidden md:block">
-              <CardContent className="overflow-x-auto p-0">
-                <table className="w-full text-sm">
-                  <thead className="border-b bg-gray-50 text-left">
-                    <tr>
-                      <th className="w-8 px-3 py-1.5"></th>
-                      <th className="px-3 py-2 font-medium text-gray-600">Persona</th>
-                      {columns.map((c) => (
-                        <th key={c.id} className="px-3 py-2 text-center font-medium text-gray-600">
-                          <span className="block max-w-[140px] truncate" title={c.label}>{c.label}</span>
-                        </th>
-                      ))}
-                      <th className="px-3 py-2 text-right font-medium text-gray-600">Total pagado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr key={row.person_id} className="border-b border-gray-100 last:border-0 even:bg-gray-50/50 hover:bg-[#4dd0e1]/5 transition-colors">
-                        <td className="px-3 py-1.5">
-                          <input
-                            type="checkbox"
+            <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+              <table className="w-full text-sm">
+                <tbody className="divide-y divide-gray-100">
+                  {visibleRows.map((row) => {
+                    const granted = columns.filter((c) => row.grants?.[String(c.id)] === true)
+                    return (
+                      <tr
+                        key={row.person_id}
+                        onClick={() => toggleSelect(row.person_id)}
+                        className="cursor-pointer transition-colors hover:bg-[#4dd0e1]/5"
+                      >
+                        <td className="py-2 pl-3 pr-1" onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            className="border-gray-300 data-[state=checked]:border-[#4dd0e1] data-[state=checked]:bg-[#4dd0e1]"
                             checked={selected.has(row.person_id)}
-                            onChange={() => toggleSelect(row.person_id)}
+                            onCheckedChange={() => toggleSelect(row.person_id)}
                           />
                         </td>
-                        <td className="px-3 py-1.5">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-gray-800">
-                              {`${row.name ?? ""} ${row.last_name ?? ""}`.trim() || "Sin nombre"}
-                            </span>
-                            {row.has_login ? (
-                              <UserCheck className="h-3.5 w-3.5 text-green-500" aria-label="Con usuario" />
-                            ) : (
-                              <UserX className="h-3.5 w-3.5 text-gray-300" aria-label="Sin usuario" />
-                            )}
-                            {row.is_volunteer && <HeartHandshake className="h-3.5 w-3.5 text-[#4dd0e1]" />}
-                          </div>
-                          <span className="text-xs text-gray-400">{row.email || "sin email"}</span>
+                        <td className="whitespace-nowrap px-2 py-2 font-medium text-gray-800">
+                          {`${row.name ?? ""} ${row.last_name ?? ""}`.trim() || "Sin nombre"}
                         </td>
-
-                        {columns.map((c) => {
-                          const live = row.grants?.[String(c.id)] === true
-                          return (
-                            <td key={c.id} className="px-3 py-1.5 text-center">
-                              <button
-                                onClick={() =>
-                                  live
-                                    ? setRevokeTarget({ row, resourceId: c.id, label: c.label })
-                                    : openGrant(row, c.id, c.label)
-                                }
-                                className={`inline-flex h-6 w-6 items-center justify-center rounded border transition ${
-                                  live
-                                    ? "border-green-500 bg-green-500 text-white hover:bg-green-600"
-                                    : "border-gray-300 text-transparent hover:border-[#4dd0e1] hover:bg-[#4dd0e1]/10"
-                                }`}
-                                title={live ? "Revocar acceso" : "Habilitar acceso"}
-                              >
-                                <Check className="h-4 w-4" />
-                              </button>
-                            </td>
-                          )
-                        })}
-
-                        <td className="px-3 py-1.5 text-right text-gray-600">
-                          {Number(row.total_paid) > 0
-                            ? `$${Number(row.total_paid).toLocaleString("es-AR")}`
-                            : "—"}
+                        <td className="whitespace-nowrap px-2 py-2">
+                          <span className="flex items-center gap-1">
+                            <VolunteerFlower active={row.is_volunteer} size="w-3.5 h-3.5" />
+                            <ParticipantMark active={row.has_login} size="w-3.5 h-3.5" />
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-2 py-2 text-xs text-gray-400">
+                          {row.email || "sin email"}
+                        </td>
+                        <td className="w-full px-2 py-2">
+                          <div className="flex flex-wrap items-center justify-end gap-1.5">
+                            {granted.length === 0 ? (
+                              <span className="text-xs text-gray-300">Sin accesos</span>
+                            ) : (
+                              granted.map((c) => (
+                                <span
+                                  key={c.id}
+                                  className="inline-flex max-w-[180px] items-center gap-1 rounded-full border border-green-500 bg-green-50 py-0.5 pl-2.5 pr-1 text-xs font-medium text-green-700"
+                                >
+                                  <span className="truncate">{c.label}</span>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setRevokeTarget({ row, resourceId: c.id, label: c.label }) }}
+                                    className="shrink-0 rounded-full p-0.5 hover:bg-green-200/60"
+                                    title="Revocar acceso"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </span>
+                              ))
+                            )}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setPaymentTarget(row) }}
+                              className={`ml-1 inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium transition ${
+                                Number(row.total_paid) > 0
+                                  ? "border-green-500 bg-green-50 text-green-700 hover:bg-green-100"
+                                  : "border-gray-300 text-gray-400 hover:border-[#4dd0e1] hover:text-[#00838f]"
+                              }`}
+                              title={Number(row.total_paid) > 0 ? "Registrar otro pago" : "Marcar pago"}
+                            >
+                              <DollarSign className="h-3 w-3" />
+                              {Number(row.total_paid) > 0 ? `$${Number(row.total_paid).toLocaleString("es-AR")}` : "Sin pago"}
+                            </button>
+                          </div>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </CardContent>
-            </Card>
-            </>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
-
-          <p className="text-xs text-gray-400">
-            Habilitar cualquier capacitación ya le muestra la pestaña a la persona. Revocar
-            no borra los pagos registrados.
-          </p>
         </TabsContent>
 
         <TabsContent value="pagos"><PagosTab /></TabsContent>
@@ -359,11 +334,24 @@ export default function AccesosManager({ user }: { user: any }) {
         <TabsContent value="alertas"><AlertasTab /></TabsContent>
       </Tabs>
 
-      {grantTarget && (
-        <GrantDialog
-          target={grantTarget}
-          onClose={() => setGrantTarget(null)}
-          onDone={() => { setGrantTarget(null); setSelected(new Set()); loadMatrix() }}
+      {wizard && (
+        <GrantWizard
+          moduleKey={moduleKey}
+          columns={columns}
+          trainings={trainings}
+          initialPersonIds={wizard.personIds}
+          onClose={() => setWizard(null)}
+          onDone={() => { setWizard(null); setSelected(new Set()); loadMatrix() }}
+        />
+      )}
+
+      {paymentTarget && (
+        <PaymentDialog
+          person={paymentTarget}
+          trainings={trainings}
+          grantedTrainingIds={columns.filter((c) => paymentTarget.grants?.[String(c.id)] === true).map((c) => c.id)}
+          onClose={() => setPaymentTarget(null)}
+          onDone={() => { setPaymentTarget(null); loadMatrix() }}
         />
       )}
 
@@ -555,8 +543,8 @@ function AuditoriaTab({ moduleKey }: { moduleKey: string }) {
             <div className="min-w-0 flex-1">
               <p className="text-gray-800">
                 <span className="font-medium">{e.actor_name || "Sistema"}</span>{" "}
-                {ACTION_LABELS[e.action] ?? e.action} · persona #{e.person_id}
-                {e.resource_id > 0 && ` · recurso #${e.resource_id}`}
+                {ACTION_LABELS[e.action] ?? e.action} · {e.person_name || `persona #${e.person_id}`}
+                {e.resource_id > 0 && ` · ${e.resource_label || `recurso #${e.resource_id}`}`}
               </p>
               {e.detail && (
                 <p className="truncate text-xs text-gray-400">
