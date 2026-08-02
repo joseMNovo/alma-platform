@@ -58,6 +58,11 @@ export function can(user: { role: string } | null, action: Action): boolean {
     return action === "participante:edit_profile" || action === "capacitaciones:view"
   }
 
+  // Los roles desconocidos no heredan NADA. Sin esto, cualquier valor inesperado
+  // en `role` cae en el switch de abajo y sale con permisos de voluntario: un rol
+  // nuevo quedaría habilitado solo, sin que nadie lo decida.
+  if (!isAdmin && user.role !== "voluntario") return false
+
   switch (action) {
     // Calendar: authenticated non-participant users can create/edit; only admin can delete or bulk-generate
     case "calendar:create":
@@ -172,5 +177,12 @@ export function canDeleteCalendarInstance(
 ): boolean {
   if (!user || !instance) return false
   if (can(user, "calendar:delete")) return true // admin
+
+  // El id solo alcanza para decidir autoría entre quienes son voluntarios.
+  // `participants` y `voluntarios` son tablas con secuencias de id propias, así
+  // que se pisan: sin este chequeo, el participante #3 podría borrar el evento
+  // creado por el voluntario #3.
+  if (!can(user, "calendar:edit")) return false
+
   return instance.created_by_volunteer_id != null && instance.created_by_volunteer_id === user.id
 }
