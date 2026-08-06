@@ -459,13 +459,19 @@ function PagosTab() {
         </CardContent>
       </Card>
 
-      {summary.length > 0 && (
+      {/* El desglose por capacitación. Con una sola no se muestra: repetiría
+          el total de arriba.
+
+          Nunca cae en `concept_type` como antes: acá TODO es una capacitación,
+          así que un cartel que decía «capacitacion» no informaba nada — solo
+          hacía dudar de si había otra cosa mezclada. */}
+      {summary.length > 1 && (
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {summary.map((s, i) => (
             <Card key={i}>
               <CardContent className="py-3">
                 <p className="truncate text-sm font-medium text-gray-800">
-                  {s.label || s.concept_type}
+                  {s.label || "Capacitación eliminada"}
                 </p>
                 <p className="text-xs text-gray-500">
                   {s.pagos} {s.pagos === 1 ? "pago" : "pagos"} · ${Number(s.total).toLocaleString("es-AR")}
