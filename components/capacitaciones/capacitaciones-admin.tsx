@@ -725,6 +725,50 @@ function TrainingDialog({
   )
 }
 
+// ── Duración: se escribe como en YouTube ───────────────────────────────
+
+/**
+ * "1:33:58" → 94.  "93:58" → 94.  "8" → 8.
+ *
+ * En la base la duración vive en MINUTOS enteros, pero nadie mira un video y
+ * piensa en minutos: mira "1:33:58" abajo del reproductor. Antes había que
+ * sacar la cuenta a mano, y una cuenta mal hecha corre el umbral del 90% que
+ * decide cuándo el video se da por visto.
+ *
+ * Un número suelto se toma como minutos, que es lo que se cargaba antes.
+ * Devuelve null si no se entiende.
+ */
+function minutosDesdeDuracion(texto: string): number | null {
+  const limpio = texto.trim()
+  if (!limpio) return null
+
+  const partes = limpio.split(":")
+  if (partes.length > 3) return null
+
+  const numeros = partes.map((parte) => Number(parte))
+  if (numeros.some((n) => !Number.isInteger(n) || n < 0)) return null
+
+  const segundos =
+    numeros.length === 1
+      ? numeros[0] * 60
+      : numeros.length === 2
+        ? numeros[0] * 60 + numeros[1]
+        : numeros[0] * 3600 + numeros[1] * 60 + numeros[2]
+
+  if (segundos <= 0) return null
+  // Al menos 1: un video de 20 segundos no puede quedar en 0 minutos, porque
+  // 0 apaga el cálculo del avance.
+  return Math.max(1, Math.round(segundos / 60))
+}
+
+/** El camino inverso, para mostrar lo que ya estaba guardado. */
+function duracionDesdeMinutos(minutos?: number | null): string {
+  if (!minutos) return ""
+  const horas = Math.floor(minutos / 60)
+  const resto = minutos % 60
+  return horas ? `${horas}:${String(resto).padStart(2, "0")}:00` : String(resto)
+}
+
 // ── Formulario de contenido ────────────────────────────────────────────
 
 function ItemDialog({
@@ -738,6 +782,9 @@ function ItemDialog({
 }) {
   const [checking, setChecking] = useState(false)
   const [check, setCheck] = useState<{ ok: boolean; message?: string | null; video_id?: string | null } | null>(null)
+  // La duración se escribe como "1:33:58"; en `value` viaja en minutos. El
+  // texto se guarda aparte para no reescribirlo mientras se tipea.
+  const [duracion, setDuracion] = useState(() => duracionDesdeMinutos(value.duration_minutes))
 
   /** Valida el link contra YouTube y autocompleta el título. */
   const verify = async () => {
@@ -842,19 +889,36 @@ function ItemDialog({
           {isVideo ? (
             <div>
               <Label>
-                Duración (minutos)
+                Duración
                 <Ayuda>
-                  Se usa para calcular cuándo dar el video por visto (90% reproducido).
+                  Copiala tal cual del reproductor de YouTube: 1:33:58. Se usa para
+                  calcular cuándo dar el video por visto (90% reproducido).
                 </Ayuda>
               </Label>
               <Input
-                type="number"
-                min={0}
-                value={value.duration_minutes ?? ""}
-                onChange={(e) =>
-                  onChange({ ...value, duration_minutes: e.target.value ? Number(e.target.value) : null })
-                }
+                inputMode="numeric"
+                placeholder="1:33:58"
+                value={duracion}
+                onChange={(e) => {
+                  // Solo dígitos y dos puntos: cualquier otra cosa es un error
+                  // de tipeo que después haría un número raro.
+                  const texto = e.target.value.replace(/[^\d:]/g, "")
+                  setDuracion(texto)
+                  onChange({ ...value, duration_minutes: minutosDesdeDuracion(texto) })
+                }}
               />
+              {/* Dos casos, y ninguno es una explicación:
+                  · No se entiende → se guardaría en null, y un null apaga el
+                    cálculo del 90%: ese video no se daría por visto nunca.
+                  · Hay conversión de verdad (hay ":") → se muestra el
+                    resultado. Atrapa el dedo gordo de escribir "133:58" por
+                    "1:33:58", que son 134 minutos en vez de 94 y nada avisaría.
+                  Un número suelto no muestra nada: repetirlo sería ruido. */}
+              {duracion.trim() && !value.duration_minutes ? (
+                <p className="mt-1 text-xs text-amber-600">Escribila como 1:33:58</p>
+              ) : duracion.includes(":") && value.duration_minutes ? (
+                <p className="mt-1 text-xs text-gray-400">= {value.duration_minutes} min</p>
+              ) : null}
             </div>
           ) : (
             <div>

@@ -11,7 +11,7 @@ export const config = {
   // Configuración de la aplicación
   app: {
     name: process.env.NEXT_PUBLIC_APP_NAME || "ALMA Platform",
-    version: "3.17.0",
+    version: "3.20.3",
   },
 
   // Contacto institucional que se muestra al público (landing de

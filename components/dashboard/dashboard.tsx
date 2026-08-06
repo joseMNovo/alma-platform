@@ -59,6 +59,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import AlmaFooter from "@/components/ui/alma-footer"
+import MarcaAlma from "@/components/ui/marca-alma"
 import ProfileCompletionModal from "@/components/auth/profile-completion-modal"
 import ParticipanteOnboarding from "@/components/participantes/onboarding-modal"
 import AnnouncementModal from "@/components/announcements/announcement-modal"
@@ -276,11 +277,10 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               <img src="/images/flor.png" alt="ALMA" className="h-8 w-auto" />
             </div>
 
-            {/* Título centrado */}
+            {/* La marca, escrita con la tipografía institucional. Ver
+                components/ui/marca-alma.tsx. */}
             <div className="flex-1 flex justify-center">
-              <h1 className="text-lg sm:text-xl font-bold text-center">
-                Comunidad <span className="text-[#4dd0e1]">ALMA</span>
-              </h1>
+              <MarcaAlma className="text-2xl sm:text-3xl" />
             </div>
 
             <div className="flex items-center space-x-4">
@@ -324,12 +324,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                   <div className="flex flex-col h-full">
                     <div className="p-4 border-b">
                       <div className="flex items-center space-x-3">
-                        <img src="/images/flor.png" alt="ALMA" className="h-8 w-auto" />
-                        <div>
-                          <h2 className="text-lg font-bold">
-                            Comunidad <span className="text-[#4dd0e1]">ALMA</span>
-                          </h2>
-                        </div>
+                        <MarcaAlma className="text-2xl" />
                       </div>
                       <div className="mt-4 flex items-center justify-between">
                         <div>

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { getPublicTraining, type Training } from "@/lib/data-manager"
 import { config } from "@/lib/config"
 import AlmaFooter from "@/components/ui/alma-footer"
+import MarcaAlma from "@/components/ui/marca-alma"
 
 /**
  * Landing PÚBLICA de una capacitación — /capacitacion/<slug>
@@ -58,9 +59,7 @@ export default async function CapacitacionPublicaPage({ params }: { params: Prom
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
             <img src="/images/flor.png" alt="ALMA" className="h-8 w-auto" />
-            <span className="text-lg font-bold">
-              Comunidad <span className="text-[#4dd0e1]">ALMA</span>
-            </span>
+            <MarcaAlma className="text-xl" />
           </div>
           <div className="flex items-center gap-4">
             <Link
