@@ -68,9 +68,14 @@ export default function Ayuda({
       </button>
 
       {abierto && (
+        // Anclada a la IZQUIERDA del ícono, no centrada. Centrada, la mitad de
+        // la burbuja caía fuera del diálogo y quedaba cortada: los modales
+        // tienen `overflow-y-auto`, y en CSS eso recorta también a lo ancho.
+        // Como el ícono siempre va pegado a una etiqueta alineada a la
+        // izquierda, hacia la derecha sobra lugar.
         <span
           role="tooltip"
-          className={`absolute left-1/2 z-50 w-56 -translate-x-1/2 rounded-lg bg-gray-800 px-3 py-2 text-xs font-normal leading-relaxed text-white shadow-lg ${
+          className={`absolute left-0 z-50 w-60 max-w-[min(15rem,calc(100vw-2rem))] rounded-lg bg-gray-800 px-3 py-2 text-xs font-normal leading-relaxed text-white shadow-lg ${
             lado === "abajo" ? "top-6" : "bottom-6"
           }`}
         >

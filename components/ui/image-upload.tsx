@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import ImageCropper from "@/components/ui/image-cropper"
 import { toast } from "@/hooks/use-toast"
@@ -30,6 +30,13 @@ interface ImageUploadProps {
    * lo que se sube ya es la imagen final. Sin esto, se sube tal cual.
    */
   cropAspect?: number
+  /**
+   * Avisa cuando hay algo a medio hacer: la imagen viajando al servidor o el
+   * recorte sin confirmar. Quien contiene el formulario lo usa para bloquear
+   * su "Guardar" — si no, se guarda sin portada y la imagen se pierde en el
+   * aire, sin ningún cartel que lo explique.
+   */
+  onBusyChange?: (ocupado: boolean) => void
   className?: string
 }
 
@@ -53,6 +60,7 @@ export default function ImageUpload({
   maxMB = 5,
   fit = "cover",
   cropAspect,
+  onBusyChange,
   className = "",
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false)
@@ -62,6 +70,15 @@ export default function ImageUpload({
   const inputRef = useRef<HTMLInputElement>(null)
 
   const currentSrc = preview || (value ? `/api/files/${value}/raw` : null)
+
+  // Subiendo o con el recorte a medias: en los dos casos todavía no hay guid
+  // que guardar. `onBusyChange` queda fuera de las dependencias a propósito:
+  // suele venir como función inline y volvería a dispararse en cada render.
+  const ocupado = uploading || !!aRecortar
+  useEffect(() => {
+    onBusyChange?.(ocupado)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ocupado])
 
   /** Manda la imagen al servidor. Recibe el data URL ya listo (recortado o no). */
   const subir = async (dataUrl: string, mime: string, name: string) => {
@@ -167,6 +184,23 @@ export default function ImageUpload({
         }}
       />
 
+      {/* Encuadrando: el recortador OCUPA el lugar del recuadro, no se agrega
+          abajo. Antes aparecía debajo del "Subir imagen" y quedaban las dos
+          cosas a la vez, con la que importa fuera de la vista. */}
+      {aRecortar && cropAspect ? (
+        <ImageCropper
+          src={aRecortar.dataUrl}
+          mime={aRecortar.mime}
+          aspect={cropAspect}
+          title={`Acomodá ${label.toLowerCase()}`}
+          onCancel={() => setARecortar(null)}
+          onConfirm={({ dataUrl, mime }) => {
+            setARecortar(null)
+            subir(dataUrl, mime, aRecortar.name)
+          }}
+        />
+      ) : (
+        <>
       {currentSrc ? (
         <div className="relative overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
           {/* Con cropAspect, el recuadro tiene la proporción REAL con la que
@@ -245,19 +279,7 @@ export default function ImageUpload({
           ? "Al elegir la foto vas a poder acomodarla dentro del recuadro. Se achica sola: no hace falta prepararla antes."
           : "Se achica sola al guardar, no hace falta prepararla antes."}
       </p>
-
-      {aRecortar && cropAspect && (
-        <ImageCropper
-          src={aRecortar.dataUrl}
-          mime={aRecortar.mime}
-          aspect={cropAspect}
-          title={`Acomodá ${label.toLowerCase()}`}
-          onCancel={() => setARecortar(null)}
-          onConfirm={({ dataUrl, mime }) => {
-            setARecortar(null)
-            subir(dataUrl, mime, aRecortar.name)
-          }}
-        />
+        </>
       )}
     </div>
   )

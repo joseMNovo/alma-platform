@@ -171,47 +171,23 @@ export default async function CapacitacionPublicaPage({ params }: { params: Prom
               </Link>
             </div>
 
-            <div className="rounded-xl border border-gray-200 bg-white p-5 text-sm text-gray-600">
-              <p className="font-medium text-gray-800">Cómo es el paso a paso</p>
-              <ol className="mt-3 space-y-3">
-                {[
-                  training.payment_url
-                    ? "Pagás por MercadoPago desde el botón de arriba."
-                    : "Nos escribís para coordinar el pago.",
-                  "Creás tu cuenta en la plataforma con tu email.",
-                  "Un voluntario de ALMA confirma el pago y te habilita el acceso.",
-                  "Entrás a la pestaña Capacitaciones y ya podés ver todo el contenido.",
-                ].map((step, i) => (
-                  <li key={i} className="flex gap-3">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#4dd0e1]/10 text-xs font-bold text-[#00838f]">
-                      {i + 1}
-                    </span>
-                    <span>{step}</span>
-                  </li>
-                ))}
-              </ol>
-              <p className="mt-4 text-xs text-gray-500">
-                La habilitación no es automática: la hace una persona después de verificar
-                el pago. Si ya pagaste y no ves el contenido, escribinos a{" "}
-                <a
-                  href={`mailto:${config.contact.email}`}
-                  className="font-medium text-[#00838f] underline-offset-2 hover:underline"
-                >
-                  {config.contact.email}
-                </a>
-                .
-              </p>
-            </div>
-
-            <div className="rounded-xl bg-[#4dd0e1]/5 p-5 text-sm text-gray-600">
-              <p className="font-medium text-gray-800">¿Ya tenés cuenta?</p>
-              <p className="mt-1">
-                <Link href="/" className="text-[#4dd0e1] underline-offset-2 hover:underline">
-                  Ingresá
-                </Link>{" "}
-                y vas a ver la capacitación en la pestaña Capacitaciones apenas te habilitemos.
-              </p>
-            </div>
+            {/* Una línea, no un instructivo.
+                Acá había un paso a paso de cuatro puntos, una aclaración sobre
+                la habilitación manual y una tercera caja repitiendo el «Ya
+                tengo cuenta» del botón de arriba: tres bloques de texto entre
+                la persona y la inscripción. Lo que de verdad hay que avisar es
+                que el acceso no se abre solo — el resto se explica en el
+                wizard, cuando ya decidió entrar. */}
+            <p className="px-1 text-xs text-gray-500">
+              El acceso lo habilita una persona de ALMA después de confirmar el pago.
+              ¿Dudas?{" "}
+              <a
+                href={`mailto:${config.contact.email}`}
+                className="font-medium text-[#00838f] underline-offset-2 hover:underline"
+              >
+                {config.contact.email}
+              </a>
+            </p>
           </aside>
         </div>
       </main>

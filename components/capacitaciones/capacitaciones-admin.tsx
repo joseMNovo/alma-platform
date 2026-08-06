@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 import ImageUpload from "@/components/ui/image-upload"
 import Ayuda from "@/components/ui/ayuda"
+import FilterChip from "@/components/ui/filter-chip"
 import { toast } from "@/hooks/use-toast"
 import type { Training, TrainingItem } from "@/lib/data-manager"
 import CatalogoCapacitaciones from "@/components/capacitaciones/catalogo-capacitaciones"
@@ -555,6 +556,10 @@ function TrainingDialog({
   onSave: () => void
   onClose: () => void
 }) {
+  // La portada está subiendo o esperando que confirmen el encuadre. Guardar
+  // ahora dejaría la capacitación sin imagen y sin aviso.
+  const [portadaOcupada, setPortadaOcupada] = useState(false)
+
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
@@ -588,6 +593,7 @@ function TrainingDialog({
             cropAspect={16 / 9}
             value={value.cover_file_guid ?? null}
             onChange={(guid) => onChange({ ...value, cover_file_guid: guid })}
+            onBusyChange={setPortadaOcupada}
           />
 
           <div>
@@ -595,20 +601,39 @@ function TrainingDialog({
               Categoría
               <Ayuda lado="abajo">Agrupa y filtra el catálogo. Es texto libre.</Ayuda>
             </Label>
-            {/* Texto libre, pero con las que ya existen a mano: escribirlas de
-                nuevo termina en "Cuidadores" y "cuidadores" como dos secciones
-                distintas. Al tipear, el navegador ofrece las cargadas. */}
             <Input
-              list="categorias-capacitaciones"
               placeholder="Ej: Cuidadores"
               value={value.category ?? ""}
               onChange={(e) => onChange({ ...value, category: e.target.value })}
             />
-            <datalist id="categorias-capacitaciones">
-              {categorias.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
+
+            {/* Las que ya existen, a un toque.
+                Antes iban en un <datalist>: el navegador las muestra solo
+                mientras tipeás, con su propio estilo y a su criterio — o sea,
+                para descubrirlas había que adivinarlas primero. Escribirlas de
+                nuevo termina en "Cuidadores" y "cuidadores" como dos secciones
+                distintas del catálogo. */}
+            {categorias.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {categorias.map((c) => (
+                  <FilterChip
+                    key={c}
+                    active={(value.category ?? "").trim() === c}
+                    // Volver a tocar la que ya está puesta la saca: es la forma
+                    // de dejar la capacitación sin categoría sin tener que
+                    // borrar el texto a mano.
+                    onClick={() =>
+                      onChange({
+                        ...value,
+                        category: (value.category ?? "").trim() === c ? "" : c,
+                      })
+                    }
+                  >
+                    {c}
+                  </FilterChip>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -681,9 +706,16 @@ function TrainingDialog({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex items-center justify-end gap-2 pt-2">
+          {portadaOcupada && (
+            <span className="mr-auto text-xs text-gray-500">Terminá con la portada</span>
+          )}
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={onSave} disabled={saving} className="bg-[#4dd0e1] hover:bg-[#3bb8c9]">
+          <Button
+            onClick={onSave}
+            disabled={saving || portadaOcupada}
+            className="bg-[#4dd0e1] hover:bg-[#3bb8c9]"
+          >
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Guardar
           </Button>
