@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
+import FilterChip from "@/components/ui/filter-chip"
 import {
   Plus, Edit, Trash2, Database, Search, X, ChevronDown,
   ArrowUpDown, ArrowUp, ArrowDown, Send, Loader2, AlertTriangle,
@@ -23,6 +24,7 @@ interface PersonaFormData {
   last_name: string
   email: string
   cuit: string
+  dni: string
   is_member: boolean
   birth_date: string
   address: string
@@ -35,13 +37,11 @@ interface PersonaFormData {
 }
 
 const EMPTY_FORM: PersonaFormData = {
-  name: "", last_name: "", email: "", cuit: "", is_member: false, birth_date: "", address: "",
+  name: "", last_name: "", email: "", cuit: "", dni: "", is_member: false, birth_date: "", address: "",
   floor: "", apartment: "", city: "", province: "", postal_code: "", phone: "",
 }
 
-const EMPTY_FILTERS = { name: "", last_name: "", cuit: "", city: "", province: "" }
-
-// Filtros categóricos (segmentados). "all" = sin filtrar.
+// Filtros categóricos. "all" = sin filtrar.
 const EMPTY_SEG = { member: "all", volunteer: "all", account: "all" }
 
 type SortKey = "last_name" | "name" | "cuit" | "city" | "province"
@@ -101,9 +101,11 @@ export default function PersonasDbManager({ user }: { user: any }) {
   const [personas, setPersonas] = useState<Persona[]>([])
   const [loading, setLoading] = useState(true)
 
-  const [filters, setFilters] = useState(EMPTY_FILTERS)
+  // Una sola caja de búsqueda: antes eran cinco campos (nombre, apellido,
+  // CUIT, localidad, provincia) escondidos en un acordeón. Buscar por todos a
+  // la vez es lo que la gente intenta hacer igual.
+  const [busqueda, setBusqueda] = useState("")
   const [seg, setSeg] = useState(EMPTY_SEG)   // socio / voluntario / estado
-  const [filtersOpen, setFiltersOpen] = useState(false)   // acordeón de filtros, cerrado por defecto
   const [expandedId, setExpandedId] = useState<number | null>(null)   // card mobile expandida
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "name", dir: "asc" })
 
@@ -192,22 +194,21 @@ export default function PersonasDbManager({ user }: { user: any }) {
 
   // ── Filtrado + orden (en memoria, responsivo al tipeo) ──────────────
   const filtered = useMemo(() => {
-    const match = (val: string | null | undefined, q: string) =>
-      !q.trim() || (val ?? "").toLowerCase().includes(q.trim().toLowerCase())
+    const q = busqueda.trim().toLowerCase()
+    // Busca en todo lo que alguien puede tener a mano para encontrar a una
+    // persona: nombre, contacto, documento o dónde vive.
+    const matchTexto = (p: Persona) =>
+      !q ||
+      [p.name, p.last_name, p.email, p.cuit, p.dni, p.phone, p.city, p.province].some(v =>
+        (v ?? "").toLowerCase().includes(q),
+      )
 
     const matchSeg = (p: Persona) =>
       (seg.member === "all" || (seg.member === "yes" ? !!p.is_member : !p.is_member)) &&
       (seg.volunteer === "all" || (seg.volunteer === "yes" ? !!p.is_volunteer : !p.is_volunteer)) &&
       (seg.account === "all" || (seg.account === "with" ? hasUserAccount(p) : !hasUserAccount(p)))
 
-    const list = personas.filter(p =>
-      match(p.name, filters.name) &&
-      match(p.last_name, filters.last_name) &&
-      match(p.cuit, filters.cuit) &&
-      match(p.city, filters.city) &&
-      match(p.province, filters.province) &&
-      matchSeg(p)
-    )
+    const list = personas.filter(p => matchTexto(p) && matchSeg(p))
 
     const dir = sort.dir === "asc" ? 1 : -1
     return [...list].sort((a, b) => {
@@ -217,7 +218,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
       if (av && !bv) return -1
       return av.localeCompare(bv, "es", { sensitivity: "base" }) * dir
     })
-  }, [personas, filters, seg, sort])
+  }, [personas, busqueda, seg, sort])
 
   // KPIs sobre el total cargado (no sobre el filtrado).
   // Participante = persona NO voluntaria → participantes + voluntarios = total.
@@ -238,8 +239,13 @@ export default function PersonasDbManager({ user }: { user: any }) {
     return { volunteers, participants, volunteerMembers, participantMembers, membersNoAccount }
   }, [personas])
 
-  const hasActiveFilters =
-    Object.values(filters).some(v => v.trim()) || Object.values(seg).some(v => v !== "all")
+  const hasActiveFilters = !!busqueda.trim() || Object.values(seg).some(v => v !== "all")
+
+  const limpiarFiltros = () => { setBusqueda(""); setSeg(EMPTY_SEG) }
+
+  /** Prende el valor o, si ya estaba prendido, vuelve a "all". */
+  const alternarSeg = (campo: keyof typeof EMPTY_SEG, valor: string) =>
+    setSeg(s => ({ ...s, [campo]: s[campo] === valor ? "all" : valor }))
 
   const toggleSort = (key: SortKey) =>
     setSort(s => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }))
@@ -266,7 +272,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
     setEditing(p)
     setForm({
       name: p.name ?? "", last_name: p.last_name ?? "", email: p.email ?? "",
-      cuit: p.cuit ?? "", is_member: !!p.is_member, birth_date: p.birth_date ?? "", address: p.address ?? "",
+      cuit: p.cuit ?? "", dni: p.dni ?? "", is_member: !!p.is_member, birth_date: p.birth_date ?? "", address: p.address ?? "",
       floor: p.floor ?? "", apartment: p.apartment ?? "", city: p.city ?? "",
       province: p.province ?? "", postal_code: p.postal_code ?? "", phone: p.phone ?? "",
     })
@@ -555,68 +561,57 @@ export default function PersonasDbManager({ user }: { user: any }) {
         )}
       </div>
 
-      {/* Filtros (acordeón, cerrado por defecto) */}
-      <Card className="border border-gray-200">
-        <button
-          type="button"
-          onClick={() => setFiltersOpen(o => !o)}
-          aria-expanded={filtersOpen}
-          className="w-full flex items-center gap-2 p-4 text-left"
-        >
-          <Search className="w-4 h-4 text-[#4dd0e1] flex-shrink-0" />
-          <span className="text-sm font-medium text-gray-600">Filtros de búsqueda</span>
-          {hasActiveFilters && (
-            <span className="w-2 h-2 rounded-full bg-[#4dd0e1] flex-shrink-0" title="Hay filtros activos" />
+      {/* Buscador + filtros rápidos. Mismo patrón que Accesos: una caja de
+          texto y pastillas que se prenden y apagan. Sin acordeón: los filtros
+          escondidos no se usan. */}
+      <div className="space-y-2">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Input
+            className="pl-9"
+            placeholder="Buscar por nombre, email, documento o localidad…"
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+          />
+          {!!busqueda && (
+            <button
+              onClick={() => setBusqueda("")}
+              aria-label="Borrar la búsqueda"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition hover:text-gray-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
           )}
-          <ChevronDown className={`ml-auto w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
-        </button>
-        {filtersOpen && (
-          <CardContent className="p-4 pt-0">
-            {hasActiveFilters && (
-              <div className="flex justify-end mb-3">
-                <button
-                  onClick={() => { setFilters(EMPTY_FILTERS); setSeg(EMPTY_SEG) }}
-                  className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  <X className="w-3 h-3" /> Limpiar
-                </button>
-              </div>
-            )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-              <FilterInput label="Nombre" value={filters.name} onChange={v => setFilters(f => ({ ...f, name: v }))} />
-              <FilterInput label="Apellido" value={filters.last_name} onChange={v => setFilters(f => ({ ...f, last_name: v }))} />
-              <FilterInput label="CUIT" value={filters.cuit} onChange={v => setFilters(f => ({ ...f, cuit: v }))} />
-              <FilterInput label="Localidad" value={filters.city} onChange={v => setFilters(f => ({ ...f, city: v }))} />
-              <FilterInput label="Provincia" value={filters.province} onChange={v => setFilters(f => ({ ...f, province: v }))} />
-            </div>
-            <div className="mt-3 flex flex-wrap gap-x-6 gap-y-3">
-              <SegmentFilter
-                label="Socio/a"
-                value={seg.member}
-                onChange={v => setSeg(s => ({ ...s, member: v }))}
-                options={[{ value: "all", label: "Todos" }, { value: "yes", label: "Socios" }, { value: "no", label: "No" }]}
-              />
-              <SegmentFilter
-                label="Voluntario/a"
-                value={seg.volunteer}
-                onChange={v => setSeg(s => ({ ...s, volunteer: v }))}
-                options={[{ value: "all", label: "Todos" }, { value: "yes", label: "Voluntarios" }, { value: "no", label: "No" }]}
-              />
-              <SegmentFilter
-                label="Estado"
-                value={seg.account}
-                onChange={v => setSeg(s => ({ ...s, account: v }))}
-                options={[{ value: "all", label: "Todos" }, { value: "with", label: "Con usuario" }, { value: "without", label: "Sin usuario" }]}
-              />
-            </div>
-          </CardContent>
-        )}
-      </Card>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <FilterChip active={seg.volunteer === "yes"} onClick={() => alternarSeg("volunteer", "yes")}>
+            Voluntarios
+          </FilterChip>
+          <FilterChip active={seg.volunteer === "no"} onClick={() => alternarSeg("volunteer", "no")}>
+            Participantes
+          </FilterChip>
+          <FilterChip active={seg.member === "yes"} onClick={() => alternarSeg("member", "yes")}>
+            Socios
+          </FilterChip>
+          <FilterChip active={seg.account === "without"} onClick={() => alternarSeg("account", "without")}>
+            Sin usuario
+          </FilterChip>
+          {hasActiveFilters && (
+            <button onClick={limpiarFiltros} className="text-xs text-gray-400 underline hover:text-gray-600">
+              Limpiar
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Conteo + KPIs */}
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-1">
-        <span className="text-sm text-gray-500">
-          {loading ? "Cargando..." : `${filtered.length} ${filtered.length === 1 ? "persona" : "personas"}${hasActiveFilters ? ` (de ${personas.length})` : ""}`}
+        <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
+          {loading ? "Cargando…" : `${filtered.length} ${filtered.length === 1 ? "persona" : "personas"}`}
+          {!loading && hasActiveFilters && (
+            <span className="text-xs font-normal text-gray-400">de {personas.length}</span>
+          )}
         </span>
         {!loading && (
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-gray-500">
@@ -980,6 +975,10 @@ export default function PersonasDbManager({ user }: { user: any }) {
               <Field label="CUIT">
                 <Input value={form.cuit} onChange={e => setField("cuit", e.target.value)} maxLength={13} placeholder="XX-XXXXXXXX-X" />
               </Field>
+              <Field label="DNI">
+                {/* Es el dato que se imprime en el certificado de finalización. */}
+                <Input value={form.dni} onChange={e => setField("dni", e.target.value)} maxLength={15} placeholder="12345678" />
+              </Field>
               <Field label="Fecha de nacimiento">
                 <Input type="date" value={form.birth_date} onChange={e => setField("birth_date", e.target.value)} />
               </Field>
@@ -1246,45 +1245,6 @@ export default function PersonasDbManager({ user }: { user: any }) {
 }
 
 // ── Subcomponentes ─────────────────────────────────────────────────────
-function SegmentFilter({
-  label, value, onChange, options,
-}: {
-  label: string
-  value: string
-  onChange: (v: string) => void
-  options: { value: string; label: string }[]
-}) {
-  return (
-    <div>
-      <Label className="text-xs text-gray-500 block mb-1">{label}</Label>
-      <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5">
-        {options.map(opt => (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => onChange(opt.value)}
-            aria-pressed={value === opt.value}
-            className={`px-3 h-8 rounded-md text-xs font-medium transition-colors ${
-              value === opt.value ? "bg-white text-[#00838f] shadow-sm" : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function FilterInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <div>
-      <Label className="text-xs text-gray-500">{label}</Label>
-      <Input value={value} onChange={e => onChange(e.target.value)} placeholder={label} className="mt-1 h-9" />
-    </div>
-  )
-}
-
 function SortableTh({
   label, k, onClick, SortIcon,
 }: {

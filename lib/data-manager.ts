@@ -58,17 +58,6 @@ export interface Activity {
   status: string
 }
 
-export interface Payment {
-  id: number
-  user_id: number
-  concept: string
-  amount: number
-  due_date: string
-  payment_method: string | null
-  status: string
-  payment_date: string | null
-}
-
 export interface InventoryItem {
   id: number
   name: string
@@ -105,7 +94,6 @@ export interface AllData {
   workshops: Workshop[]
   groups: Group[]
   activities: Activity[]
-  payments: Payment[]
   inventory: InventoryItem[]
   enrollments: Enrollment[]
   pending_tasks: PendingTask[]
@@ -209,6 +197,8 @@ export interface Persona {
   last_name?: string | null
   email?: string | null
   cuit?: string | null
+  /** Documento. Se imprime en el certificado de finalización. */
+  dni?: string | null
   is_member?: boolean
   birth_date?: string | null
   address?: string | null
@@ -390,25 +380,6 @@ export async function deleteActivity(id: number): Promise<void> {
   await api.delete(`/actividades/${id}`)
 }
 
-// ============================================================
-// Payments (Pagos)
-// ============================================================
-
-export async function getPayments(): Promise<Payment[]> {
-  return api.get<Payment[]>('/pagos/?limit=1000')
-}
-
-export async function createPayment(data: Partial<Payment>): Promise<Payment> {
-  return api.post<Payment>('/pagos/', data)
-}
-
-export async function updatePayment(id: number, data: Partial<Payment>): Promise<Payment> {
-  return api.put<Payment>(`/pagos/${id}`, data)
-}
-
-export async function deletePayment(id: number): Promise<void> {
-  await api.delete(`/pagos/${id}`)
-}
 
 // ============================================================
 // Inventory (Inventario)
@@ -514,19 +485,18 @@ export async function savePendingTasks(tasks: PendingTask[]): Promise<void> {
 // ============================================================
 
 export async function getAllData(): Promise<AllData> {
-  const [volunteers, workshops, groups, activities, payments, inventory, enrollments, pending_tasks] =
+  const [volunteers, workshops, groups, activities, inventory, enrollments, pending_tasks] =
     await Promise.all([
       getVolunteers(),
       getWorkshops(),
       getGroups(),
       getActivities(),
-      getPayments(),
       getInventory(),
       getEnrollments(),
       getPendingTasks(),
     ])
 
-  return { volunteers, workshops, groups, activities, payments, inventory, enrollments, pending_tasks }
+  return { volunteers, workshops, groups, activities, inventory, enrollments, pending_tasks }
 }
 
 export async function importAllData(data: AllData): Promise<void> {
@@ -536,12 +506,10 @@ export async function importAllData(data: AllData): Promise<void> {
   const allWorkshops = await getWorkshops()
   const allGroups = await getGroups()
   const allActivities = await getActivities()
-  const allPayments = await getPayments()
   const allInventory = await getInventory()
   const allEnrollments = await getEnrollments()
 
   await Promise.all(allEnrollments.map((e) => api.delete(`/inscripciones/${e.id}`)))
-  await Promise.all(allPayments.map((p) => api.delete(`/pagos/${p.id}`)))
   await Promise.all(allInventory.map((i) => api.delete(`/inventario/${i.id}`)))
   await savePendingTasks([]) // limpiar pendientes via sync
   await Promise.all(allActivities.map((a) => api.delete(`/actividades/${a.id}`)))
@@ -561,9 +529,6 @@ export async function importAllData(data: AllData): Promise<void> {
   }
   for (const a of data.activities || []) {
     await api.post('/actividades/', a)
-  }
-  for (const p of data.payments || []) {
-    await api.post('/pagos/', p)
   }
   for (const i of data.inventory || []) {
     await api.post('/inventario/', i)
@@ -776,7 +741,7 @@ export async function upsertParticipantProfile(
 // ============================================================
 
 const PERSONA_WRITABLE_FIELDS = [
-  "name", "last_name", "email", "cuit", "is_member", "birth_date", "address",
+  "name", "last_name", "email", "cuit", "dni", "is_member", "birth_date", "address",
   "floor", "apartment", "city", "province", "postal_code", "phone",
 ] as const
 
@@ -1120,6 +1085,7 @@ export interface BroadcastResult {
   recipients: number
   push_sent: number
   popup_created: boolean
+  emails_queued: number
 }
 
 export async function broadcastNotification(payload: {
@@ -1127,7 +1093,14 @@ export async function broadcastNotification(payload: {
   body: string
   audience: string
   url?: string | null
+  /** Campanita + push. */
+  notify: boolean
+  /** Popup al ingresar. */
   also_popup: boolean
+  /** Mail a los destinatarios. */
+  send_email: boolean
+  email_subject?: string | null
+  email_body?: string | null
   volunteer_ids?: number[] | null
 }): Promise<BroadcastResult> {
   return api.post<BroadcastResult>('/notifications/broadcast', payload)
@@ -1271,9 +1244,18 @@ export interface Training {
   cover_file_guid?: string | null
   price: number
   currency: string
+  /**
+   * Link de pago YA RESUELTO: el propio de la capacitación si tiene, si no el
+   * general de la organización. Null = no se muestra botón de compra.
+   */
+  payment_url?: string | null
+  /** Solo el propio, sin heredar. Lo usa la pantalla de administración. */
+  own_payment_url?: string | null
   status: string
   access_mode: string
   default_access_days?: number | null
+  /** Carga horaria tal como se imprime en el certificado ("8 horas"). */
+  certificate_hours?: string | null
   category?: string | null
   available_from?: string | null
   available_until?: string | null
@@ -1330,6 +1312,11 @@ export async function getTraining(
 
 export async function getPublicTraining(slug: string): Promise<Training> {
   return api.get<Training>(`/capacitaciones/publica/${encodeURIComponent(slug)}`)
+}
+
+/** Catálogo público de /academia: publicadas, sin temario ni contenido. */
+export async function getPublicTrainings(): Promise<Training[]> {
+  return api.get<Training[]>('/capacitaciones/publicas')
 }
 
 export async function createTraining(data: Partial<Training> & { title: string }): Promise<Training> {
@@ -1392,6 +1379,73 @@ export interface SharedAccountAlert {
 /** Posibles cuentas compartidas. SOLO informativo: jamás revocar automáticamente. */
 export async function getSharedAccountAlerts(days = 7, minIps = 4): Promise<SharedAccountAlert[]> {
   return api.get<SharedAccountAlert[]>(`/capacitaciones/alertas/cuentas-compartidas?days=${days}&min_ips=${minIps}`)
+}
+
+// ── Certificados: plantillas ────────────────────────────────────────────
+// Se edita la REDACCIÓN. La emisión (un certificado a nombre de alguien, con
+// código de verificación) llega con el test de finalización, y cuando llegue
+// va a guardar su propia copia del texto: corregir la plantilla no puede
+// reescribir un certificado ya entregado.
+
+// ── Configuración general (app_settings) ────────────────────────────────
+
+export type AppSettings = Record<string, string | null>
+
+export async function getSettings(): Promise<AppSettings> {
+  return api.get<AppSettings>('/configuracion/')
+}
+
+export async function setSetting(
+  key: string,
+  value: string | null,
+  actorId: number | null = null,
+): Promise<AppSettings> {
+  return api.put<AppSettings>(`/configuracion/${encodeURIComponent(key)}`, {
+    value,
+    updated_by_volunteer_id: actorId,
+  })
+}
+
+export interface CertificateTemplate {
+  id: number
+  name: string
+  is_default: boolean
+  heading: string
+  body?: string | null
+  legal_note?: string | null
+  signature_name?: string | null
+  signature_role?: string | null
+  signature_file_guid?: string | null
+  logo_file_guid?: string | null
+  created_by_volunteer_id?: number | null
+  created_at?: string
+  updated_at?: string | null
+}
+
+export async function getCertificateTemplates(): Promise<CertificateTemplate[]> {
+  return api.get<CertificateTemplate[]>('/certificados/')
+}
+
+export async function createCertificateTemplate(
+  data: Partial<CertificateTemplate> & { name: string },
+): Promise<CertificateTemplate> {
+  return api.post<CertificateTemplate>('/certificados/', data)
+}
+
+export async function updateCertificateTemplate(
+  id: number,
+  data: Partial<CertificateTemplate>,
+): Promise<CertificateTemplate> {
+  return api.put<CertificateTemplate>(`/certificados/${id}`, data)
+}
+
+export async function deleteCertificateTemplate(id: number): Promise<void> {
+  await api.delete(`/certificados/${id}`)
+}
+
+/** PDF de muestra. Se manda la plantilla entera para previsualizar sin guardar. */
+export async function getCertificateSample(data: Record<string, any>): Promise<Response> {
+  return api.postRaw('/certificados/muestra', data)
 }
 
 export async function getTrainingSummary(id: number): Promise<{
@@ -1682,4 +1736,237 @@ export async function getInscripciones(filters?: {
 /** Dispara el recordatorio MANUAL de un evento (botón del calendario, staff). */
 export async function notifyEventReminder(eventId: number): Promise<{ recipients: number; message?: string }> {
   return api.post(`/calendar/instances/${eventId}/notify`, {})
+}
+
+// ============================================================
+// Encuestas y evaluaciones
+// Motor genérico: hoy cuelga de capacitaciones, mañana de un taller.
+// El backend NUNCA manda `is_correct` en la vista de quien responde.
+// ============================================================
+
+export interface SurveyOption {
+  id: number
+  text: string
+  /** Solo en la vista de administración. A quien responde no le llega nunca. */
+  is_correct?: boolean
+  sort_order: number
+}
+
+export interface SurveyQuestion {
+  id: number
+  survey_id?: number
+  text: string
+  kind: string
+  help?: string | null
+  /** El porqué de la respuesta. Solo llega DESPUÉS de contestar. */
+  explanation?: string | null
+  points: number
+  is_required: boolean
+  sort_order: number
+  options: SurveyOption[]
+}
+
+export interface Survey {
+  id: number
+  title: string
+  description?: string | null
+  owner_type: string
+  owner_id: number
+  kind: string
+  passing_score: number
+  max_attempts?: number | null
+  shuffle_questions: boolean
+  show_answers: boolean
+  is_published: boolean
+  questions: SurveyQuestion[]
+  attempts_count: number
+  passed_count: number
+}
+
+/** Lo que ve quien responde: sin respuestas correctas, con su propia situación. */
+export interface SurveyPublic {
+  id: number
+  title: string
+  description?: string | null
+  kind: string
+  passing_score: number
+  max_attempts?: number | null
+  show_answers: boolean
+  questions: SurveyQuestion[]
+  attempts_used: number
+  can_attempt: boolean
+  best_score?: number | null
+  passed: boolean
+}
+
+export interface SurveyResult {
+  attempt_id: number
+  score: number
+  passed: boolean
+  passing_score: number
+  total_questions: number
+  correct_questions: number
+  results: {
+    question_id: number
+    is_correct?: boolean | null
+    correct_option_ids?: number[] | null
+    explanation?: string | null
+  }[]
+  /** Se completa cuando aprobar dispara la emisión del certificado. */
+  certificate_code?: string | null
+}
+
+export interface SurveyAttemptRow {
+  id: number
+  survey_id: number
+  person_id: number
+  person_name?: string | null
+  person_email?: string | null
+  score?: number | null
+  passed: boolean
+  submitted_at?: string | null
+}
+
+export async function getSurveys(opts?: {
+  ownerType?: string
+  ownerId?: number
+  kind?: string
+}): Promise<Survey[]> {
+  const q = new URLSearchParams()
+  if (opts?.ownerType) q.set('owner_type', opts.ownerType)
+  if (opts?.ownerId != null) q.set('owner_id', String(opts.ownerId))
+  if (opts?.kind) q.set('kind', opts.kind)
+  const qs = q.toString()
+  return api.get<Survey[]>(`/encuestas/${qs ? `?${qs}` : ''}`)
+}
+
+export async function getSurvey(id: number): Promise<Survey> {
+  return api.get<Survey>(`/encuestas/${id}`)
+}
+
+export async function createSurvey(data: Record<string, any>): Promise<Survey> {
+  return api.post<Survey>('/encuestas/', data)
+}
+
+export async function updateSurvey(id: number, data: Record<string, any>): Promise<Survey> {
+  return api.put<Survey>(`/encuestas/${id}`, data)
+}
+
+export async function deleteSurvey(id: number): Promise<void> {
+  await api.delete(`/encuestas/${id}`)
+}
+
+/** Guarda TODAS las preguntas de una: el backend resuelve qué crear y borrar. */
+export async function saveSurveyQuestions(id: number, questions: any[]): Promise<Survey> {
+  return api.put<Survey>(`/encuestas/${id}/preguntas`, questions)
+}
+
+/** La encuesta de un ítem, lista para rendir. null si no tiene o está en borrador. */
+export async function getSurveyForOwner(
+  ownerType: string,
+  ownerId: number,
+  userType: string,
+  userId: number,
+  kind = 'evaluacion',
+): Promise<SurveyPublic | null> {
+  return api.get<SurveyPublic | null>(
+    `/encuestas/de/${encodeURIComponent(ownerType)}/${ownerId}` +
+      `?user_type=${encodeURIComponent(userType)}&user_id=${userId}&kind=${kind}`,
+  )
+}
+
+export async function submitSurvey(
+  id: number,
+  data: { user_type: string; user_id: number; answers: any[] },
+): Promise<SurveyResult> {
+  return api.post<SurveyResult>(`/encuestas/${id}/responder`, data)
+}
+
+export async function getSurveyResults(id: number): Promise<SurveyAttemptRow[]> {
+  return api.get<SurveyAttemptRow[]>(`/encuestas/${id}/resultados`)
+}
+
+// ============================================================
+// Certificados emitidos
+// El PDF no se guarda: se regenera desde el texto congelado.
+// ============================================================
+
+export interface Certificate {
+  id: number
+  code: string
+  person_id: number
+  training_id?: number | null
+  holder_name: string
+  holder_dni?: string | null
+  training_title?: string | null
+  hours?: string | null
+  issued_at?: string | null
+  sent_at?: string | null
+  revoked_at?: string | null
+}
+
+export interface CertificateVerification {
+  valido: boolean
+  code: string
+  holder_name?: string | null
+  training_title?: string | null
+  issued_at?: string | null
+  hours?: string | null
+  revoked: boolean
+  revoked_reason?: string | null
+}
+
+/** Una persona en el tablero de entrega, con todo su estado junto. */
+export interface DeliveryRow {
+  person_id: number
+  name?: string | null
+  email?: string | null
+  has_access: boolean
+  items_total: number
+  items_completed: number
+  content_done: boolean
+  /** null = la capacitación no tiene evaluación cargada. */
+  survey_passed?: boolean | null
+  best_score?: number | null
+  certificate_code?: string | null
+  issued_at?: string | null
+  sent_at?: string | null
+}
+
+export async function issueCertificate(data: {
+  person_id: number
+  training_id?: number | null
+  issued_by_volunteer_id?: number | null
+}): Promise<Certificate> {
+  return api.post<Certificate>('/certificados/emitir', data)
+}
+
+export async function issueCertificatesBulk(data: {
+  person_ids: number[]
+  training_id: number
+  issued_by_volunteer_id?: number | null
+}): Promise<Certificate[]> {
+  return api.post<Certificate[]>('/certificados/emitir-masivo', data)
+}
+
+export async function markCertificateSent(code: string): Promise<Certificate> {
+  return api.post<Certificate>(`/certificados/${encodeURIComponent(code)}/marcar-enviado`)
+}
+
+export async function getMyCertificates(userType: string, userId: number): Promise<Certificate[]> {
+  return api.get<Certificate[]>(
+    `/certificados/mios?user_type=${encodeURIComponent(userType)}&user_id=${userId}`,
+  )
+}
+
+export async function verifyCertificate(code: string): Promise<CertificateVerification> {
+  return api.get<CertificateVerification>(`/certificados/verificar/${encodeURIComponent(code)}`)
+}
+
+export async function getCertificatePdf(code: string): Promise<Response> {
+  return api.getRaw(`/certificados/${encodeURIComponent(code)}/pdf`)
+}
+
+export async function getDeliveryBoard(trainingId: number): Promise<DeliveryRow[]> {
+  return api.get<DeliveryRow[]>(`/certificados/entrega/${trainingId}`)
 }

@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { toast } from "@/hooks/use-toast"
-import { Loader2, Search, ChevronLeft, ChevronRight, GraduationCap, Users, CheckCircle2 } from "lucide-react"
+import { Loader2, Search, ChevronLeft, ChevronRight, GraduationCap, Users, CheckCircle2, CreditCard } from "lucide-react"
 import type { AccessMatrixRow, Training } from "@/lib/data-manager"
 
 export interface WizardColumn {
@@ -17,18 +17,24 @@ export interface WizardColumn {
   label: string
 }
 
-const STEP_META = [
-  { key: "trainings", label: "Capacitaciones", Icon: GraduationCap },
-  { key: "people", label: "Personas", Icon: Users },
-  { key: "confirm", label: "Confirmar", Icon: CheckCircle2 },
-] as const
+const STEP_META = {
+  trainings: { label: "Capacitaciones", Icon: GraduationCap },
+  people: { label: "Personas", Icon: Users },
+  payment: { label: "Pago", Icon: CreditCard },
+  confirm: { label: "Confirmar", Icon: CheckCircle2 },
+} as const
+
+type StepKey = keyof typeof STEP_META
 
 /**
- * Habilitar acceso — wizard de 3 pasos (o 2, si el módulo no tiene más de un
- * recurso habilitable). Reemplaza al viejo click-en-celda de la matriz: con
- * pocas capacitaciones daba igual, pero con muchas ("¿y si tengo 50?") una
- * grilla de columnas deja de ser usable. Acá se elige primero QUÉ, después
- * QUIÉN, y se confirma todo junto.
+ * Habilitar acceso — wizard. Reemplaza al viejo click-en-celda de la matriz:
+ * con pocas capacitaciones daba igual, pero con muchas ("¿y si tengo 50?") una
+ * grilla de columnas deja de ser usable. Acá se elige QUÉ, después QUIÉN,
+ * después si pagó, y recién ahí se confirma todo junto.
+ *
+ * El pago tiene paso propio y no una casilla escondida en el resumen: es una
+ * decisión de plata, y una casilla en el medio de un formulario se pasa por
+ * alto. Preguntarlo de frente obliga a contestar sí o no.
  */
 export default function GrantWizard({
   moduleKey,
@@ -47,9 +53,13 @@ export default function GrantWizard({
 }) {
   // Si el módulo solo tiene un recurso habilitable (no es "capacitaciones"),
   // no tiene sentido un paso para elegir entre una sola opción: se
-  // preselecciona y se arranca directo en personas.
+  // preselecciona y ese paso no existe.
   const skipTrainingStep = columns.length <= 1
-  const [step, setStep] = useState<1 | 2 | 3>(skipTrainingStep ? 2 : 1)
+  const pasos: StepKey[] = skipTrainingStep
+    ? ["people", "payment", "confirm"]
+    : ["trainings", "people", "payment", "confirm"]
+  const [indice, setIndice] = useState(0)
+  const paso = pasos[indice]
 
   const [trainingIds, setTrainingIds] = useState<Set<number>>(
     new Set(skipTrainingStep ? columns.map((c) => c.id) : []),
@@ -74,7 +84,7 @@ export default function GrantWizard({
 
   // Personas: se busca en vivo contra el mismo endpoint de la matriz.
   useEffect(() => {
-    if (step !== 2) return
+    if (paso !== "people") return
     setLoadingPeople(true)
     const timer = setTimeout(() => {
       const q = new URLSearchParams({ module_key: moduleKey })
@@ -94,7 +104,7 @@ export default function GrantWizard({
         .finally(() => setLoadingPeople(false))
     }, personSearch ? 300 : 0)
     return () => clearTimeout(timer)
-  }, [step, personSearch, moduleKey])
+  }, [paso, personSearch, moduleKey])
 
   // Si vino gente preseleccionada pero todavía no está en `people` (recién
   // fetcheado), igual cuenta para el resumen: guardamos su cantidad aparte.
@@ -105,7 +115,6 @@ export default function GrantWizard({
   }, [columns, trainingSearch])
 
   const selectedTrainings = columns.filter((c) => trainingIds.has(c.id))
-  const selectedPeopleFromList = people.filter((p) => personIds.has(p.person_id))
   // Muestra a los preseleccionados aunque la búsqueda actual no los traiga.
   const selectedPeopleLabels = personIds.size > 0
     ? [...personIds].map((id) => {
@@ -133,20 +142,33 @@ export default function GrantWizard({
   const isSingleCombo = trainingIds.size === 1 && personIds.size === 1
   const singleTraining = isSingleCombo ? trainings.find((t) => t.id === [...trainingIds][0]) : null
 
+  // El monto arranca con el precio de la capacitación: es el caso normal y
+  // evita tener que buscarlo. Sigue siendo editable (descuentos, pagos
+  // parciales).
+  useEffect(() => {
+    if (paso !== "payment" || !withPayment || amount) return
+    const precio = Number(singleTraining?.price ?? 0)
+    if (precio > 0) setAmount(String(precio))
+  }, [paso, withPayment, amount, singleTraining])
+
   const goNext = () => {
-    if (step === 1 && trainingIds.size === 0) {
+    if (paso === "trainings" && trainingIds.size === 0) {
       toast({ title: "Elegí al menos una capacitación", variant: "destructive" })
       return
     }
-    if (step === 2 && personIds.size === 0) {
+    if (paso === "people" && personIds.size === 0) {
       toast({ title: "Elegí al menos una persona", variant: "destructive" })
       return
     }
-    setStep((s) => (s === 1 ? 2 : 3) as 1 | 2 | 3)
+    if (paso === "payment" && withPayment && !(Number(amount) > 0)) {
+      toast({ title: "Poné el monto que pagó", variant: "destructive" })
+      return
+    }
+    setIndice((i) => Math.min(i + 1, pasos.length - 1))
   }
   const goBack = () => {
-    if (step === 2 && skipTrainingStep) return onClose()
-    setStep((s) => (s === 3 ? 2 : 1) as 1 | 2 | 3)
+    if (indice === 0) return onClose()
+    setIndice((i) => i - 1)
   }
 
   const submit = async () => {
@@ -210,9 +232,6 @@ export default function GrantWizard({
     }
   }
 
-  const visibleSteps = skipTrainingStep ? STEP_META.slice(1) : STEP_META
-  const currentIndex = skipTrainingStep ? step - 2 : step - 1
-
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-lg">
@@ -222,30 +241,30 @@ export default function GrantWizard({
 
         {/* Indicador de pasos */}
         <div className="flex items-center gap-2">
-          {visibleSteps.map((s, i) => (
-            <div key={s.key} className="flex flex-1 items-center gap-2">
+          {pasos.map((clave, i) => (
+            <div key={clave} className="flex flex-1 items-center gap-2">
               <div
                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
-                  i < currentIndex
+                  i < indice
                     ? "bg-[#4dd0e1] text-white"
-                    : i === currentIndex
+                    : i === indice
                     ? "bg-[#4dd0e1] text-white ring-4 ring-[#4dd0e1]/20"
                     : "bg-gray-100 text-gray-400"
                 }`}
               >
-                {i < currentIndex ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
+                {i < indice ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
               </div>
-              <span className={`hidden text-xs font-medium sm:inline ${i === currentIndex ? "text-gray-800" : "text-gray-400"}`}>
-                {s.label}
+              <span className={`hidden text-xs font-medium sm:inline ${i === indice ? "text-gray-800" : "text-gray-400"}`}>
+                {STEP_META[clave].label}
               </span>
-              {i < visibleSteps.length - 1 && <div className="h-px flex-1 bg-gray-200" />}
+              {i < pasos.length - 1 && <div className="h-px flex-1 bg-gray-200" />}
             </div>
           ))}
         </div>
 
         <div className="min-h-[280px] flex-1 overflow-y-auto">
-          {/* Paso 1: capacitaciones */}
-          {step === 1 && (
+          {/* Capacitaciones */}
+          {paso === "trainings" && (
             <div className="space-y-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -285,8 +304,8 @@ export default function GrantWizard({
             </div>
           )}
 
-          {/* Paso 2: personas */}
-          {step === 2 && (
+          {/* Personas */}
+          {paso === "people" && (
             <div className="space-y-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -328,62 +347,34 @@ export default function GrantWizard({
             </div>
           )}
 
-          {/* Paso 3: confirmar */}
-          {step === 3 && (
+          {/* ¿Pagó? */}
+          {paso === "payment" && (
             <div className="space-y-4">
-              <div className="rounded-lg bg-gray-50 p-3 text-sm">
-                <p className="text-gray-800">
-                  Vas a habilitar a <strong>{personIds.size}</strong> persona{personIds.size === 1 ? "" : "s"} en{" "}
-                  <strong>{trainingIds.size}</strong> capacitación{trainingIds.size === 1 ? "" : "es"}.
-                </p>
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {selectedTrainings.map((c) => (
-                    <span key={c.id} className="rounded-full bg-white px-2 py-0.5 text-xs text-gray-600 ring-1 ring-gray-200">
-                      {c.label}
-                    </span>
-                  ))}
-                </div>
-                <div className="mt-1.5 flex flex-wrap gap-1">
-                  {selectedPeopleLabels.map((label, i) => (
-                    <span key={i} className="rounded-full bg-white px-2 py-0.5 text-xs text-gray-600 ring-1 ring-gray-200">
-                      {label}
-                    </span>
-                  ))}
-                </div>
-              </div>
+              <p className="font-medium text-gray-900">
+                {isSingleCombo && singleTraining
+                  ? `¿Pagó «${singleTraining.title}»?`
+                  : "¿Pagó?"}
+              </p>
 
-              <div>
-                <Label>Vencimiento</Label>
-                <div className="mt-1 flex gap-2">
-                  <Select value={expiryMode} onValueChange={(v) => setExpiryMode(v as any)}>
-                    <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="never">Sin vencimiento</SelectItem>
-                      <SelectItem value="days">Por cantidad de días</SelectItem>
-                      <SelectItem value="date">Hasta una fecha</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {expiryMode === "days" && (
-                    <Input type="number" min={1} className="w-24" value={days} onChange={(e) => setDays(Number(e.target.value))} />
-                  )}
-                  {expiryMode === "date" && (
-                    <Input type="date" className="w-40" value={date} onChange={(e) => setDate(e.target.value)} />
-                  )}
-                </div>
-              </div>
-
-              {isSingleCombo && (
-                <div className="rounded-lg border border-gray-200 p-3">
-                  <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-700">
-                    <input type="checkbox" checked={withPayment} onChange={(e) => setWithPayment(e.target.checked)} />
-                    Registrar pago
-                  </label>
-                  <p className="mt-1 text-xs text-gray-400">
-                    Dejalo sin tildar si es una beca o cortesía: el acceso se da igual.
-                  </p>
+              {isSingleCombo ? (
+                <>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <OpcionPago
+                      activa={withPayment}
+                      titulo="Sí, registrar el pago"
+                      detalle="Queda asentado el monto y el medio"
+                      onClick={() => setWithPayment(true)}
+                    />
+                    <OpcionPago
+                      activa={!withPayment}
+                      titulo="No hace falta"
+                      detalle="Beca, cortesía o ya está registrado"
+                      onClick={() => setWithPayment(false)}
+                    />
+                  </div>
 
                   {withPayment && (
-                    <div className="mt-3 space-y-3">
+                    <div className="space-y-3 rounded-lg border border-gray-200 p-3">
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <Label className="text-xs">Monto *</Label>
@@ -413,14 +404,85 @@ export default function GrantWizard({
                       </div>
                     </div>
                   )}
-                </div>
-              )}
-              {!isSingleCombo && (
-                <p className="text-xs text-gray-400">
-                  Los pagos se registran de a uno: elegí una sola persona y una sola capacitación si necesitás
-                  cargar un monto acá. Para varias personas, registralos después desde la pestaña Pagos.
+                </>
+              ) : (
+                /* Un pago es de una persona por una capacitación. Con varias
+                   seleccionadas no hay forma de saber quién pagó cuánto. */
+                <p className="rounded-lg bg-gray-50 p-3 text-sm text-gray-600">
+                  Los pagos se registran de a uno. Elegí una sola persona y una sola capacitación
+                  para cargar el monto acá, o registralos después desde Pagos.
                 </p>
               )}
+            </div>
+          )}
+
+          {/* Confirmar */}
+          {paso === "confirm" && (
+            <div className="space-y-4">
+              {/* Dos listas con el mismo color no se distinguen. Cada una
+                  con su rótulo y su color: quién y qué. */}
+              <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                    A quién {personIds.size > 1 && `(${personIds.size})`}
+                  </p>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {selectedPeopleLabels.map((label, i) => (
+                      <span
+                        key={i}
+                        className="rounded-full bg-[#4dd0e1]/15 px-2 py-0.5 text-xs font-medium text-[#00838f]"
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                    Qué van a poder ver {trainingIds.size > 1 && `(${trainingIds.size})`}
+                  </p>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {selectedTrainings.map((c) => (
+                      <span
+                        key={c.id}
+                        className="rounded-full bg-[#9A8BC2]/15 px-2 py-0.5 text-xs font-medium text-[#5F5088]"
+                      >
+                        {c.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Pago</p>
+                  <p className="mt-1 text-gray-800">
+                    {withPayment && isSingleCombo
+                      ? `$${Number(amount || 0).toLocaleString("es-AR")} · ${method}`
+                      : "Sin registrar"}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <Label>Vencimiento</Label>
+                <div className="mt-1 flex gap-2">
+                  <Select value={expiryMode} onValueChange={(v) => setExpiryMode(v as any)}>
+                    <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="never">Sin vencimiento</SelectItem>
+                      <SelectItem value="days">Por cantidad de días</SelectItem>
+                      <SelectItem value="date">Hasta una fecha</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {expiryMode === "days" && (
+                    <Input type="number" min={1} className="w-24" value={days} onChange={(e) => setDays(Number(e.target.value))} />
+                  )}
+                  {expiryMode === "date" && (
+                    <Input type="date" className="w-40" value={date} onChange={(e) => setDate(e.target.value)} />
+                  )}
+                </div>
+              </div>
 
               <div>
                 <Label>Nota (opcional)</Label>
@@ -433,9 +495,9 @@ export default function GrantWizard({
         <div className="flex justify-between gap-2 border-t pt-3">
           <Button variant="outline" onClick={goBack}>
             <ChevronLeft className="mr-1 h-4 w-4" />
-            {step === 1 || (step === 2 && skipTrainingStep) ? "Cancelar" : "Atrás"}
+            {indice === 0 ? "Cancelar" : "Atrás"}
           </Button>
-          {step === 3 ? (
+          {paso === "confirm" ? (
             <Button onClick={submit} disabled={saving} className="bg-[#4dd0e1] hover:bg-[#3bb8c9]">
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Habilitar
@@ -449,5 +511,35 @@ export default function GrantWizard({
         </div>
       </DialogContent>
     </Dialog>
+  )
+}
+
+/** Sí / No del paso de pago. Dos botones grandes, no una casilla al pasar. */
+function OpcionPago({
+  activa,
+  titulo,
+  detalle,
+  onClick,
+}: {
+  activa: boolean
+  titulo: string
+  detalle: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-lg border p-3 text-left transition ${
+        activa
+          ? "border-[#4dd0e1] bg-[#4dd0e1]/5 ring-1 ring-[#4dd0e1]"
+          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+      }`}
+    >
+      <span className={`block text-sm font-medium ${activa ? "text-[#00838f]" : "text-gray-800"}`}>
+        {titulo}
+      </span>
+      <span className="mt-0.5 block text-xs text-gray-500">{detalle}</span>
+    </button>
   )
 }

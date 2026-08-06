@@ -5,14 +5,14 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import FilterChip from "@/components/ui/filter-chip"
+import Ayuda from "@/components/ui/ayuda"
 import { toast } from "@/hooks/use-toast"
 import type { ParticipanteGestion } from "@/lib/data-manager"
 import {
   UserCircle, Search, Loader2, KeyRound, MailCheck, MailWarning,
-  GraduationCap, ClipboardList, Send, ChevronDown, X,
+  GraduationCap, ClipboardList, Send,
 } from "lucide-react"
 
 /**
@@ -28,7 +28,6 @@ export default function ParticipantesManager({ user }: { user: any }) {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [pinTarget, setPinTarget] = useState<ParticipanteGestion | null>(null)
-  const [filtersOpen, setFiltersOpen] = useState(false)
   const [verifiedOnly, setVerifiedOnly] = useState(false)
   const [enrolledOnly, setEnrolledOnly] = useState(false)
   const [trainingOnly, setTrainingOnly] = useState(false)
@@ -67,10 +66,13 @@ export default function ParticipantesManager({ user }: { user: any }) {
       )
   }, [rows, search, verifiedOnly, enrolledOnly, trainingOnly])
 
-  const activeFilterCount = [verifiedOnly, enrolledOnly, trainingOnly].filter(Boolean).length
-  const clearFilters = () => { setVerifiedOnly(false); setEnrolledOnly(false); setTrainingOnly(false) }
-
-  const pendientes = rows.filter((r) => !r.email_verified).length
+  const hayFiltros = !!search.trim() || verifiedOnly || enrolledOnly || trainingOnly
+  const clearFilters = () => {
+    setSearch("")
+    setVerifiedOnly(false)
+    setEnrolledOnly(false)
+    setTrainingOnly(false)
+  }
 
   const resend = async (r: ParticipanteGestion) => {
     if (!r.email) return
@@ -93,10 +95,6 @@ export default function ParticipantesManager({ user }: { user: any }) {
         <div className="flex items-center gap-2">
           <UserCircle className="h-6 w-6 text-[#4dd0e1]" />
           <h2 className="text-xl font-bold text-gray-900">Participantes</h2>
-          <Badge variant="secondary">{rows.length}</Badge>
-          {pendientes > 0 && (
-            <Badge className="bg-amber-100 text-amber-700 border-amber-200">{pendientes} sin verificar</Badge>
-          )}
         </div>
         <div className="relative min-w-[220px] flex-1 sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -104,44 +102,27 @@ export default function ParticipantesManager({ user }: { user: any }) {
         </div>
       </div>
 
-      {/* ── Acordeón de filtros ── */}
-      <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
-        <button
-          type="button"
-          onClick={() => setFiltersOpen((o) => !o)}
-          className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-gray-50/50"
-        >
-          <span className="flex items-center gap-2 text-sm font-medium text-gray-600">
-            <Search className="h-4 w-4 text-[#4dd0e1]" />
-            Filtros
-            {activeFilterCount > 0 && (
-              <Badge variant="outline" className="border-[#4dd0e1] text-xs text-[#00838f]">
-                {activeFilterCount}
-              </Badge>
-            )}
-          </span>
-          <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-300 ${filtersOpen ? "rotate-180" : ""}`} />
-        </button>
-        <div className={`grid transition-all duration-300 ease-in-out ${filtersOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
-          <div className="overflow-hidden">
-            <div className="flex flex-wrap items-center gap-1.5 border-t border-gray-100 px-4 py-3">
-              <FilterChip active={verifiedOnly} onClick={() => setVerifiedOnly((v) => !v)}>
-                Verificado
-              </FilterChip>
-              <FilterChip active={enrolledOnly} onClick={() => setEnrolledOnly((v) => !v)}>
-                Con inscripción
-              </FilterChip>
-              <FilterChip active={trainingOnly} onClick={() => setTrainingOnly((v) => !v)}>
-                Capacitación
-              </FilterChip>
-              {activeFilterCount > 0 && (
-                <button onClick={clearFilters} className="ml-1 flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600">
-                  <X className="h-3.5 w-3.5" /> Limpiar
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+      {/* Filtros rápidos, a la vista. Eran tres pastillas escondidas atrás de
+          un acordeón: el click de más no ahorraba nada. */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
+          {filtered.length} {filtered.length === 1 ? "participante" : "participantes"}
+          {hayFiltros && <span className="text-xs font-normal text-gray-400">de {rows.length}</span>}
+        </span>
+        <FilterChip active={verifiedOnly} onClick={() => setVerifiedOnly((v) => !v)}>
+          Verificado
+        </FilterChip>
+        <FilterChip active={enrolledOnly} onClick={() => setEnrolledOnly((v) => !v)}>
+          Con inscripción
+        </FilterChip>
+        <FilterChip active={trainingOnly} onClick={() => setTrainingOnly((v) => !v)}>
+          Capacitación
+        </FilterChip>
+        {hayFiltros && (
+          <button onClick={clearFilters} className="text-xs text-gray-400 underline hover:text-gray-600">
+            Limpiar
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -319,7 +300,13 @@ function PinDialog({ participante, onClose }: { participante: ParticipanteGestio
             <p className="text-gray-500">{participante.email}</p>
           </div>
           <div>
-            <Label>PIN nuevo (4 dígitos)</Label>
+            <Label>
+              PIN nuevo (4 dígitos)
+              <Ayuda lado="abajo">
+                Decíselo por un canal seguro. La persona puede cambiarlo después desde
+                su cuenta.
+              </Ayuda>
+            </Label>
             <Input
               inputMode="numeric"
               maxLength={4}
@@ -328,9 +315,6 @@ function PinDialog({ participante, onClose }: { participante: ParticipanteGestio
               placeholder="••••"
               className="text-center text-lg tracking-widest"
             />
-            <p className="mt-1 text-xs text-gray-400">
-              Decíselo por un canal seguro. La persona puede cambiarlo después desde su cuenta.
-            </p>
           </div>
         </div>
         <div className="flex justify-end gap-2 pt-2">

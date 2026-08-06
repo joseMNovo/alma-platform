@@ -30,7 +30,17 @@ import {
  *   Auditoría  → la historia de quién habilitó o revocó a quién
  *   Alertas    → posibles cuentas compartidas (SOLO informativo)
  */
-export default function AccesosManager({ user }: { user: any }) {
+/** Cuál de las cuatro pantallas de Accesos mostrar. */
+export type VistaAccesos = "habilitaciones" | "pagos" | "auditoria" | "alertas"
+
+export default function AccesosManager({
+  user,
+  vista = "habilitaciones",
+}: {
+  user: any
+  /** Cada una es una pestaña del nav; antes eran sub-pestañas de acá adentro. */
+  vista?: VistaAccesos
+}) {
   const [moduleKey, setModuleKey] = useState("capacitaciones")
   const [rows, setRows] = useState<AccessMatrixRow[]>([])
   const [trainings, setTrainings] = useState<Training[]>([])
@@ -40,6 +50,9 @@ export default function AccesosManager({ user }: { user: any }) {
   const [wizard, setWizard] = useState<{ personIds: number[] } | null>(null)
   const [paymentTarget, setPaymentTarget] = useState<AccessMatrixRow | null>(null)
   const [revokeTarget, setRevokeTarget] = useState<{ row: AccessMatrixRow; resourceId: number; label: string } | null>(null)
+  // Revocar pega contra el servidor: sin esto, el diálogo se cerraba al
+  // instante y no había forma de saber si la baja llegó a hacerse.
+  const [revoking, setRevoking] = useState(false)
 
   // Filtros rápidos. `trainingFilterId` es un <select> (no un chip por curso):
   // con pocas capacitaciones un chip por cada una anda bien, pero con muchas
@@ -84,6 +97,7 @@ export default function AccesosManager({ user }: { user: any }) {
 
   const revoke = async () => {
     if (!revokeTarget) return
+    setRevoking(true)
     try {
       const res = await fetch("/api/accesos/revocar", {
         method: "POST",
@@ -100,6 +114,7 @@ export default function AccesosManager({ user }: { user: any }) {
     } catch (error: any) {
       toast({ title: "Error", description: error?.message, variant: "destructive" })
     } finally {
+      setRevoking(false)
       setRevokeTarget(null)
     }
   }
@@ -142,25 +157,23 @@ export default function AccesosManager({ user }: { user: any }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <div className="flex items-center gap-2">
-          <KeyRound className="h-6 w-6 text-[#4dd0e1]" />
-          <h2 className="text-xl font-bold text-gray-900">Accesos</h2>
-          <Badge variant="secondary">{rows.length}</Badge>
+      {vista === "habilitaciones" && (
+        <div>
+          <div className="flex items-center gap-2">
+            <KeyRound className="h-6 w-6 text-[#4dd0e1]" />
+            <h2 className="text-xl font-bold text-gray-900">Accesos</h2>
+            {/* El número dice cuántas personas hay en la lista de abajo. */}
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-sm font-medium text-gray-600">
+              {rows.length} {rows.length === 1 ? "persona" : "personas"}
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-gray-500">
+            Quién puede ver cada capacitación paga.
+          </p>
         </div>
-        <p className="mt-1 text-sm text-gray-500">
-          Quién puede ver cada capacitación paga, y el registro de pagos.
-        </p>
-      </div>
+      )}
 
-      <Tabs defaultValue="matriz" className="space-y-4">
-        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-white border border-gray-200 p-1 rounded-lg sm:w-auto">
-          <TabsTrigger value="matriz" className={subTabTriggerClass}>Habilitaciones</TabsTrigger>
-          <TabsTrigger value="pagos" className={subTabTriggerClass}>Pagos</TabsTrigger>
-          <TabsTrigger value="auditoria" className={subTabTriggerClass}>Auditoría</TabsTrigger>
-          <TabsTrigger value="alertas" className={subTabTriggerClass}>Alertas</TabsTrigger>
-        </TabsList>
-
+      <Tabs value={vista === "habilitaciones" ? "matriz" : vista} className="space-y-4">
         {/* ── Matriz ────────────────────────────────────────────────── */}
         <TabsContent value="matriz" className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -308,15 +321,17 @@ export default function AccesosManager({ user }: { user: any }) {
                             )}
                             <button
                               onClick={(e) => { e.stopPropagation(); setPaymentTarget(row) }}
-                              className={`ml-1 inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium transition ${
+                              className={`ml-1 inline-flex shrink-0 items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium shadow-sm transition ${
                                 Number(row.total_paid) > 0
                                   ? "border-green-500 bg-green-50 text-green-700 hover:bg-green-100"
-                                  : "border-gray-300 text-gray-400 hover:border-[#4dd0e1] hover:text-[#00838f]"
+                                  : "border-[#4dd0e1]/50 bg-white text-[#00838f] hover:border-[#4dd0e1] hover:bg-[#4dd0e1]/10"
                               }`}
                               title={Number(row.total_paid) > 0 ? "Registrar otro pago" : "Marcar pago"}
                             >
                               <DollarSign className="h-3 w-3" />
-                              {Number(row.total_paid) > 0 ? `$${Number(row.total_paid).toLocaleString("es-AR")}` : "Sin pago"}
+                              {Number(row.total_paid) > 0
+                                ? `$${Number(row.total_paid).toLocaleString("es-AR")}`
+                                : "Registrar pago"}
                             </button>
                           </div>
                         </td>
@@ -358,11 +373,12 @@ export default function AccesosManager({ user }: { user: any }) {
       {revokeTarget && (
         <ConfirmationDialog
           open
-          onOpenChange={(open) => !open && setRevokeTarget(null)}
+          onOpenChange={(open) => !open && !revoking && setRevokeTarget(null)}
           title="¿Revocar el acceso?"
           description={`${`${revokeTarget.row.name ?? ""} ${revokeTarget.row.last_name ?? ""}`.trim()} deja de ver «${revokeTarget.label}». Los pagos ya registrados no se tocan y la habilitación queda en la auditoría.`}
           action="delete"
           itemType="general"
+          loading={revoking}
           onConfirm={revoke}
         />
       )}
@@ -371,6 +387,15 @@ export default function AccesosManager({ user }: { user: any }) {
 }
 
 // ── Pagos ──────────────────────────────────────────────────────────────
+
+/**
+ * Los años que se pueden mirar: el actual y los tres anteriores.
+ *
+ * Se calcula al cargar el módulo y no se toca más. Cuatro alcanzan: la
+ * plataforma no tiene pagos más viejos, y si algún día hacen falta, esto es un
+ * número.
+ */
+const ANIOS = Array.from({ length: 4 }, (_, i) => new Date().getFullYear() - i)
 
 function PagosTab() {
   const [payments, setPayments] = useState<PersonPayment[]>([])
@@ -383,8 +408,8 @@ function PagosTab() {
     setLoading(true)
     try {
       const [list, sum] = await Promise.all([
-        fetch(`/api/accesos/pagos?year=${year}`).then((r) => (r.ok ? r.json() : [])),
-        fetch(`/api/accesos/pagos?summary=true&year=${year}`).then((r) => (r.ok ? r.json() : [])),
+        fetch(`/api/accesos/pagos?year=${year}&concept_type=capacitacion`).then((r) => (r.ok ? r.json() : [])),
+        fetch(`/api/accesos/pagos?summary=true&year=${year}&concept_type=capacitacion`).then((r) => (r.ok ? r.json() : [])),
       ])
       setPayments(Array.isArray(list) ? list : [])
       setSummary(Array.isArray(sum) ? sum : [])
@@ -413,23 +438,26 @@ function PagosTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <Input
-          type="number"
-          className="w-28"
-          value={year}
-          onChange={(e) => setYear(Number(e.target.value))}
-        />
-        <Card className="flex-1">
-          <CardContent className="flex items-center gap-3 py-3">
-            <TrendingUp className="h-5 w-5 text-green-500" />
-            <div>
-              <p className="text-xs text-gray-500">Recaudado en {year}</p>
-              <p className="text-xl font-bold text-gray-900">${total.toLocaleString("es-AR")}</p>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Pastillas y no un campo numérico: los años son cuatro botones, no un
+          número que haya que escribir. Con el input se podía tipear 3026 y
+          quedar mirando una pantalla vacía sin entender por qué. */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {ANIOS.map((a) => (
+          <FilterChip key={a} active={year === a} onClick={() => setYear(a)}>
+            {a}
+          </FilterChip>
+        ))}
       </div>
+
+      <Card>
+        <CardContent className="flex items-center gap-3 py-3">
+          <TrendingUp className="h-5 w-5 text-green-500" />
+          <div>
+            <p className="text-xs text-gray-500">Recaudado en {year}</p>
+            <p className="text-xl font-bold text-gray-900">${total.toLocaleString("es-AR")}</p>
+          </div>
+        </CardContent>
+      </Card>
 
       {summary.length > 0 && (
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">

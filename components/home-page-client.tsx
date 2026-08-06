@@ -18,15 +18,38 @@ function isVolunteerProfileIncomplete(u: any): boolean {
 export default function HomePageClient({ gamesUrl }: { gamesUrl: string }) {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [sesionVencida, setSesionVencida] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
+    /**
+     * El localStorage NO vence; la cookie del token sí (15 días), y además
+     * muere si cambia JWT_SECRET o APP_TOKEN_VERSION. Cuando se desincronizan,
+     * el middleware rebota a "/" y esta pantalla volvía a empujar adentro:
+     * rebote infinito, que se veía como "queda cargando para siempre".
+     *
+     * El middleware ahora avisa el motivo en la URL. Con ese aviso se limpia
+     * la sesión local en vez de reintentar.
+     */
+    if (new URLSearchParams(window.location.search).get("sesion") === "vencida") {
+      localStorage.removeItem("alma_user")
+      document.cookie = "alma_session=; path=/; max-age=0"
+      setSesionVencida(true)
+      setLoading(false)
+      return
+    }
+
     const savedUser = localStorage.getItem("alma_user")
     if (savedUser) {
-      const userData = JSON.parse(savedUser)
-      setUser(userData)
-      document.cookie = "alma_session=1; path=/; SameSite=Strict; max-age=2592000"
-      router.push("/calendarios")
+      try {
+        const userData = JSON.parse(savedUser)
+        setUser(userData)
+        document.cookie = "alma_session=1; path=/; SameSite=Strict; max-age=2592000"
+        router.push("/calendarios")
+      } catch {
+        // Guardado corrupto: se descarta en vez de dejar la pantalla colgada.
+        localStorage.removeItem("alma_user")
+      }
     }
     setLoading(false)
   }, [router])
@@ -117,6 +140,11 @@ export default function HomePageClient({ gamesUrl }: { gamesUrl: string }) {
 
   return (
     <div className="min-h-screen bg-white">
+      {sesionVencida && (
+        <div className="bg-amber-50 px-4 py-2.5 text-center text-sm text-amber-900">
+          Tu sesión se cerró por seguridad. Ingresá de nuevo.
+        </div>
+      )}
       {!user ? <LoginForm onLogin={handleLogin} gamesUrl={gamesUrl} /> : <Dashboard user={user} onLogout={handleLogout} />}
     </div>
   )

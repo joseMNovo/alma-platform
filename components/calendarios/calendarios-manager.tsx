@@ -20,6 +20,7 @@ import {
 import { ChevronLeft, ChevronRight, ChevronDown, Plus, Edit, Trash2, Zap, AlertTriangle, UserCheck, UserPlus, Loader2, Check, Bell } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { can, canDeleteCalendarInstance } from "@/lib/permissions"
+import RecordatoriosEvento from "@/components/calendarios/recordatorios-evento"
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -398,6 +399,9 @@ export default function CalendariosManager({ user }: { user: any }) {
   // Inscripción del participante: a qué eventos ya se anotó (para el botón).
   const isParticipant = user?.role === "participante"
   const [myEventIds, setMyEventIds] = useState<number[]>([])
+  // Destildado por defecto: quien entra al calendario quiere ver TODO lo que
+  // hay, no solo lo suyo. El filtro está para cuando ya sabe qué busca.
+  const [soloAnotados, setSoloAnotados] = useState(false)
   const [enrolling, setEnrolling] = useState(false)
 
   useEffect(() => {
@@ -682,6 +686,7 @@ export default function CalendariosManager({ user }: { user: any }) {
       if (inst.coordinator?.id !== volId && !(inst.co_coordinators ?? []).some(c => c.id === volId)) return false
     }
     if (filterMine && !isUserAssigned(inst)) return false
+    if (soloAnotados && !myEventIds.includes(inst.id)) return false
     return true
   })
 
@@ -1164,11 +1169,22 @@ export default function CalendariosManager({ user }: { user: any }) {
             </>
           )}
 
-          {(filterType !== "all" || filterVolunteer !== "all" || filterMine) && (
+          {isParticipant && (
+            <Button
+              variant={soloAnotados ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSoloAnotados(!soloAnotados)}
+              className={soloAnotados ? "bg-[#4dd0e1] hover:bg-[#26c6da] text-white" : ""}
+            >
+              {soloAnotados ? "✓ A los que me anoté" : "A los que me anoté"}
+            </Button>
+          )}
+
+          {(filterType !== "all" || filterVolunteer !== "all" || filterMine || soloAnotados) && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => { setFilterType("all"); setFilterVolunteer("all"); setFilterMine(false) }}
+              onClick={() => { setFilterType("all"); setFilterVolunteer("all"); setFilterMine(false); setSoloAnotados(false) }}
             >
               Limpiar filtros
             </Button>
@@ -1405,6 +1421,16 @@ export default function CalendariosManager({ user }: { user: any }) {
                     </Button>
                   )
                 })()}
+
+                {/* Los avisos aparecen SOLO si ya se anotó: ofrecerle
+                    recordatorios de algo a lo que no va no tiene sentido. */}
+                {isParticipant &&
+                  selectedInstance.status === "programado" &&
+                  myEventIds.includes(selectedInstance.id) && (
+                    <div className="col-span-2">
+                      <RecordatoriosEvento eventId={selectedInstance.id} />
+                    </div>
+                  )}
                 {can(user, "calendar:edit") && (
                   <Button size="sm" variant="outline" className="justify-center" onClick={() => openEditInstance(selectedInstance)}>
                     <Edit className="h-3 w-3 mr-1" />

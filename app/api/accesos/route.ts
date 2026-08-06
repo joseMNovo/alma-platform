@@ -10,7 +10,7 @@ import { logInfo, logWarn, logError } from "@/lib/logger"
 /**
  * GET /api/accesos — las tres vistas del ABM, según los parámetros:
  *   ?module_key=capacitaciones                     → matriz personas × recursos
- *   ?module_key=capacitaciones&resource_id=7       → alumnos de ese recurso
+ *   ?module_key=capacitaciones&resource_id=7       → personas con acceso a ese recurso
  *   ?person_id=42                                  → habilitaciones de una persona
  */
 export async function GET(request: NextRequest) {

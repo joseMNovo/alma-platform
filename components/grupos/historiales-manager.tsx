@@ -71,7 +71,6 @@ export default function HistorialesManager({
   const defaultGroupId = () => (groups[0] ? String(groups[0].id) : "")
   const [form, setForm] = useState({
     group_id: defaultGroupId(),
-    title: "",
     session_date: "",
     summary: "",
   })
@@ -121,7 +120,7 @@ export default function HistorialesManager({
   }, [fetchHistories])
 
   const resetForm = () => {
-    setForm({ group_id: defaultGroupId(), title: "", session_date: "", summary: "" })
+    setForm({ group_id: defaultGroupId(), session_date: "", summary: "" })
     setAttendees([])
     setDraft(emptyAttendee())
     setEditingAttendeeIdx(null)
@@ -139,7 +138,6 @@ export default function HistorialesManager({
     setEditing(h)
     setForm({
       group_id: h.group_id ? String(h.group_id) : defaultGroupId(),
-      title: h.title || "",
       session_date: h.session_date || "",
       summary: h.summary || "",
     })
@@ -310,7 +308,9 @@ export default function HistorialesManager({
     const payload = {
       group_id: form.group_id ? Number.parseInt(form.group_id) : null,
       group_name: selectedGroup ? selectedGroup.name : null,
-      title: form.title.trim() || null,
+      // El título salió del formulario (nadie lo usaba) pero la columna sigue
+      // en la base: se manda vacío para no cambiar el contrato del backend.
+      title: null,
       session_date: form.session_date || null,
       summary: form.summary.trim() || null,
       attendees: cleanAttendees,
@@ -358,8 +358,8 @@ export default function HistorialesManager({
   const fmtDate = (d?: string | null) =>
     d ? new Date(d + "T00:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" }) : null
 
-  // Columnas de la lista dentro de cada recuadro de grupo: Fecha · Cargó · Título · Asist.
-  const listGridClass = "grid grid-cols-[120px_minmax(0,1fr)_minmax(0,1.8fr)_auto] gap-3 items-center"
+  // Columnas de la lista dentro de cada recuadro de grupo: Fecha · Cargó · Asist.
+  const listGridClass = "grid grid-cols-[120px_minmax(0,1fr)_auto] gap-3 items-center"
 
   // Agrupa los historiales (ya filtrados) por grupo, en el orden de `groups`.
   const buckets = groups
@@ -497,7 +497,7 @@ export default function HistorialesManager({
               <CardHeader>
                 <div className="flex justify-between items-start gap-2">
                   <CardTitle className="text-base hover:text-[#4dd0e1] transition-colors">
-                    {h.title || h.group_name || "Encuentro"}
+                    {h.group_name || "Encuentro"}
                   </CardTitle>
                   <Badge className="bg-[#4dd0e1] flex-shrink-0">
                     <Users className="w-3 h-3 mr-1" />
@@ -540,7 +540,6 @@ export default function HistorialesManager({
                   <div className={`${listGridClass} px-4 py-2 bg-white sticky top-0 border-b border-gray-100 text-[11px] font-semibold uppercase tracking-wider text-gray-400 z-10`}>
                     <span>Fecha</span>
                     <span>Cargó</span>
-                    <span>Título</span>
                     <span className="text-right">Asist.</span>
                   </div>
                   <div className="divide-y divide-gray-100">
@@ -557,7 +556,6 @@ export default function HistorialesManager({
                         <span className="truncate text-xs text-gray-500 inline-flex items-center gap-1">
                           {h.created_by_name ? (<><UserCog className="w-3 h-3 shrink-0" /><span className="truncate">{h.created_by_name}</span></>) : "—"}
                         </span>
-                        <span className="truncate text-sm font-medium text-gray-900">{h.title || "—"}</span>
                         <span className="justify-self-end">
                           <Badge className={t.badge}>
                             <Users className="w-3 h-3 mr-1" />
@@ -579,7 +577,7 @@ export default function HistorialesManager({
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{viewing?.title || viewing?.group_name || "Encuentro"}</DialogTitle>
+            <DialogTitle>{viewing?.group_name || "Encuentro"}</DialogTitle>
           </DialogHeader>
           {viewing && (
             <div className="space-y-4">
@@ -697,16 +695,6 @@ export default function HistorialesManager({
                   type="date"
                   value={form.session_date}
                   onChange={(e) => setForm({ ...form, session_date: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="title">Título (opcional)</Label>
-                <Input
-                  id="title"
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  placeholder="Ej: Cierre de ciclo otoño"
                 />
               </div>
 
@@ -909,7 +897,7 @@ export default function HistorialesManager({
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         onConfirm={handleDeleteConfirm}
-        itemName={toDelete?.title || toDelete?.group_name || "este historial"}
+        itemName={toDelete?.group_name || "este historial"}
         itemType="historial"
         loading={deleting}
       />

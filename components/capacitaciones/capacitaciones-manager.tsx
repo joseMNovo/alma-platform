@@ -1,17 +1,21 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "@/hooks/use-toast"
 import { can } from "@/lib/permissions"
+import { config } from "@/lib/config"
 import TrainingPlayer from "@/components/capacitaciones/training-player"
+import CatalogoCapacitaciones from "@/components/capacitaciones/catalogo-capacitaciones"
+import TrainingSurvey from "@/components/capacitaciones/training-survey"
 import CapacitacionesAdmin from "@/components/capacitaciones/capacitaciones-admin"
 import type { Training, TrainingItem } from "@/lib/data-manager"
 import {
   GraduationCap, Lock, CheckCircle2, PlayCircle, FileText,
-  Loader2, Clock, Settings, ExternalLink, Plus, ChevronDown, Eye,
+  Loader2, Clock, Settings, ExternalLink, Plus, ArrowLeft, Eye, CreditCard,
 } from "lucide-react"
 
 /**
@@ -28,15 +32,58 @@ export default function CapacitacionesManager({ user }: { user: any }) {
   // recién creando un borrador no se vería a sí mismo ahí.
   const [managedTrainings, setManagedTrainings] = useState<Training[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTraining, setActiveTraining] = useState<string>("")
-  const [activeItemId, setActiveItemId] = useState<number | null>(null)
   // El admin arranca en "administrar" (su trabajo real); el participante, en
   // "ver" con la primera capacitación que puede ver.
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
   const isManager = can(user, "capacitaciones:manage")
-  const [view, setView] = useState<"ver" | "administrar">(isManager ? "administrar" : "ver")
-  // Señal para que el botón "Nueva capacitación" del header abra el formulario
-  // de alta dentro de la vista de administración.
-  const [newTrainingSignal, setNewTrainingSignal] = useState(0)
+  // El modo también vive en la URL (?vista=): así el botón atrás lo respeta y
+  // el link que le pasás a alguien abre donde vos estabas.
+  const vistaUrl = searchParams.get("vista")
+  const view: "ver" | "administrar" =
+    vistaUrl === "ver" || vistaUrl === "administrar"
+      ? vistaUrl
+      : isManager
+        ? "administrar"
+        : "ver"
+  const setView = (modo: "ver" | "administrar") => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("vista", modo)
+    router.push(`/capacitaciones?${params.toString()}`)
+  }
+  // Pedido puntual para que el botón "Nueva capacitación" del header abra el
+  // formulario de alta dentro de la vista de administración. Se apaga apenas
+  // el hijo lo consume, para que no reviva al remontarse (recarga o cambio de
+  // vista) y reabra el modal solo.
+  const [openNewTraining, setOpenNewTraining] = useState(false)
+
+  /**
+   * Qué se está mirando vive en la URL, no en el estado.
+   *
+   *   /capacitaciones                → la vidriera
+   *   /capacitaciones?c=<slug>       → una capacitación
+   *   /capacitaciones?c=<slug>&m=12  → una pieza de contenido puntual
+   *
+   * Así el botón "atrás" del navegador vuelve al catálogo, la pantalla se
+   * puede recargar sin perder dónde estabas, y el link se puede pasar.
+   *
+   * El slug y no el id: es lo que ya se usa en la landing pública, y un link
+   * legible se puede mandar por WhatsApp sin que parezca un error.
+   */
+  const slugActivo = searchParams.get("c") ?? ""
+  const itemActivo = Number(searchParams.get("m")) || null
+
+  const irA = (slug?: string, itemId?: number | null) => {
+    const params = new URLSearchParams()
+    // El modo se arrastra: volver al catálogo no tiene que sacarte de
+    // Administrar si es ahí donde estabas trabajando.
+    if (vistaUrl) params.set("vista", vistaUrl)
+    if (slug) params.set("c", slug)
+    if (slug && itemId) params.set("m", String(itemId))
+    const qs = params.toString()
+    return qs ? `/capacitaciones?${qs}` : "/capacitaciones"
+  }
 
   const load = async () => {
     setLoading(true)
@@ -45,7 +92,6 @@ export default function CapacitacionesManager({ user }: { user: any }) {
       if (!res.ok) throw new Error("No se pudieron cargar las capacitaciones")
       const data: Training[] = await res.json()
       setTrainings(data)
-      setActiveTraining((prev) => prev || (data[0] ? String(data[0].id) : ""))
 
       if (isManager) {
         const resAll = await fetch("/api/capacitaciones?include_items=true")
@@ -68,15 +114,17 @@ export default function CapacitacionesManager({ user }: { user: any }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Si el slug de la URL no está en la lista (la despublicaron, o alguien
+  // escribió cualquier cosa), `current` queda vacío y se ve el catálogo.
   const current = useMemo(
-    () => trainings.find((t) => String(t.id) === activeTraining),
-    [trainings, activeTraining],
+    () => trainings.find((t) => t.slug === slugActivo),
+    [trainings, slugActivo],
   )
 
   const currentItem = useMemo(() => {
     if (!current) return null
-    return current.items.find((i) => i.id === activeItemId) ?? current.items[0] ?? null
-  }, [current, activeItemId])
+    return current.items.find((i) => i.id === itemActivo) ?? current.items[0] ?? null
+  }, [current, itemActivo])
 
   if (loading) {
     return (
@@ -119,7 +167,7 @@ export default function CapacitacionesManager({ user }: { user: any }) {
               </button>
             </div>
             <Button
-              onClick={() => { setView("administrar"); setNewTrainingSignal((n) => n + 1) }}
+              onClick={() => { setView("administrar"); setOpenNewTraining(true) }}
               className="flex-1 bg-[#4dd0e1] hover:bg-[#3bb8c9] sm:flex-none"
             >
               <Plus className="mr-2 h-4 w-4 shrink-0" />
@@ -130,7 +178,13 @@ export default function CapacitacionesManager({ user }: { user: any }) {
       </div>
 
       {view === "administrar" && isManager ? (
-        <CapacitacionesAdmin user={user} trainings={managedTrainings} onChanged={load} openNewSignal={newTrainingSignal} />
+        <CapacitacionesAdmin
+          user={user}
+          trainings={managedTrainings}
+          onChanged={load}
+          openNew={openNewTraining}
+          onOpenNewHandled={() => setOpenNewTraining(false)}
+        />
       ) : trainings.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-14 text-center text-gray-500">
@@ -139,87 +193,31 @@ export default function CapacitacionesManager({ user }: { user: any }) {
             {isManager && <p className="text-sm">Creá la primera desde «Administrar».</p>}
           </CardContent>
         </Card>
+      ) : !current ? (
+        /* Pantalla de inicio: la vidriera con TODAS las publicadas, incluidas
+           las que la persona todavía no puede ver. Ver el candado y el precio
+           es parte de la propuesta. */
+        <CatalogoCapacitaciones
+          trainings={trainings}
+          showAccess
+          onSelect={(t) => router.push(irA(t.slug))}
+        />
       ) : (
-        <div className="space-y-6">
-          {/* Selector tipo acordeón: colapsado por defecto, no crece a lo
-              ancho por más capacitaciones que haya. Con una sola, ni se
-              muestra — no tiene sentido elegir entre una opción. */}
-          {trainings.length > 1 && (
-            <TrainingPicker
-              trainings={trainings}
-              activeId={activeTraining}
-              onSelect={(id) => { setActiveTraining(id); setActiveItemId(null) }}
-            />
-          )}
+        <div className="space-y-4">
+          <button
+            onClick={() => router.push(irA())}
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-500 transition hover:text-[#00838f]"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Todas las capacitaciones
+          </button>
 
-          {current && (
-            <TrainingView
-              training={current}
-              item={currentItem}
-              onSelectItem={setActiveItemId}
-              user={user}
-            />
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── Selector de capacitación (acordeón) ─────────────────────────────────
-
-function TrainingPicker({
-  trainings,
-  activeId,
-  onSelect,
-}: {
-  trainings: Training[]
-  activeId: string
-  onSelect: (id: string) => void
-}) {
-  const [open, setOpen] = useState(false)
-  const current = trainings.find((t) => String(t.id) === activeId)
-
-  return (
-    <div className="rounded-lg border border-gray-200 bg-white">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left"
-      >
-        <span className="flex min-w-0 items-center gap-2 font-medium text-gray-800">
-          {current ? (
-            current.has_access ? (
-              <PlayCircle className="h-4 w-4 shrink-0 text-[#4dd0e1]" />
-            ) : (
-              <Lock className="h-4 w-4 shrink-0 text-gray-400" />
-            )
-          ) : (
-            <GraduationCap className="h-4 w-4 shrink-0 text-gray-400" />
-          )}
-          <span className="truncate">{current ? current.title : "Elegí una capacitación"}</span>
-        </span>
-        <ChevronDown className={`h-4 w-4 shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-      {open && (
-        <div className="max-h-72 space-y-0.5 overflow-y-auto border-t border-gray-100 p-1">
-          {trainings.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => { onSelect(String(t.id)); setOpen(false) }}
-              className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition ${
-                String(t.id) === activeId
-                  ? "bg-[#4dd0e1]/10 font-medium text-[#00838f]"
-                  : "text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              {t.has_access ? (
-                <PlayCircle className="h-4 w-4 shrink-0" />
-              ) : (
-                <Lock className="h-4 w-4 shrink-0 text-gray-400" />
-              )}
-              <span className="min-w-0 flex-1 truncate">{t.title}</span>
-            </button>
-          ))}
+          <TrainingView
+            training={current}
+            item={currentItem}
+            onSelectItem={(id) => router.replace(irA(current.slug, id))}
+            user={user}
+          />
         </div>
       )}
     </div>
@@ -284,6 +282,13 @@ function TrainingView({
             </CardContent>
           </Card>
         )}
+
+        {/* La evaluación cierra el curso: se habilita cuando vio todo el
+            contenido. Si la capacitación no tiene una, no se muestra nada. */}
+        <TrainingSurvey
+          trainingId={training.id}
+          contenidoCompleto={training.item_count > 0 && training.completed_items >= training.item_count}
+        />
       </div>
 
       <div className="space-y-4">
@@ -387,11 +392,38 @@ function LockedTraining({ training }: { training: Training }) {
           </div>
         )}
 
+        {training.payment_url && (
+          <a
+            href={training.payment_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#4dd0e1] px-4 py-3 font-semibold text-white transition hover:bg-[#3bb8c9]"
+          >
+            <CreditCard className="h-4 w-4" />
+            Comprar con MercadoPago
+          </a>
+        )}
+
+        {/* La plataforma NO se entera del pago: el cobro pasa por MercadoPago,
+            afuera. Por eso acá no hay ningún botón de "ya pagué" — lo confirma
+            una persona mirando el panel de MP. Este cartel es para que la
+            espera no se sienta como que algo se rompió. */}
         <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
-          <p className="font-medium text-gray-800">¿Cómo accedo?</p>
+          <p className="font-medium text-gray-800">¿Cómo sigue después de pagar?</p>
           <p className="mt-1">
-            Escribinos para coordinar el pago. Apenas lo registremos, un administrador
-            te habilita el acceso y podés ver el contenido desde acá mismo.
+            Un voluntario de ALMA confirma el pago y te habilita el acceso. Apenas lo
+            haga, el contenido aparece acá mismo: no tenés que volver a pagar ni
+            registrarte de nuevo.
+          </p>
+          <p className="mt-2">
+            ¿Ya pagaste y seguís viendo el candado? Escribinos a{" "}
+            <a
+              href={`mailto:${config.contact.email}`}
+              className="font-medium text-[#00838f] underline-offset-2 hover:underline"
+            >
+              {config.contact.email}
+            </a>
+            .
           </p>
         </div>
       </CardContent>

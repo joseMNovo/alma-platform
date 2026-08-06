@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { getPublicTraining, type Training } from "@/lib/data-manager"
+import { config } from "@/lib/config"
 import AlmaFooter from "@/components/ui/alma-footer"
 
 /**
@@ -61,12 +62,20 @@ export default async function CapacitacionPublicaPage({ params }: { params: Prom
               Comunidad <span className="text-[#4dd0e1]">ALMA</span>
             </span>
           </div>
-          <Link
-            href="/"
-            className="text-sm font-medium text-[#4dd0e1] underline-offset-2 hover:underline"
-          >
-            Ingresar
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/academia"
+              className="text-sm font-medium text-gray-500 underline-offset-2 hover:underline"
+            >
+              Ver todas
+            </Link>
+            <Link
+              href="/"
+              className="text-sm font-medium text-[#4dd0e1] underline-offset-2 hover:underline"
+            >
+              Ingresar
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -75,9 +84,14 @@ export default async function CapacitacionPublicaPage({ params }: { params: Prom
           <div className="mb-8 overflow-hidden rounded-xl bg-gray-100">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={`/api/files/${training.cover_file_guid}/raw`}
+              // Ruta pública: /api/files/... pide sesión y esta página la abre
+              // gente sin cuenta (es el link que se reparte por Instagram).
+              src={`/api/capacitaciones/portada/${training.cover_file_guid}`}
               alt={training.title}
-              className="h-56 w-full object-cover sm:h-72"
+              // 16:9, igual que la tarjeta del catálogo y que el recuadro del
+              // formulario. Una sola proporción en todos lados: así el
+              // encuadre que eligió el admin es el que se ve siempre.
+              className="aspect-video w-full object-cover"
             />
           </div>
         )}
@@ -140,16 +154,52 @@ export default async function CapacitacionPublicaPage({ params }: { params: Prom
                 </li>
               </ul>
 
+              {/* Siempre al wizard, nunca a MercadoPago directo: primero la
+                  cuenta con el mail verificado, después el pago. Si alguien
+                  paga sin cuenta, esa transferencia no tiene dueño. */}
               <Link
-                href="/registro"
+                href={`/capacitacion/${slug}/comprar`}
                 className="mt-5 block rounded-lg bg-[#4dd0e1] px-4 py-3 text-center font-semibold text-white transition hover:bg-[#3bb8c9]"
               >
-                Quiero inscribirme
+                {training.payment_url ? "Quiero comprarla" : "Quiero inscribirme"}
               </Link>
+              <Link
+                href="/"
+                className="mt-2 block rounded-lg border border-gray-200 px-4 py-3 text-center font-medium text-gray-600 transition hover:bg-gray-50"
+              >
+                Ya tengo cuenta
+              </Link>
+            </div>
 
-              <p className="mt-3 text-xs text-gray-500">
-                Creá tu cuenta en la plataforma y escribinos para coordinar el pago. Apenas
-                lo registremos, te habilitamos el acceso.
+            <div className="rounded-xl border border-gray-200 bg-white p-5 text-sm text-gray-600">
+              <p className="font-medium text-gray-800">Cómo es el paso a paso</p>
+              <ol className="mt-3 space-y-3">
+                {[
+                  training.payment_url
+                    ? "Pagás por MercadoPago desde el botón de arriba."
+                    : "Nos escribís para coordinar el pago.",
+                  "Creás tu cuenta en la plataforma con tu email.",
+                  "Un voluntario de ALMA confirma el pago y te habilita el acceso.",
+                  "Entrás a la pestaña Capacitaciones y ya podés ver todo el contenido.",
+                ].map((step, i) => (
+                  <li key={i} className="flex gap-3">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#4dd0e1]/10 text-xs font-bold text-[#00838f]">
+                      {i + 1}
+                    </span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-4 text-xs text-gray-500">
+                La habilitación no es automática: la hace una persona después de verificar
+                el pago. Si ya pagaste y no ves el contenido, escribinos a{" "}
+                <a
+                  href={`mailto:${config.contact.email}`}
+                  className="font-medium text-[#00838f] underline-offset-2 hover:underline"
+                >
+                  {config.contact.email}
+                </a>
+                .
               </p>
             </div>
 

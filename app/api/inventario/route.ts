@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getInventory, createInventoryItem, updateInventoryItem, deleteInventoryItem } from "@/lib/data-manager"
 import { getSessionUser } from "@/lib/serverAuth"
-import { logInfo, logError } from "@/lib/logger"
+import { logInfo, logWarn, logError } from "@/lib/logger"
 
 export async function GET(request: NextRequest) {
   const session = getSessionUser(request)

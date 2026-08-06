@@ -40,7 +40,12 @@ const nextConfig = {
               "connect-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",
               // Sin frame-src, el iframe del player caería en default-src 'self'
               // y YouTube quedaría bloqueado: el video no se vería nunca.
-              "frame-src https://www.youtube-nocookie.com https://www.youtube.com",
+              //
+              // blob: es para la vista previa del certificado: el PDF llega
+              // como bytes, se arma un blob en el navegador y se muestra en un
+              // iframe. Sin esto el recuadro sale gris y vacío, sin más pista
+              // que un aviso en la consola.
+              "frame-src 'self' blob: https://www.youtube-nocookie.com https://www.youtube.com",
               "frame-ancestors 'none'",
             ].join("; "),
           },

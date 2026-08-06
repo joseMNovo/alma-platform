@@ -31,7 +31,6 @@ const GAMES_URL = process.env.NEXT_PUBLIC_GAMES_URL ?? ""
 import TalleresManager from "@/components/talleres/talleres-manager"
 import GruposManager from "@/components/grupos/grupos-manager"
 import ActividadesManager from "@/components/actividades/actividades-manager"
-import PagosManager from "@/components/pagos/pagos-manager"
 import InventarioManager from "@/components/inventario/inventario-manager"
 import VoluntariosManager from "@/components/voluntarios/voluntarios-manager"
 import PendientesManager from "@/components/pendientes/pendientes-manager"
@@ -45,8 +44,13 @@ import AprobacionesManager from "@/components/voluntarios/aprobaciones-manager"
 import ActividadManager from "@/components/actividad/actividad-manager"
 import CapacitacionesManager from "@/components/capacitaciones/capacitaciones-manager"
 import AccesosManager from "@/components/accesos/accesos-manager"
+import CertificadosAdmin from "@/components/capacitaciones/certificados-admin"
+import LinkPagoAdmin from "@/components/capacitaciones/link-pago-admin"
+import EncuestasManager from "@/components/encuestas/encuestas-manager"
+import EntregaCertificados from "@/components/capacitaciones/entrega-certificados"
+import HistorialCertificados from "@/components/capacitaciones/historial-certificados"
 import { visibleModules, visibleChildren, type Grant } from "@/lib/access"
-import { getModule, resolveRoute, MODULES } from "@/lib/modules"
+import { getModule, resolveRoute, MODULES, type ModuleDef } from "@/lib/modules"
 import NotificationBell from "@/components/notifications/notification-bell"
 import BroadcastManager from "@/components/notifications/broadcast-manager"
 import {
@@ -111,9 +115,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
 
   const isAdmin = user.role === "admin"
 
-  // Pagos oculto por ahora (el módulo todavía no existe). Para reactivarlo: poner true.
-  const SHOW_PAGOS = false
-
   useEffect(() => {
     setNavigating(false)
     if (!isAdmin) return
@@ -151,9 +152,16 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
     actividades: <ActividadesManager user={user} />,
     inscripciones: <InscripcionesManager />,
     capacitaciones: <CapacitacionesManager user={user} />,
-    accesos: <AccesosManager user={user} />,
+    habilitaciones: <AccesosManager user={user} vista="habilitaciones" />,
+    "pagos-capacitaciones": <AccesosManager user={user} vista="pagos" />,
+    auditoria: <AccesosManager user={user} vista="auditoria" />,
+    alertas: <AccesosManager user={user} vista="alertas" />,
+    emision: <EntregaCertificados />,
+    "historial-certificados": <HistorialCertificados />,
+    certificados: <CertificadosAdmin />,
+    "link-pago": <LinkPagoAdmin />,
+    encuestas: <EncuestasManager user={user} />,
     ideas: <IdeasManager user={user} />,
-    pagos: <PagosManager user={user} />,
     aprobaciones: <AprobacionesManager user={user} onPendingCount={setPendingCount} />,
     actividad: <ActividadManager user={user} />,
     anuncios: <BroadcastManager user={user} />,
@@ -170,7 +178,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   // Tracking de uso: registra una vista por cada módulo/sub-módulo que el usuario realmente abre.
   useEffect(() => {
     const r = resolveRoute(pathname)
-    const module = r?.child?.key ?? r?.group.key ?? "desconocido"
+    const module = r?.grandchild?.key ?? r?.child?.key ?? r?.group.key ?? "desconocido"
     fetch("/api/tracking", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -190,28 +198,44 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   const activeGroup = resolved?.group ?? MODULES[0]
   const activeTab = activeGroup.key
   const activeChild = resolved?.child
+  const activeGrandchild = resolved?.grandchild
 
   /** Sub-módulo activo dentro del grupo (primero visible si la ruta no lo dice). */
   const groupChildren = visibleChildren(user, activeGroup, grants)
   const activeSubTab = activeChild?.key ?? groupChildren[0]?.key ?? activeGroup.key
+  /** Tercer nivel: solo existe en las sub-pestañas que a su vez tienen hijos. */
+  const activeSubSubTab =
+    activeGrandchild?.key ?? (activeChild ? visibleChildren(user, activeChild, grants)[0]?.key : undefined)
 
-  const activeModule = activeChild ?? activeGroup
+  const activeModule = activeGrandchild ?? activeChild ?? activeGroup
   const ActiveIcon = activeModule.icon
   const activeTabLabel = activeModule.label
 
+  /**
+   * Adónde lleva tocar una pestaña de cualquier nivel: siempre a la primera
+   * hoja que este usuario pueda ver. Así nunca cae en una pantalla vacía por
+   * no tener permiso sobre el primer hijo.
+   */
+  const rutaVisible = (mod: ModuleDef | undefined, fallback: string): string => {
+    let actual = mod
+    while (actual?.children?.length) {
+      const siguiente = visibleChildren(user, actual, grants)[0]
+      if (!siguiente) break
+      actual = siguiente
+    }
+    return actual?.route ?? fallback
+  }
+
   const handleTabChange = (value: string) => {
-    const group = getModule(value)
-    // Al tocar un grupo se entra por su primer sub-módulo visible: el usuario
-    // nunca cae en una pestaña vacía por no tener permiso sobre el primero.
-    const target = group?.children?.length
-      ? (visibleChildren(user, group, grants)[0]?.route ?? group.route)
-      : (group?.route ?? `/${value}`)
-    navigateTo(target)
+    navigateTo(rutaVisible(getModule(value), `/${value}`))
     setMobileMenuOpen(false)
   }
 
   const tabTriggerClass = "flex items-center gap-1 px-2 text-[13px] transition-all duration-200 active:scale-95 data-[state=inactive]:hover:bg-[#4dd0e1]/10 data-[state=inactive]:hover:text-[#00838f] data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
   const subTabTriggerClass = "flex items-center space-x-2 transition-all duration-200 active:scale-95 data-[state=inactive]:hover:bg-[#4dd0e1]/10 data-[state=inactive]:hover:text-[#00838f] data-[state=active]:bg-[#4dd0e1]/15 data-[state=active]:text-[#4dd0e1] data-[state=active]:font-semibold"
+  // Tercer nivel: más liviano que el segundo a propósito. Si los tres niveles
+  // pesaran igual, tres barras apiladas no dejarían ver cuál manda.
+  const subSubTabTriggerClass = "flex items-center gap-1.5 rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-[13px] text-gray-500 transition-colors data-[state=inactive]:hover:text-[#00838f] data-[state=active]:border-[#4dd0e1] data-[state=active]:font-semibold data-[state=active]:text-[#00838f]"
 
   // Tabs que muestran la flor arriba a la derecha; el resto la muestran abajo a la derecha
   const flowerTop = ['voluntarios', 'espacios', 'pendientes', 'ideas'].includes(activeTab)
@@ -344,6 +368,37 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                                 {kids.map((child) => {
                                   const ChildIcon = child.icon
                                   const childActive = activeSubTab === child.key
+                                  const nietos = visibleChildren(user, child, grants)
+
+                                  // En el cajón mobile, un tercer nivel plegable
+                                  // sería un toque más para llegar a lo mismo:
+                                  // los nietos se listan derecho, indentados.
+                                  if (nietos.length > 0) {
+                                    return (
+                                      <div key={child.key}>
+                                        <p className="flex items-center gap-2 px-3 pt-2 pb-0.5 pl-8 text-xs font-medium text-gray-400">
+                                          <ChildIcon className="h-4 w-4 shrink-0" />
+                                          {child.label}
+                                        </p>
+                                        {nietos.map((nieto) => {
+                                          const NietoIcon = nieto.icon
+                                          const nietoActive = activeSubSubTab === nieto.key
+                                          return (
+                                            <Button
+                                              key={nieto.key}
+                                              variant={nietoActive ? "default" : "ghost"}
+                                              className={`w-full justify-start pl-14 ${nietoActive ? "bg-[#4dd0e1] text-white" : ""}`}
+                                              onClick={() => { navigateTo(nieto.route); setMobileMenuOpen(false) }}
+                                            >
+                                              <NietoIcon className="w-4 h-4 mr-3" />
+                                              {nieto.label}
+                                            </Button>
+                                          )
+                                        })}
+                                      </div>
+                                    )
+                                  }
+
                                   return (
                                     <Button
                                       key={child.key}
@@ -472,7 +527,9 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                         <button
                           key={child.key}
                           type="button"
-                          onClick={() => { setNavSubmenu(null); navigateTo(child.route) }}
+                          // Si es una sección, entra por su primera pantalla:
+                          // el atajo tiene que llevar a algo que se vea.
+                          onClick={() => { setNavSubmenu(null); navigateTo(rutaVisible(child, child.route)) }}
                           className="flex items-center gap-2 px-3 py-2 text-left text-[13px] text-gray-700 transition-colors hover:bg-[#4dd0e1]/10 hover:text-[#00838f]"
                         >
                           <ChildIcon className="w-4 h-4 shrink-0" />
@@ -542,12 +599,42 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                       )
                     })}
                   </TabsList>
-                  {children.map((child) => (
-                    <TabsContent key={child.key} value={child.key}>
-                      {/* Solo se monta el sub-módulo activo: evita fetches en paralelo */}
-                      {activeSubTab === child.key && MODULE_CONTENT[child.key]}
-                    </TabsContent>
-                  ))}
+                  {children.map((child) => {
+                    // Tercer nivel: Accesos y Certificados agrupan varias
+                    // pantallas. El resto es hoja y se monta directo.
+                    const nietos = visibleChildren(user, child, grants)
+                    return (
+                      <TabsContent key={child.key} value={child.key}>
+                        {/* Solo se monta el sub-módulo activo: evita fetches en paralelo */}
+                        {activeSubTab !== child.key ? null : nietos.length === 0 ? (
+                          MODULE_CONTENT[child.key]
+                        ) : (
+                          <Tabs
+                            value={activeSubSubTab}
+                            onValueChange={(v) => navigateTo(getModule(v)?.route ?? `/${v}`)}
+                            className="space-y-4"
+                          >
+                            <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 rounded-none border-b border-gray-200 bg-transparent p-0">
+                              {nietos.map((nieto) => {
+                                const NietoIcon = nieto.icon
+                                return (
+                                  <TabsTrigger key={nieto.key} value={nieto.key} className={subSubTabTriggerClass}>
+                                    <NietoIcon className="h-3.5 w-3.5 shrink-0" />
+                                    <span>{nieto.label}</span>
+                                  </TabsTrigger>
+                                )
+                              })}
+                            </TabsList>
+                            {nietos.map((nieto) => (
+                              <TabsContent key={nieto.key} value={nieto.key}>
+                                {activeSubSubTab === nieto.key && MODULE_CONTENT[nieto.key]}
+                              </TabsContent>
+                            ))}
+                          </Tabs>
+                        )}
+                      </TabsContent>
+                    )
+                  })}
                 </Tabs>
               </TabsContent>
             )

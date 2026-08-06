@@ -12,6 +12,20 @@ function VerificarEmailContent() {
   const token = searchParams.get("token") ?? ""
   const type = searchParams.get("type") ?? ""
 
+  /**
+   * Adónde volver después de verificar. Lo usa la compra exprés de una
+   * capacitación para retomar donde la persona dejó.
+   *
+   * SOLO se aceptan rutas internas que arranquen con "/capacitacion/": sin
+   * ese candado, cualquiera podría armar un link con el dominio de ALMA que
+   * deposite a la persona en otro sitio.
+   */
+  const destinoCrudo = searchParams.get("next") ?? ""
+  const destino =
+    destinoCrudo.startsWith("/capacitacion/") && !destinoCrudo.startsWith("//")
+      ? destinoCrudo
+      : ""
+
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
   const [countdown, setCountdown] = useState(5)
 
@@ -34,12 +48,16 @@ function VerificarEmailContent() {
       .catch(() => setStatus("error"))
   }, [token, type])
 
-  // Redirect participante al login después de 5 segundos
+  // Redirect participante al login después de 5 segundos — o de vuelta a la
+  // compra, si venía de ahí.
   useEffect(() => {
     if (status !== "success" || type !== "participant") return
     const interval = setInterval(() => {
       setCountdown((c) => {
-        if (c <= 1) { clearInterval(interval); router.push("/") }
+        if (c <= 1) {
+          clearInterval(interval)
+          router.push(destino ? `${destino}?verificado=1` : "/")
+        }
         return c - 1
       })
     }, 1000)

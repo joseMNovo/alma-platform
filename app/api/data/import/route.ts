@@ -13,8 +13,11 @@ export async function POST(request: NextRequest) {
   try {
     const importedData = await request.json()
 
-    // Validate basic structure
-    const requiredKeys = ["volunteers", "workshops", "groups", "activities", "payments", "inventory", "enrollments", "pending_tasks"]
+    // Validate basic structure.
+    // "payments" salió de la lista cuando se retiró la tabla `pagos`: si
+    // siguiera acá, un archivo exportado HOY sería rechazado al importarlo,
+    // porque el export ya no lo genera.
+    const requiredKeys = ["volunteers", "workshops", "groups", "activities", "inventory", "enrollments", "pending_tasks"]
 
     for (const key of requiredKeys) {
       if (!(key in importedData)) {

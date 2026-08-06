@@ -10,13 +10,6 @@ import { toast } from "@/hooks/use-toast"
 import { Loader2, DollarSign } from "lucide-react"
 import type { AccessMatrixRow, Training } from "@/lib/data-manager"
 
-const CONCEPT_LABELS: Record<string, string> = {
-  capacitacion: "Capacitación",
-  socio: "Cuota de socio",
-  donacion: "Donación",
-  otro: "Otro",
-}
-
 /**
  * Registrar pago — botón "$" por fila en Accesos. Un ingreso suelto: NO
  * habilita nada por sí mismo (para eso está el wizard), solo deja constancia
@@ -42,7 +35,6 @@ export default function PaymentDialog({
   const sortedTrainings = [...trainings].sort((a, b) => a.title.localeCompare(b.title))
   const defaultTraining = trainings.find((t) => grantedTrainingIds.includes(t.id)) ?? sortedTrainings[0]
 
-  const [conceptType, setConceptType] = useState<string>("capacitacion")
   const [conceptId, setConceptId] = useState<number | "">(defaultTraining?.id ?? "")
   const [amount, setAmount] = useState(defaultTraining ? String(defaultTraining.price) : "")
   const [method, setMethod] = useState("transferencia")
@@ -55,21 +47,25 @@ export default function PaymentDialog({
       toast({ title: "El monto debe ser mayor a cero", variant: "destructive" })
       return
     }
-    if (conceptType === "capacitacion" && !conceptId) {
+    if (!conceptId) {
       toast({ title: "Elegí a qué capacitación corresponde", variant: "destructive" })
       return
     }
     setSaving(true)
     try {
-      const training = conceptType === "capacitacion" ? trainings.find((t) => t.id === conceptId) : null
+      const training = trainings.find((t) => t.id === conceptId)
       const res = await fetch("/api/accesos/pagos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           person_id: person.person_id,
-          concept_type: conceptType,
-          concept_id: conceptType === "capacitacion" ? conceptId : 0,
-          concept_label: conceptType === "capacitacion" ? training?.title ?? null : CONCEPT_LABELS[conceptType],
+          // Siempre capacitación: es lo único que este módulo sabe mostrar
+          // después. Las cuotas de socio y las donaciones esperan a que
+          // exista su propio módulo de Pagos — registrarlas acá las dejaría
+          // guardadas y sin ninguna pantalla que las liste.
+          concept_type: "capacitacion",
+          concept_id: conceptId,
+          concept_label: training?.title ?? null,
           amount: Number(amount),
           method,
           reference: reference.trim() || null,
@@ -107,21 +103,7 @@ export default function PaymentDialog({
           </div>
 
           <div>
-            <Label>Concepto</Label>
-            <Select value={conceptType} onValueChange={setConceptType}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="capacitacion">Capacitación</SelectItem>
-                <SelectItem value="socio">Cuota de socio</SelectItem>
-                <SelectItem value="donacion">Donación</SelectItem>
-                <SelectItem value="otro">Otro</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {conceptType === "capacitacion" && (
-            <div>
-              <Label>¿Cuál?</Label>
+              <Label>¿Qué capacitación?</Label>
               {sortedTrainings.length === 0 ? (
                 <p className="text-sm text-gray-400">No hay capacitaciones publicadas.</p>
               ) : (
@@ -144,8 +126,7 @@ export default function PaymentDialog({
                   </SelectContent>
                 </Select>
               )}
-            </div>
-          )}
+          </div>
 
           <div className="grid grid-cols-2 gap-2">
             <div>

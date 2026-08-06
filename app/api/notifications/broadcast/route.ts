@@ -11,9 +11,19 @@ export async function POST(request: NextRequest) {
   if (!session.is_admin) return NextResponse.json({ error: "Solo administradores" }, { status: 403 })
 
   try {
-    const { title, body, audience, url, also_popup, volunteer_ids } = await request.json()
+    const {
+      title, body, audience, url, notify, also_popup, send_email,
+      email_subject, email_body, volunteer_ids,
+    } = await request.json()
     if (!title || !title.trim()) {
       return NextResponse.json({ error: "El título es obligatorio" }, { status: 400 })
+    }
+
+    // `notify` puede venir sin definir de un cliente viejo: en ese caso vale
+    // true, que era el comportamiento anterior (siempre campanita).
+    const conNotificacion = notify !== false
+    if (!conNotificacion && !also_popup && !send_email) {
+      return NextResponse.json({ error: "Elegí al menos una forma de avisar" }, { status: 400 })
     }
 
     const ids = Array.isArray(volunteer_ids)
@@ -25,7 +35,11 @@ export async function POST(request: NextRequest) {
       body: (body || "").trim(),
       audience: audience || "voluntario",
       url: url || null,
+      notify: conNotificacion,
       also_popup: !!also_popup,
+      send_email: !!send_email,
+      email_subject: (email_subject || "").trim() || null,
+      email_body: (email_body || "").trim() || null,
       volunteer_ids: ids && ids.length > 0 ? ids : null,
     })
     logInfo("Broadcast lanzado", {
@@ -36,6 +50,10 @@ export async function POST(request: NextRequest) {
         audience: audience || "voluntario",
         targeted: ids && ids.length > 0 ? ids.length : "audiencia",
         recipients: result.recipients,
+        vias: [conNotificacion && "campanita", also_popup && "popup", send_email && "mail"]
+          .filter(Boolean)
+          .join("+"),
+        emails: result.emails_queued,
       },
     })
     return NextResponse.json(result)

@@ -11,7 +11,14 @@ export const config = {
   // Configuración de la aplicación
   app: {
     name: process.env.NEXT_PUBLIC_APP_NAME || "ALMA Platform",
-    version: "2.6.3",
+    version: "3.14.0",
+  },
+
+  // Contacto institucional que se muestra al público (landing de
+  // capacitaciones, instrucciones de pago). NEXT_PUBLIC_ porque lo lee el
+  // navegador; no es un secreto, es la dirección que ALMA publica.
+  contact: {
+    email: process.env.NEXT_PUBLIC_CONTACT_EMAIL || "info@almarosario.org.ar",
   },
 }
 

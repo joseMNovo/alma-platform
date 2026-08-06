@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, useMemo, Suspense } from "react"
 import { toast } from "@/hooks/use-toast"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -19,6 +19,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
+import FilterChip from "@/components/ui/filter-chip"
 import { formatLocalDate } from "@/lib/utils"
 import { Plus, Edit, Trash2, Users, User, Calendar, Phone, Mail, Heart, KeyRound, X, ChevronDown, LayoutGrid, List, Search } from "lucide-react"
 
@@ -56,15 +57,12 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
   const [volunteerToDelete, setVolunteerToDelete] = useState<Volunteer | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [expandedId, setExpandedId] = useState<number | null>(null)
-  const [viewMode, setViewMode] = useState<"cards" | "list">("list")
-  const [filtersOpen, setFiltersOpen] = useState(false)
-  const [filters, setFilters] = useState({
-    name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    specialty: "",
-  })
+  // Una sola caja de búsqueda: antes eran cinco campos (nombre, apellido,
+  // email, teléfono, especialidad) escondidos en un acordeón. Buscar por todos
+  // a la vez es lo que la gente intenta hacer igual.
+  const [busqueda, setBusqueda] = useState("")
+  const [especialidadFiltro, setEspecialidadFiltro] = useState<string | null>(null)
+  const [soloAdmins, setSoloAdmins] = useState(false)
 
   // PIN management
   const [pinDialogOpen, setPinDialogOpen] = useState(false)
@@ -307,24 +305,46 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
     setFormData({ ...formData, age: value })
   }
 
-  const matchesFilter = (value: string | null | undefined, query: string) =>
-    !query.trim() || (value || "").toLowerCase().includes(query.trim().toLowerCase())
+  // Las especialidades que están efectivamente en uso, ordenadas de la más
+  // repetida a la menos. Se muestran como pastillas solo las primeras: son
+  // texto libre y con veinte voluntarios puede haber veinte distintas, lo que
+  // daría una pared de pastillas. Las demás se encuentran escribiendo.
+  const especialidades = useMemo(() => {
+    const cuenta = new Map<string, number>()
+    for (const v of volunteers) {
+      for (const e of v.specialties || []) {
+        const clave = e.trim()
+        if (clave) cuenta.set(clave, (cuenta.get(clave) ?? 0) + 1)
+      }
+    }
+    return [...cuenta.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "es"))
+      .slice(0, 6)
+      .map(([nombre]) => nombre)
+  }, [volunteers])
 
   const filteredVolunteers = volunteers
-    .filter((v) =>
-      matchesFilter(v.name, filters.name) &&
-      matchesFilter(v.last_name, filters.last_name) &&
-      matchesFilter(v.email, filters.email) &&
-      matchesFilter(v.phone, filters.phone) &&
-      matchesFilter((v.specialties || []).join(" "), filters.specialty)
-    )
+    .filter((v) => {
+      const q = busqueda.trim().toLowerCase()
+      const coincideTexto =
+        !q ||
+        [v.name, v.last_name, v.email, v.phone, (v.specialties || []).join(" ")].some((campo) =>
+          (campo || "").toLowerCase().includes(q),
+        )
+      const coincideEspecialidad =
+        !especialidadFiltro || (v.specialties || []).some((e) => e.trim() === especialidadFiltro)
+      return coincideTexto && coincideEspecialidad && (!soloAdmins || v.is_admin)
+    })
     // Orden alfabético por nombre completo, igual en lista y cards.
     .sort((a, b) => getFullName(a).localeCompare(getFullName(b), "es", { sensitivity: "base" }))
 
-  const activeFilterCount = Object.values(filters).filter((f) => f.trim()).length
+  const hayFiltros = !!busqueda.trim() || !!especialidadFiltro || soloAdmins
 
-  const clearFilters = () =>
-    setFilters({ name: "", last_name: "", email: "", phone: "", specialty: "" })
+  const clearFilters = () => {
+    setBusqueda("")
+    setEspecialidadFiltro(null)
+    setSoloAdmins(false)
+  }
 
   if (loading) {
     return (
@@ -348,35 +368,6 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
               Gestión de voluntarios
               <Badge variant="secondary">{volunteers.length}</Badge>
             </h2>
-            {/* Toggle de vista: tarjetas / lista (solo desktop) */}
-            <div className="hidden sm:inline-flex items-center bg-gray-100 rounded-lg p-0.5">
-              <button
-                type="button"
-                onClick={() => setViewMode("cards")}
-                aria-pressed={viewMode === "cards"}
-                title="Vista de tarjetas"
-                className={`inline-flex items-center justify-center w-8 h-8 rounded-md transition-colors ${
-                  viewMode === "cards"
-                    ? "bg-white text-[#4dd0e1] shadow-sm"
-                    : "text-gray-400 hover:text-gray-600"
-                }`}
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("list")}
-                aria-pressed={viewMode === "list"}
-                title="Vista de lista"
-                className={`inline-flex items-center justify-center w-8 h-8 rounded-md transition-colors ${
-                  viewMode === "list"
-                    ? "bg-white text-[#4dd0e1] shadow-sm"
-                    : "text-gray-400 hover:text-gray-600"
-                }`}
-              >
-                <List className="w-4 h-4" />
-              </button>
-            </div>
           </div>
           <p className="text-sm text-gray-500 mt-1">Administra los voluntarios de ALMA</p>
         </div>
@@ -556,97 +547,52 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
         </Dialog>
       </div>
 
-      {/* ── Acordeón de filtros ── */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setFiltersOpen((o) => !o)}
-          className="w-full flex items-center justify-between px-4 py-3 text-left transition-colors hover:bg-gray-50/50"
-        >
-          <span className="flex items-center gap-2 text-sm font-medium text-gray-600">
-            <Search className="w-4 h-4 text-[#4dd0e1]" />
-            Filtros de búsqueda
-            {activeFilterCount > 0 && (
-              <Badge variant="outline" className="text-xs border-[#4dd0e1] text-[#00838f]">
-                {activeFilterCount}
-              </Badge>
+      {/* ── Buscador + filtros rápidos ── */}
+      <div className="space-y-2">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Input
+            className="pl-9"
+            placeholder="Buscar por nombre, email, teléfono o especialidad…"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+          />
+          {!!busqueda && (
+            <button
+              onClick={() => setBusqueda("")}
+              aria-label="Borrar la búsqueda"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition hover:text-gray-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
+            {filteredVolunteers.length}{" "}
+            {filteredVolunteers.length === 1 ? "voluntario" : "voluntarios"}
+            {hayFiltros && (
+              <span className="text-xs font-normal text-gray-400">de {volunteers.length}</span>
             )}
           </span>
-          <ChevronDown
-            className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${
-              filtersOpen ? "rotate-180" : ""
-            }`}
-          />
-        </button>
-        <div
-          className={`grid transition-all duration-300 ease-in-out ${
-            filtersOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-          }`}
-        >
-          <div className="overflow-hidden">
-            <div className="px-4 pb-4 pt-1 border-t border-gray-100">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                <div>
-                  <Label htmlFor="filter-name" className="text-xs text-gray-500">Nombre</Label>
-                  <Input
-                    id="filter-name"
-                    value={filters.name}
-                    onChange={(e) => setFilters({ ...filters, name: e.target.value })}
-                    placeholder="Nombre"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="filter-last-name" className="text-xs text-gray-500">Apellido</Label>
-                  <Input
-                    id="filter-last-name"
-                    value={filters.last_name}
-                    onChange={(e) => setFilters({ ...filters, last_name: e.target.value })}
-                    placeholder="Apellido"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="filter-email" className="text-xs text-gray-500">Email</Label>
-                  <Input
-                    id="filter-email"
-                    value={filters.email}
-                    onChange={(e) => setFilters({ ...filters, email: e.target.value })}
-                    placeholder="Email"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="filter-phone" className="text-xs text-gray-500">Teléfono</Label>
-                  <Input
-                    id="filter-phone"
-                    value={filters.phone}
-                    onChange={(e) => setFilters({ ...filters, phone: e.target.value })}
-                    placeholder="Teléfono"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="filter-specialty" className="text-xs text-gray-500">Especialidad</Label>
-                  <Input
-                    id="filter-specialty"
-                    value={filters.specialty}
-                    onChange={(e) => setFilters({ ...filters, specialty: e.target.value })}
-                    placeholder="Especialidad"
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-              {activeFilterCount > 0 && (
-                <div className="flex justify-end mt-3">
-                  <Button variant="ghost" size="sm" onClick={clearFilters} className="text-gray-500 hover:text-gray-700">
-                    <X className="w-3.5 h-3.5 mr-1" />
-                    Limpiar filtros
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
+          <FilterChip active={soloAdmins} onClick={() => setSoloAdmins((v) => !v)}>
+            Administradores
+          </FilterChip>
+          {especialidades.map((e) => (
+            <FilterChip
+              key={e}
+              active={especialidadFiltro === e}
+              onClick={() => setEspecialidadFiltro((f) => (f === e ? null : e))}
+            >
+              {e}
+            </FilterChip>
+          ))}
+          {hayFiltros && (
+            <button onClick={clearFilters} className="text-xs text-gray-400 underline hover:text-gray-600">
+              Limpiar
+            </button>
+          )}
         </div>
       </div>
 
@@ -804,7 +750,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
       </div>
 
       {/* ── DESKTOP: Grid de cards (≥ sm) ── */}
-      <div className={`${viewMode === "cards" ? "hidden sm:grid" : "hidden"} grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4 sm:px-0`}>
+      <div className={`${"hidden"} grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4 sm:px-0`}>
         {filteredVolunteers.map((volunteer) => (
           <Card key={volunteer.id} className="hover:shadow-lg transition-shadow duration-200">
             <CardHeader className="pb-3">
@@ -926,7 +872,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
       </div>
 
       {/* ── DESKTOP: Vista de lista / tablero (≥ sm) ── */}
-      {viewMode === "list" && (
+      {true && (
         <div className="hidden sm:block px-4 sm:px-0">
           <div className="overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-sm">
             <div className="overflow-x-auto">

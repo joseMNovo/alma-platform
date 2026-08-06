@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
+import Ayuda from "@/components/ui/ayuda"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
@@ -36,20 +37,70 @@ const AUDIENCE_OPTIONS: { key: AudienceMode; label: string; icon: any }[] = [
   { key: "all", label: "Todos", icon: Globe },
 ]
 
+/** Una de las vías del aviso. Mismo botón-caja que los de audiencia. */
+function ViaAviso({
+  titulo,
+  detalle,
+  activa,
+  deshabilitada = false,
+  onToggle,
+}: {
+  titulo: string
+  detalle: string
+  activa: boolean
+  deshabilitada?: boolean
+  onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      disabled={deshabilitada}
+      onClick={onToggle}
+      className={`flex items-start gap-2 rounded-lg border-2 p-3 text-left transition ${
+        deshabilitada
+          ? "border-gray-200 opacity-50"
+          : activa
+            ? "border-[#4dd0e1] bg-[#4dd0e1]/10"
+            : "border-gray-200 hover:border-[#b2ebf2]"
+      }`}
+    >
+      {/* La casilla no maneja el click: lo maneja la caja entera, que es un
+          blanco mucho más grande. Va sin `onCheckedChange` a propósito. */}
+      <Checkbox checked={activa} disabled={deshabilitada} className="pointer-events-none mt-0.5" />
+      <span className="min-w-0 text-sm leading-snug">
+        <span className={`block font-medium ${activa ? "text-[#00838f]" : "text-gray-700"}`}>
+          {titulo}
+        </span>
+        <span className="block text-xs text-gray-400">{detalle}</span>
+      </span>
+    </button>
+  )
+}
+
 export default function BroadcastManager({ user }: { user: any }) {
   const { toast } = useToast()
   const [title, setTitle] = useState("")
   const [body, setBody] = useState("")
+  // Las tres vías del mismo aviso. Se combinan: campanita, popup y/o mail.
+  const [conNotificacion, setConNotificacion] = useState(true)
   const [alsoPopup, setAlsoPopup] = useState(false)
+  const [conMail, setConMail] = useState(false)
+  // Si se dejan vacíos, el mail sale con el título y el mensaje de arriba.
+  const [asunto, setAsunto] = useState("")
+  const [cuerpoMail, setCuerpoMail] = useState("")
   const [sending, setSending] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const [lastResult, setLastResult] = useState<{ recipients: number; push_sent: number } | null>(null)
+  const [lastResult, setLastResult] = useState<
+    { recipients: number; push_sent: number; emails_queued: number } | null
+  >(null)
 
   // A quién: voluntarios (con selección por persona), participantes, o todos.
   const [audienceMode, setAudienceMode] = useState<AudienceMode>("voluntario")
 
   // Destinatarios (solo aplica en modo "voluntario")
   const [volunteers, setVolunteers] = useState<VolunteerLite[]>([])
+  // Cuántos participantes hay de verdad. null = todavía no se sabe.
+  const [participantes, setParticipantes] = useState<number | null>(null)
   const [loadingVols, setLoadingVols] = useState(true)
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [search, setSearch] = useState("")
@@ -72,6 +123,19 @@ export default function BroadcastManager({ user }: { user: any }) {
       .finally(() => !cancelled && setLoadingVols(false))
     return () => {
       cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelado = false
+    fetch("/api/personas")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelado && typeof data?.participants === "number") setParticipantes(data.participants)
+      })
+      .catch(() => {})
+    return () => {
+      cancelado = true
     }
   }, [])
 
@@ -118,7 +182,16 @@ export default function BroadcastManager({ user }: { user: any }) {
       // En modo voluntario con selección parcial, se mandan los IDs puntuales
       // y NO hay popup. Si es la audiencia entera, va por audiencia (y alcanza
       // a los que se sumen después).
-      const payload: any = { title, body, audience: audienceMode, also_popup: wholeAudience && alsoPopup }
+      const payload: any = {
+        title,
+        body,
+        audience: audienceMode,
+        notify: conNotificacion,
+        also_popup: wholeAudience && alsoPopup,
+        send_email: conMail,
+        email_subject: asunto,
+        email_body: cuerpoMail,
+      }
       if (isVolMode && !allSelected) payload.volunteer_ids = Array.from(selected)
 
       const res = await fetch("/api/notifications/broadcast", {
@@ -128,14 +201,24 @@ export default function BroadcastManager({ user }: { user: any }) {
       })
       if (!res.ok) throw new Error(await res.text())
       const data = await res.json()
-      setLastResult({ recipients: data.recipients, push_sent: data.push_sent })
+      setLastResult({
+        recipients: data.recipients,
+        push_sent: data.push_sent,
+        emails_queued: data.emails_queued ?? 0,
+      })
       toast({
-        title: "Notificación enviada",
-        description: `${data.recipients} destinatario(s). Los push salen en segundo plano.`,
+        title: "Aviso enviado",
+        description: conMail
+          ? `${data.emails_queued} mail(s) en camino.`
+          : `${data.recipients} destinatario(s). Los push salen en segundo plano.`,
       })
       setTitle("")
       setBody("")
+      setConNotificacion(true)
       setAlsoPopup(false)
+      setConMail(false)
+      setAsunto("")
+      setCuerpoMail("")
       setSelected(new Set())
       setSearch("")
     } catch {
@@ -145,7 +228,17 @@ export default function BroadcastManager({ user }: { user: any }) {
     }
   }
 
-  const canSend = title.trim().length > 0 && !sending && (isVolMode ? selected.size > 0 : true)
+  // Audiencia "participante" sin ninguno cargado: no hay a quién mandarle.
+  // "Todos" no cuenta, porque ahí siempre están los voluntarios.
+  const sinDestinatarios = audienceMode === "participante" && participantes === 0
+
+  const algunaVia = conNotificacion || (wholeAudience && alsoPopup) || conMail
+  const canSend =
+    title.trim().length > 0 &&
+    !sending &&
+    algunaVia &&
+    !sinDestinatarios &&
+    (isVolMode ? selected.size > 0 : true)
 
   const recipientLabel =
     audienceMode === "all"
@@ -157,17 +250,21 @@ export default function BroadcastManager({ user }: { user: any }) {
           : `${selected.size} destinatario(s) seleccionado(s)`
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div
+      className={`mx-auto w-full space-y-6 transition-[max-width] duration-300 ${
+        conMail ? "max-w-4xl" : "max-w-2xl"
+      }`}
+    >
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Megaphone className="w-5 h-5 text-[#4dd0e1]" />
-            Enviar notificación
+            Enviar aviso
           </CardTitle>
           <CardDescription>
-            Escribí un aviso y elegí a quién enviarlo. Les llega a la campanita{" "}
-            <Bell className="inline-block w-4 h-4 align-text-bottom text-[#4dd0e1]" /> y, si tienen las
-            notificaciones activadas, al celular.
+            A quién, por dónde y qué dice. Puede ir a la campanita{" "}
+            <Bell className="inline-block w-4 h-4 align-text-bottom text-[#4dd0e1]" />, como ventana
+            al ingresar y/o por mail.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -195,29 +292,6 @@ export default function BroadcastManager({ user }: { user: any }) {
                 )
               })}
             </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="bc-title">Título</Label>
-            <Input
-              id="bc-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ej: Encuentro de este sábado"
-              maxLength={120}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="bc-body">Mensaje</Label>
-            <Textarea
-              id="bc-body"
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="Detalle del aviso (opcional)"
-              rows={4}
-              maxLength={500}
-            />
           </div>
 
           {/* Destinatarios: solo en modo voluntario (selección por persona) */}
@@ -290,28 +364,139 @@ export default function BroadcastManager({ user }: { user: any }) {
                   <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent" />
                 </div>
               </div>
-              <p className="text-xs text-gray-400 px-0.5">Tocá un nombre para incluirlo. La lista tiene scroll.</p>
             </div>
           ) : (
-            // Participantes / Todos: no hay selección por persona, va a la audiencia entera.
-            <Alert className="border-[#b2ebf2] bg-[#e0f7fa]/40">
-              <Users className="h-4 w-4 text-[#00838f]" />
+            // Participantes / Todos: van enteros, sin elegir de a uno.
+            // El cartel dice CUÁNTOS son: antes afirmaba "se enviará a todos
+            // los participantes activos" sin saber si existía alguno, y el
+            // aviso se mandaba a nadie sin que nada lo avisara.
+            <Alert
+              className={
+                sinDestinatarios
+                  ? "border-amber-200 bg-amber-50/60"
+                  : "border-[#b2ebf2] bg-[#e0f7fa]/40"
+              }
+            >
+              <Users className={`h-4 w-4 ${sinDestinatarios ? "text-amber-600" : "text-[#00838f]"}`} />
               <AlertDescription className="text-gray-600">
-                Se enviará a <strong>{recipientLabel}</strong> activos. No hay selección individual para
-                esta audiencia.
+                {sinDestinatarios ? (
+                  <>Todavía no hay participantes registrados.</>
+                ) : (
+                  <>
+                    Va a <strong>{recipientLabel}</strong>
+                    {participantes != null && audienceMode === "participante" && (
+                      <> ({participantes})</>
+                    )}
+                    .
+                  </>
+                )}
               </AlertDescription>
             </Alert>
           )}
 
-          {/* Popup: solo cuando se apunta a una audiencia entera */}
-          {wholeAudience && (
-            <div className="flex items-start gap-2 pt-1">
-              <Checkbox id="bc-popup" checked={alsoPopup} onCheckedChange={(v) => setAlsoPopup(!!v)} className="mt-0.5" />
-              <Label htmlFor="bc-popup" className="font-normal leading-snug cursor-pointer">
-                Mostrar también como aviso emergente al ingresar (popup)
-              </Label>
+
+          {/* Por dónde va. Se combinan: el mismo texto puede ir por las tres.
+              En fila y con la misma pinta que los botones de audiencia: son la
+              otra mitad de la misma decisión. */}
+          <div className="space-y-1.5">
+            <Label>¿Por dónde?</Label>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <ViaAviso
+                titulo="Notificación"
+                detalle="Campanita y, si la tienen activada, al celular"
+                activa={conNotificacion}
+                onToggle={() => setConNotificacion((v) => !v)}
+              />
+              {/* El popup es por AUDIENCIA, no por persona. Antes desaparecía
+                  con una selección parcial de voluntarios: una opción que se
+                  esfuma no se entiende, así que queda a la vista y dice por qué
+                  no se puede. */}
+              <ViaAviso
+                titulo="Aviso al ingresar"
+                detalle={
+                  wholeAudience
+                    ? "Ventana que aparece la primera vez que entran"
+                    : "Solo para una audiencia entera, no para personas sueltas"
+                }
+                activa={wholeAudience && alsoPopup}
+                deshabilitada={!wholeAudience}
+                onToggle={() => setAlsoPopup((v) => !v)}
+              />
+              <ViaAviso
+                titulo="Mail"
+                detalle="Con el diseño de siempre de ALMA"
+                activa={conMail}
+                onToggle={() => setConMail((v) => !v)}
+              />
+            </div>
+          </div>
+
+          {/* El texto del aviso y el del mail, uno al lado del otro y con la
+              misma pinta: son dos textos distintos del mismo anuncio, no un
+              formulario y su apéndice. */}
+          <div className={conMail ? "grid gap-3 lg:grid-cols-2" : ""}>
+          <div className="space-y-3 rounded-lg border border-gray-200 p-3">
+            <p className="text-sm font-medium text-gray-700">Texto del aviso</p>
+            <div className="space-y-1.5">
+              <Label htmlFor="bc-title">Título</Label>
+              <Input
+                id="bc-title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ej: Encuentro de este sábado"
+                maxLength={120}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="bc-body">Mensaje</Label>
+              <Textarea
+                id="bc-body"
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder="Detalle del aviso (opcional)"
+                rows={4}
+                maxLength={500}
+              />
+            </div>
+          </div>
+
+          {/* El texto del mail, en su propia sección y no colgando de la
+              casilla: es tan importante como el del aviso, no una nota al pie. */}
+          {conMail && (
+            <div className="space-y-3 rounded-lg border border-gray-200 p-3">
+              <p className="text-sm font-medium text-gray-700">Texto del mail</p>
+              <div className="space-y-1.5">
+                <Label htmlFor="bc-asunto">
+                  Asunto
+                  <Ayuda lado="abajo">Vacío, sale el título del aviso.</Ayuda>
+                </Label>
+                <Input
+                  id="bc-asunto"
+                  value={asunto}
+                  onChange={(e) => setAsunto(e.target.value)}
+                  placeholder={title || "El título del aviso"}
+                  maxLength={150}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="bc-cuerpo">
+                  Cuerpo
+                  <Ayuda lado="abajo">
+                    Un mail se lee sin contexto: casi siempre necesita más texto que
+                    una campanita de una línea. Vacío, sale el mismo del aviso.
+                  </Ayuda>
+                </Label>
+                <Textarea
+                  id="bc-cuerpo"
+                  value={cuerpoMail}
+                  onChange={(e) => setCuerpoMail(e.target.value)}
+                  placeholder={body || "El mensaje del aviso"}
+                  rows={4}
+                />
+              </div>
             </div>
           )}
+          </div>
 
           <Button
             onClick={() => setConfirmOpen(true)}
@@ -319,14 +504,16 @@ export default function BroadcastManager({ user }: { user: any }) {
             className="bg-[#4dd0e1] hover:bg-[#3bbccd] text-white"
           >
             {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-            {sending ? "Enviando..." : "Enviar notificación"}
+            {sending ? "Enviando..." : "Enviar aviso"}
           </Button>
 
           {lastResult && !sending && (
             <Alert className="border-green-200 bg-green-50">
               <CheckCircle2 className="w-4 h-4 text-green-600" />
               <AlertDescription className="text-green-700">
-                Último envío: {lastResult.recipients} destinatario(s). Las campanitas ya están; los push a los dispositivos salen en segundo plano.
+                Último envío: {lastResult.recipients} destinatario(s)
+                {lastResult.emails_queued > 0 && ` · ${lastResult.emails_queued} mail(s)`}. Los push
+                y los mails salen en segundo plano.
               </AlertDescription>
             </Alert>
           )}
@@ -336,10 +523,19 @@ export default function BroadcastManager({ user }: { user: any }) {
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Enviar esta notificación?</AlertDialogTitle>
+            <AlertDialogTitle>¿Enviar este aviso?</AlertDialogTitle>
             <AlertDialogDescription>
-              Se enviará a <strong>{recipientLabel}</strong>
-              {wholeAudience && alsoPopup ? ", y además aparecerá como popup al ingresar" : ""}. Esta acción no se puede deshacer.
+              Se enviará a <strong>{recipientLabel}</strong> por{" "}
+              <strong>
+                {[
+                  conNotificacion && "notificación",
+                  wholeAudience && alsoPopup && "aviso al ingresar",
+                  conMail && "mail",
+                ]
+                  .filter(Boolean)
+                  .join(", ")}
+              </strong>
+              . Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

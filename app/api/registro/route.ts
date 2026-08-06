@@ -29,7 +29,7 @@ export async function PUT(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, pin, role } = await request.json()
+    const { email, pin, role, name, last_name, next } = await request.json()
 
     if (!email || !pin || !role) {
       return NextResponse.json({ error: "Todos los campos son requeridos" }, { status: 400 })
@@ -51,9 +51,19 @@ export async function POST(request: NextRequest) {
     const pin_hash = await hashPassword(String(pin))
 
     // El PIN en claro nunca sale de acá: al backend viaja solo el hash bcrypt.
+    // `next` solo puede volver a una capacitación: sin este candado, el mail
+    // de verificación se podría usar para depositar a alguien en otro sitio.
+    const destino =
+      typeof next === "string" && next.startsWith("/capacitacion/") && !next.startsWith("//")
+        ? next
+        : null
+
     const result = await api.post<RegisterResponse>(`/register/${role}`, {
       email,
       pin_hash,
+      name: typeof name === "string" ? name.trim() || null : null,
+      last_name: typeof last_name === "string" ? last_name.trim() || null : null,
+      next: destino,
     })
 
     return NextResponse.json(result, { status: 201 })

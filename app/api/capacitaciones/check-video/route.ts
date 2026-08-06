@@ -8,7 +8,7 @@ import { logError } from "@/lib/logger"
  * POST /api/capacitaciones/check-video — valida el link antes de guardarlo.
  *
  * Detecta el error operativo más probable del módulo: subir el video como
- * «Privado». Los privados no se pueden insertar y el alumno vería un cuadro
+ * «Privado». Los privados no se pueden insertar y la persona vería un cuadro
  * negro. De paso trae el título para autocompletar el formulario.
  */
 export async function POST(request: NextRequest) {

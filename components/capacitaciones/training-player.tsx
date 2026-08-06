@@ -31,6 +31,14 @@ interface TrainingPlayerProps {
   item: TrainingItem
   userEmail: string
   userName?: string
+  /**
+   * Vista previa de administración: se ve igual pero NO registra nada.
+   *
+   * Sin esto, cada vez que un admin abre un video para revisarlo le queda
+   * cargado como visto y las reproducciones quedan mezcladas con las de la
+   * gente. La marca de agua se deja igual, que es gratis y correcta.
+   */
+  soloVistaPrevia?: boolean
 }
 
 declare global {
@@ -70,7 +78,12 @@ function loadYouTubeApi(): Promise<any> {
   })
 }
 
-export default function TrainingPlayer({ item, userEmail, userName }: TrainingPlayerProps) {
+export default function TrainingPlayer({
+  item,
+  userEmail,
+  userName,
+  soloVistaPrevia = false,
+}: TrainingPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const playerRef = useRef<any>(null)
   const lastTickRef = useRef<number | null>(null)
@@ -86,6 +99,7 @@ export default function TrainingPlayer({ item, userEmail, userName }: TrainingPl
     (completed = false, logView = false) => {
       const delta = Math.round(pendingWatchedRef.current)
       pendingWatchedRef.current = 0
+      if (soloVistaPrevia) return
       if (!delta && !completed && !logView) return
 
       fetch("/api/capacitaciones/progreso", {
@@ -101,7 +115,7 @@ export default function TrainingPlayer({ item, userEmail, userName }: TrainingPl
         keepalive: true, // sobrevive al cierre de la pestaña
       }).catch(() => {})
     },
-    [item.id],
+    [item.id, soloVistaPrevia],
   )
 
   // ── Player ───────────────────────────────────────────────────────────
