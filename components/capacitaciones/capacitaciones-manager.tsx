@@ -85,8 +85,18 @@ export default function CapacitacionesManager({ user }: { user: any }) {
     return qs ? `/capacitaciones?${qs}` : "/capacitaciones"
   }
 
-  const load = async () => {
-    setLoading(true)
+  /**
+   * `silencioso` = refrescar los datos SIN tapar la pantalla con el spinner.
+   *
+   * El spinner reemplaza todo el árbol, así que desmonta a CapacitacionesAdmin
+   * y con él se pierde su estado local: qué capacitación estaba abierta y qué
+   * contenido se estaba viendo. Resultado: tocar cualquier botón de una fila
+   * —el regalo, el ojo, las flechas— te devolvía al catálogo. Después de una
+   * edición se recarga en silencio; el spinner queda solo para la carga
+   * inicial, que es la única vez que no hay nada que mostrar.
+   */
+  const load = async (opts?: { silencioso?: boolean }) => {
+    if (!opts?.silencioso) setLoading(true)
     try {
       const res = await fetch("/api/capacitaciones/mis")
       if (!res.ok) throw new Error("No se pudieron cargar las capacitaciones")
@@ -105,7 +115,7 @@ export default function CapacitacionesManager({ user }: { user: any }) {
         variant: "destructive",
       })
     } finally {
-      setLoading(false)
+      if (!opts?.silencioso) setLoading(false)
     }
   }
 
@@ -181,7 +191,7 @@ export default function CapacitacionesManager({ user }: { user: any }) {
         <CapacitacionesAdmin
           user={user}
           trainings={managedTrainings}
-          onChanged={load}
+          onChanged={() => load({ silencioso: true })}
           openNew={openNewTraining}
           onOpenNewHandled={() => setOpenNewTraining(false)}
         />
@@ -352,6 +362,12 @@ function TrainingView({
 
 /** Capacitación sin habilitar: se muestra el temario, nunca el contenido. */
 function LockedTraining({ training }: { training: Training }) {
+  // La introducción abierta es la excepción, y la manda desbloqueada el
+  // backend. Va con `modoIntro` aunque acá haya sesión: es el mismo video
+  // público de la landing, y tratarlo distinto según dónde se mire abriría
+  // dos caminos que hay que mantener sincronizados para siempre.
+  const intro = training.items.find((it) => it.is_free_preview && it.video_ref)
+
   return (
     <Card>
       <CardContent className="space-y-5 py-8">
@@ -373,14 +389,41 @@ function LockedTraining({ training }: { training: Training }) {
           </div>
         </div>
 
+        {/* Antes del temario y antes del precio: si hay algo para mirar, que
+            se mire. El candado ya se explicó arriba. */}
+        {intro && (
+          <div>
+            <p className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+              <PlayCircle className="h-4 w-4 text-green-600" />
+              Mirá la vista previa, es gratis
+            </p>
+            <TrainingPlayer item={intro} modoIntro />
+            <p className="mt-2 text-xs text-gray-500">{intro.title}</p>
+          </div>
+        )}
+
         {training.items.length > 0 && (
           <div>
             <p className="mb-2 text-sm font-medium text-gray-700">Contenido</p>
             <ul className="space-y-1">
               {training.items.map((it, i) => (
-                <li key={it.id} className="flex items-center gap-2 text-sm text-gray-500">
-                  <Lock className="h-3 w-3 shrink-0 text-gray-300" />
+                <li
+                  key={it.id}
+                  className={`flex items-center gap-2 text-sm ${
+                    it.is_free_preview ? "text-gray-700" : "text-gray-500"
+                  }`}
+                >
+                  {it.is_free_preview ? (
+                    <PlayCircle className="h-3 w-3 shrink-0 text-green-600" />
+                  ) : (
+                    <Lock className="h-3 w-3 shrink-0 text-gray-300" />
+                  )}
                   {i + 1}. {it.title}
+                  {it.is_free_preview && (
+                    <Badge className="bg-green-100 text-xs text-green-700 hover:bg-green-100">
+                      Vista previa
+                    </Badge>
+                  )}
                   {it.duration_minutes ? (
                     <Badge variant="secondary" className="ml-auto text-xs">
                       {it.duration_minutes} min

@@ -1228,6 +1228,12 @@ export interface TrainingItem {
   duration_minutes?: number | null
   sort_order: number
   is_published: boolean
+  /**
+   * La introducción abierta: se mira sin pagar y sin cuenta, desde la landing
+   * pública. Llega SIEMPRE (también a quien no tiene acceso), porque es lo que
+   * permite ofrecer "ver la intro" en lugar de un candado.
+   */
+  is_free_preview: boolean
   locked: boolean
   last_position_sec?: number | null
   watched_sec?: number | null
@@ -1262,6 +1268,18 @@ export interface Training {
   sort_order: number
   created_by_volunteer_id?: number | null
   item_count: number
+  /**
+   * True si alguno de sus videos publicados es la introducción abierta. Lo
+   * calcula el backend porque las vidrieras (/academia y el catálogo interno)
+   * listan capacitaciones SIN sus ítems y no podrían averiguarlo solas.
+   */
+  has_free_preview: boolean
+  /**
+   * Veces que se miró la vista previa sin sesión. `null` = no se calculó (solo
+   * lo pide la pantalla de administración); `0` = no la miró nadie todavía.
+   * La distinción importa: un cero real es una señal, un "no sé" no.
+   */
+  free_preview_views?: number | null
   has_access: boolean
   access_expires_at?: string | null
   completed_items: number
@@ -1284,12 +1302,18 @@ export async function getTrainings(opts?: {
   userType?: string
   userId?: number
   includeItems?: boolean
+  /** Trae también el contenido oculto. Solo para quien administra. */
+  includeUnpublished?: boolean
+  /** Suma las veces que se miró cada vista previa. Solo para quien administra. */
+  includeStats?: boolean
 }): Promise<Training[]> {
   const q = new URLSearchParams()
   if (opts?.status) q.set('status', opts.status)
   if (opts?.userType) q.set('user_type', opts.userType)
   if (opts?.userId != null) q.set('user_id', String(opts.userId))
   if (opts?.includeItems) q.set('include_items', 'true')
+  if (opts?.includeUnpublished) q.set('include_unpublished', 'true')
+  if (opts?.includeStats) q.set('include_stats', 'true')
   const qs = q.toString()
   return api.get<Training[]>(`/capacitaciones/${qs ? `?${qs}` : ''}`)
 }

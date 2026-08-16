@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -19,7 +20,7 @@ import CatalogoCapacitaciones from "@/components/capacitaciones/catalogo-capacit
 import TrainingPlayer from "@/components/capacitaciones/training-player"
 import {
   Plus, Pencil, Trash2, ArrowUp, ArrowDown, ArrowLeft, Eye, EyeOff,
-  CheckCircle2, AlertTriangle, Loader2, Youtube, FileText, GraduationCap,
+  CheckCircle2, AlertTriangle, Loader2, Youtube, FileText, GraduationCap, Gift,
 } from "lucide-react"
 
 /**
@@ -39,7 +40,9 @@ export default function CapacitacionesAdmin({
 }: {
   user: any
   trainings: Training[]
-  onChanged: () => void
+  /** Devuelve una promesa si el llamador recarga: se espera antes de apagar
+   *  los spinners, así el botón gira hasta que la lista está al día. */
+  onChanged: () => void | Promise<void>
   /** true cuando el botón "Nueva capacitación" del header pide abrir el alta. */
   openNew?: boolean
   /** Apaga el pedido apenas se consume (ver comentario en el efecto). */
@@ -54,6 +57,9 @@ export default function CapacitacionesAdmin({
   // cambio y un objeto viejo mostraría datos desactualizados.
   const [abiertaId, setAbiertaId] = useState<number | null>(null)
   const [itemAbiertoId, setItemAbiertoId] = useState<number | null>(null)
+  // Qué ítem está esperando respuesta al marcarlo como vista previa. Guarda el
+  // ID y no un booleano para que gire SOLO el botón que se tocó.
+  const [introPendiente, setIntroPendiente] = useState<number | null>(null)
 
   const abierta = trainings.find((t) => t.id === abiertaId) ?? null
   // Si el ID guardado no es de esta capacitación (o el contenido se borró),
@@ -210,6 +216,43 @@ export default function CapacitacionesAdmin({
     }
   }
 
+  /**
+   * Elige (o desmarca) la vista previa del curso.
+   *
+   * Es una SELECCIÓN, no un interruptor: marcar otra desmarca la anterior, y
+   * de eso se encarga el backend en la misma transacción. Acá solo se manda el
+   * campo y se recarga.
+   */
+  const toggleFreePreview = async (item: TrainingItem) => {
+    // Se marca ESTE ítem, no un booleano global: si no, al tocar un regalo
+    // girarían todos los de la lista.
+    setIntroPendiente(item.id)
+    try {
+      const res = await fetch(`/api/capacitaciones/items?id=${item.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_free_preview: !item.is_free_preview }),
+      })
+      if (!res.ok) throw new Error((await res.json())?.error)
+      toast({
+        title: item.is_free_preview
+          ? "Ya no es la vista previa"
+          : "Listo: es la vista previa",
+        description: item.is_free_preview
+          ? undefined
+          : "Se puede mirar desde la página pública, sin pagar y sin cuenta.",
+      })
+      // Se espera también la recarga: el botón tiene que seguir girando hasta
+      // que la lista muestre el estado nuevo. Si se cortara antes, habría un
+      // parpadeo con el dato viejo y parecería que no pasó nada.
+      await onChanged()
+    } catch (error: any) {
+      toast({ title: "No se pudo cambiar", description: error?.message, variant: "destructive" })
+    } finally {
+      setIntroPendiente(null)
+    }
+  }
+
   return (
     <div className="space-y-4">
       {abierta ? (
@@ -231,6 +274,8 @@ export default function CapacitacionesAdmin({
           onEliminarItem={removeItem}
           onMover={(index, direction) => move(abierta, index, direction)}
           onAlternarPublicado={togglePublished}
+          onAlternarIntro={toggleFreePreview}
+          introPendienteId={introPendiente}
         />
       ) : trainings.length === 0 ? (
         <div className="py-12 text-center">
@@ -297,7 +342,7 @@ export default function CapacitacionesAdmin({
  * a la derecha— más los botones de administrar cada pieza.
  *
  * A propósito SIN «Tu avance»: acá el avance de quien administra no significa
- * nada. Y el video no registra reproducción (`soloVistaPrevia`), así revisar
+ * nada. Y el video no registra reproducción (`sinRegistrar`), así revisar
  * el contenido no ensucia las estadísticas.
  */
 function DetalleCapacitacion({
@@ -313,6 +358,8 @@ function DetalleCapacitacion({
   onEliminarItem,
   onMover,
   onAlternarPublicado,
+  onAlternarIntro,
+  introPendienteId,
 }: {
   training: Training
   item: TrainingItem | null
@@ -326,6 +373,9 @@ function DetalleCapacitacion({
   onEliminarItem: (item: TrainingItem) => void
   onMover: (index: number, direction: -1 | 1) => void
   onAlternarPublicado: (item: TrainingItem) => void
+  onAlternarIntro: (item: TrainingItem) => void
+  /** ID del ítem cuyo cambio de vista previa está en curso, o null. */
+  introPendienteId: number | null
 }) {
   return (
     <div className="space-y-4">
@@ -389,7 +439,7 @@ function DetalleCapacitacion({
                   item={item}
                   userEmail={user?.email ?? ""}
                   userName={user?.name}
-                  soloVistaPrevia
+                  sinRegistrar
                 />
               ) : (
                 <Card>
@@ -425,19 +475,30 @@ function DetalleCapacitacion({
               // que ver de una pasada cuál no está publicado.
               <div
                 key={it.id}
-                className={`rounded-lg border p-2.5 transition ${
+                // `relative` es lo que ancla el área clickeable estirada de
+                // abajo. El hover es suave a propósito: son renglones de una
+                // lista, no botones; alcanza con que acompañen al mouse.
+                className={`group relative rounded-lg border p-2.5 transition hover:shadow-sm ${
                   activo
-                    ? "border-[#4dd0e1] bg-[#4dd0e1]/5"
+                    ? "border-[#4dd0e1] bg-[#4dd0e1]/5 hover:bg-[#4dd0e1]/10"
                     : it.is_published
-                      ? "border-gray-200 hover:bg-gray-50"
-                      : "border-amber-200 bg-amber-50/70"
+                      ? "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                      : "border-amber-200 bg-amber-50/70 hover:border-amber-300 hover:bg-amber-50"
                 }`}
               >
                 {/* El título es el botón que abre la vista previa; los íconos
-                    van aparte porque un botón adentro de otro no es válido. */}
+                    van aparte porque un botón adentro de otro no es válido.
+
+                    El `after:inset-0` estira el área clickeable a TODA la
+                    tarjeta: sin eso solo se podía hacer clic en la línea del
+                    título, y bajar el mouse dos píxeles ya no hacía nada. Se
+                    hace con un pseudo-elemento y no moviendo el onClick al div
+                    para que siga siendo un <button> real: navegable con Tab y
+                    activable con Enter. Los íconos de acción se montan encima
+                    con `z-10`, así el estirón no se los come. */}
                 <button
                   onClick={() => onSelectItem(it.id)}
-                  className="flex w-full items-start gap-2 text-left"
+                  className="flex w-full items-start gap-2 text-left after:absolute after:inset-0 after:rounded-lg after:content-['']"
                 >
                   {it.kind === "video" ? (
                     <Youtube
@@ -460,6 +521,13 @@ function DetalleCapacitacion({
                       <span className="text-xs text-gray-400">{it.duration_minutes} min</span>
                     ) : null}
                   </span>
+                  {/* Que se vea sin abrir el formulario: es el único ítem que
+                      está publicado fuera de la plataforma. */}
+                  {it.is_free_preview && (
+                    <span className="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                      Vista previa
+                    </span>
+                  )}
                   {!it.is_published && (
                     <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
                       Oculto
@@ -467,7 +535,55 @@ function DetalleCapacitacion({
                   )}
                 </button>
 
-                <div className="mt-1 flex justify-end gap-0.5">
+                {/* `relative z-10` los levanta por encima del área clickeable
+                    estirada del título; si no, el ::after se los tragaría. */}
+                <div className="relative z-10 mt-1 flex items-center justify-end gap-0.5">
+                  {/* Va PRIMERO y con un separador: el ojo de al lado significa
+                      "visible u oculto", y dos controles distintos pegados y
+                      con la misma forma se confunden. Regalo = gratis, que no
+                      se parece a un ojo ni por el ícono ni por el color. */}
+                  {it.kind === "video" && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        title={
+                          it.is_free_preview
+                            ? "Es la vista previa del curso. Tocá para quitarle la marca"
+                            : "Usarlo como vista previa (se ve sin pagar y sin cuenta)"
+                        }
+                        aria-label={
+                          it.is_free_preview
+                            ? "Quitar la marca de vista previa"
+                            : "Usar como vista previa"
+                        }
+                        // Encendido = pastilla verde. Apagado = un botón común y
+                        // corriente, con el mismo peso visual que las flechas y
+                        // el ojo de al lado. Antes el apagado iba en gris muy
+                        // claro y se leía como deshabilitado: un ícono más
+                        // pálido que sus vecinos es el lenguaje universal de
+                        // "esto no se puede tocar". El verde al pasar el mouse
+                        // adelanta en qué se va a convertir.
+                        className={
+                          it.is_free_preview
+                            ? "bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700"
+                            : "hover:text-green-600"
+                        }
+                        // Deshabilitado mientras viaja: sin esto, dos clics
+                        // seguidos mandan dos PUT y el segundo puede deshacer
+                        // al primero según cuál conteste último.
+                        disabled={introPendienteId === it.id}
+                        onClick={() => onAlternarIntro(it)}
+                      >
+                        {introPendienteId === it.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Gift className="h-3 w-3" />
+                        )}
+                      </Button>
+                      <span className="mx-1 h-4 w-px shrink-0 bg-gray-200" />
+                    </>
+                  )}
                   <Button
                     size="sm"
                     variant="ghost"
@@ -935,6 +1051,37 @@ function ItemDialog({
               onChange={(e) => onChange({ ...value, description: e.target.value })}
             />
           </div>
+
+          {/* Solo para videos: la intro es lo que alguien mira antes de
+              decidir comprar, y un PDF suelto no cumple ese papel. */}
+          {isVideo && (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <Label className="font-medium">Usar como vista previa</Label>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Se va a poder mirar desde la página pública de la capacitación, sin
+                    pagar y sin tener cuenta. Es el anzuelo para quien todavía no compró.
+                  </p>
+                </div>
+                <Switch
+                  // Se puede apagar siempre; prender, solo si el contenido está
+                  // visible. Un contenido oculto no se muestra en la landing,
+                  // así que marcarlo dejaría una intro que no existe.
+                  disabled={value.is_published === false && !value.is_free_preview}
+                  checked={Boolean(value.is_free_preview)}
+                  onCheckedChange={(v) => onChange({ ...value, is_free_preview: v })}
+                />
+              </div>
+
+              {value.is_published === false && !value.is_free_preview && (
+                <p className="mt-3 border-t border-gray-200 pt-3 text-xs text-gray-500">
+                  Este contenido está oculto. Hacelo visible con el ojo para poder
+                  usarlo como vista previa.
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-2 pt-2">

@@ -25,6 +25,13 @@ export async function GET(request: NextRequest) {
       userType: toUserType(session.role),
       userId: session.id,
       includeItems: url.searchParams.get("include_items") === "true",
+      // Igual que en /api/capacitaciones/[id]: quien administra ve también lo
+      // oculto. Sin esto, el ojo que esconde un contenido lo borraba de la
+      // vista del propio admin y no había forma de volver a mostrarlo.
+      includeUnpublished: can(session, "capacitaciones:manage"),
+      // Cuenta las vistas previas miradas. Cuesta una consulta agregada extra,
+      // así que solo la paga quien administra, que es quien la mira.
+      includeStats: can(session, "capacitaciones:manage"),
     })
     return NextResponse.json(trainings)
   } catch (error) {

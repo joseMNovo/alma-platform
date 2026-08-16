@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { GraduationCap, Lock, PlayCircle, CheckCircle2, Clock } from "lucide-react"
+import { GraduationCap, Lock, PlayCircle, CheckCircle2, Clock, Gift } from "lucide-react"
 import type { Training } from "@/lib/data-manager"
 
 /**
@@ -138,6 +138,16 @@ export default function TrainingCard({
             Disponible
           </span>
         )}
+
+        {/* Abajo a la izquierda: las dos esquinas de arriba ya están tomadas
+            por el estado y el candado. Solo para quien NO la tiene — a quien
+            ya entró, avisarle que hay algo gratis no le dice nada. */}
+        {training.has_free_preview && !training.has_access && (
+          <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-green-600 px-2 py-1 text-xs font-medium text-white shadow-sm">
+            <PlayCircle className="h-3 w-3" />
+            Vista previa
+          </span>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
@@ -165,6 +175,46 @@ export default function TrainingCard({
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
               {totalMinutes} min
+            </span>
+          )}
+
+          {/* Solo para quien administra. Se muestran los DOS estados a
+              propósito: la vista previa es opcional, así que lo que hace falta
+              detectar de un vistazo es cuáles NO tienen. Si solo se marcara la
+              presencia, "sin cartel" se confundiría con "no me fijé".
+              Mismo ícono de regalo que el botón del temario: un solo idioma. */}
+          {mostrarEstado && (
+            <span
+              className={`flex items-center gap-1 ${
+                training.has_free_preview ? "text-green-600" : "text-gray-400"
+              }`}
+              // El número es el punto de haberlas contado: sirve para comparar
+              // capacitaciones entre sí y ver cuál engancha. Se muestra incluso
+              // en cero —"nadie la miró" también es un dato— pero solo cuando
+              // el backend lo calculó de verdad (null = no se pidió).
+              //
+              // Dice "reproducciones" y NO "personas" porque es lo que cuenta:
+              // la misma persona mirándola dos veces suma dos. Para contar
+              // personas habría que identificar al anónimo, y el único dato
+              // disponible es la IP, que en los celulares argentinos cambia
+              // sola: contar IPs distintas inflaría el número, no lo corregiría.
+              title={
+                training.has_free_preview && training.free_preview_views != null
+                  ? `La vista previa se reprodujo ${training.free_preview_views} ${
+                      training.free_preview_views === 1 ? "vez" : "veces"
+                    } desde la página pública, sin contar a quienes ya tienen cuenta. ` +
+                    "Son reproducciones, no personas: alguien que la mire dos veces suma dos."
+                  : undefined
+              }
+            >
+              <Gift className="h-3 w-3" />
+              {training.has_free_preview ? "Vista previa" : "Sin vista previa"}
+              {training.has_free_preview && training.free_preview_views != null && (
+                <span className="font-medium">
+                  · {training.free_preview_views}{" "}
+                  {training.free_preview_views === 1 ? "reproducción" : "reproducciones"}
+                </span>
+              )}
             </span>
           )}
         </p>

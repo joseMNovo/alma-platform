@@ -5,6 +5,7 @@ import {
 } from "@/lib/data-manager"
 import { getSessionUser } from "@/lib/serverAuth"
 import { can } from "@/lib/permissions"
+import { detalleDeValidacion } from "@/lib/api-errors"
 import { logInfo, logWarn, logError } from "@/lib/logger"
 
 /** Toda la gestión de contenido es admin: cargar, editar y borrar piezas. */
@@ -44,8 +45,12 @@ export async function POST(request: NextRequest) {
     logActivityEvent({ event_type: "create", module: "capacitaciones", action: "create_item", user_type: toUserType(session.role), user_id: session.id, role: session.role }).catch(() => {})
     return NextResponse.json(item)
   } catch (error: any) {
+    // El motivo REAL del backend, no uno inventado acá: el 422 ya no es solo
+    // "el link no sirve" — también avisa que un contenido oculto no puede ser
+    // la introducción gratuita. Un mensaje fijo mandaba a la persona a revisar
+    // el link de YouTube por un problema que no tenía nada que ver.
     if (String(error?.message ?? "").includes("422")) {
-      return NextResponse.json({ error: "El link de YouTube no es válido" }, { status: 422 })
+      return NextResponse.json({ error: detalleDeValidacion(error.message) }, { status: 422 })
     }
     logError("Error al agregar contenido", { module: "capacitaciones", action: "create_item", user: session.id, error })
     return NextResponse.json({ error: "Error del servidor" }, { status: 500 })
@@ -70,8 +75,9 @@ export async function PUT(request: NextRequest) {
     })
     return NextResponse.json(item)
   } catch (error: any) {
+    // Ver el comentario del POST: el motivo real, no uno fijo.
     if (String(error?.message ?? "").includes("422")) {
-      return NextResponse.json({ error: "El link de YouTube no es válido" }, { status: 422 })
+      return NextResponse.json({ error: detalleDeValidacion(error.message) }, { status: 422 })
     }
     if (String(error?.message ?? "").includes("404")) {
       return NextResponse.json({ error: "Contenido no encontrado" }, { status: 404 })

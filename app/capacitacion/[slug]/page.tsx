@@ -5,6 +5,7 @@ import { getPublicTraining, type Training } from "@/lib/data-manager"
 import { config } from "@/lib/config"
 import AlmaFooter from "@/components/ui/alma-footer"
 import MarcaAlma from "@/components/ui/marca-alma"
+import TrainingPlayer from "@/components/capacitaciones/training-player"
 
 /**
  * Landing PÚBLICA de una capacitación — /capacitacion/<slug>
@@ -53,6 +54,12 @@ export default async function CapacitacionPublicaPage({ params }: { params: Prom
 
   const totalMinutes = training.items.reduce((acc, i) => acc + (i.duration_minutes ?? 0), 0)
 
+  // La introducción abierta. El backend la manda desbloqueada aunque esta
+  // página se sirva sin sesión: es la única excepción a "sin acceso no viaja
+  // contenido", y existe para esto. Si no hay ninguna marcada, `video_ref`
+  // viene en null como el resto y la página queda igual que antes.
+  const intro = training.items.find((i) => i.is_free_preview && i.video_ref)
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="border-b border-gray-200 bg-white">
@@ -79,20 +86,37 @@ export default async function CapacitacionPublicaPage({ params }: { params: Prom
       </header>
 
       <main className="mx-auto max-w-4xl px-4 py-10">
-        {training.cover_file_guid && (
-          <div className="mb-8 overflow-hidden rounded-xl bg-gray-100">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              // Ruta pública: /api/files/... pide sesión y esta página la abre
-              // gente sin cuenta (es el link que se reparte por Instagram).
-              src={`/api/capacitaciones/portada/${training.cover_file_guid}`}
-              alt={training.title}
-              // 16:9, igual que la tarjeta del catálogo y que el recuadro del
-              // formulario. Una sola proporción en todos lados: así el
-              // encuadre que eligió el admin es el que se ve siempre.
-              className="aspect-video w-full object-cover"
-            />
+        {/* La intro le gana la portada al lugar principal. Una portada es una
+            promesa; el video ES la capacitación. Quien llega de Instagram
+            decide mirando tres minutos, no mirando una foto. Sin intro
+            marcada, esto queda exactamente como estaba. */}
+        {intro ? (
+          <div className="mb-8">
+            <TrainingPlayer item={intro} modoIntro />
+            <p className="mt-3 flex flex-wrap items-center gap-2 text-sm text-gray-600">
+              <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">
+                Vista previa
+              </span>
+              <span className="font-medium text-gray-700">{intro.title}</span>
+              <span className="text-gray-400">Miralo sin registrarte.</span>
+            </p>
           </div>
+        ) : (
+          training.cover_file_guid && (
+            <div className="mb-8 overflow-hidden rounded-xl bg-gray-100">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                // Ruta pública: /api/files/... pide sesión y esta página la abre
+                // gente sin cuenta (es el link que se reparte por Instagram).
+                src={`/api/capacitaciones/portada/${training.cover_file_guid}`}
+                alt={training.title}
+                // 16:9, igual que la tarjeta del catálogo y que el recuadro del
+                // formulario. Una sola proporción en todos lados: así el
+                // encuadre que eligió el admin es el que se ve siempre.
+                className="aspect-video w-full object-cover"
+              />
+            </div>
+          )
         )}
 
         <div className="grid gap-8 md:grid-cols-[2fr_1fr]">
@@ -115,7 +139,14 @@ export default async function CapacitacionPublicaPage({ params }: { params: Prom
                         {index + 1}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block font-medium text-gray-800">{item.title}</span>
+                        <span className="block font-medium text-gray-800">
+                          {item.title}
+                          {item.is_free_preview && (
+                            <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 align-middle text-[11px] font-semibold text-green-700">
+                              Vista previa
+                            </span>
+                          )}
+                        </span>
                         {item.description && (
                           <span className="block text-sm text-gray-500">{item.description}</span>
                         )}
