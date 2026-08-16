@@ -73,6 +73,11 @@ const ROLE_LABELS: Record<string, string> = {
   participante: "Participante",
 }
 
+/** Inactividad que corta una sesión de uso. Espeja SESSION_GAP_MINUTES del
+ *  backend (app/routers/activity.py): si los dos no coinciden, el ping de
+ *  "volví a la pestaña" no abre un ingreso nuevo o abre uno de más. */
+const SESSION_GAP_MS = 30 * 60 * 1000
+
 
 export default function Dashboard({ user, onLogout }: { user: any, onLogout: () => void }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -176,15 +181,40 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   }
 
 
-  // Tracking de uso: registra una vista por cada módulo/sub-módulo que el usuario realmente abre.
+  /**
+   * Tracking de uso: registra una vista por cada módulo/sub-módulo que el usuario realmente abre.
+   *
+   * El backend deduce los "ingresos" a partir de estos pings (ver
+   * activity.py): la sesión guardada en el navegador hace que casi nadie
+   * vuelva a pasar por /api/auth, así que el login solo no alcanza para
+   * saber cuándo entró alguien. Por eso también pingueamos cuando la
+   * pestaña vuelve del fondo tras un rato largo: la PWA del teléfono puede
+   * quedar días abierta en el mismo módulo sin navegar a ningún lado.
+   */
   useEffect(() => {
     const r = resolveRoute(pathname)
     const module = r?.grandchild?.key ?? r?.child?.key ?? r?.group.key ?? "desconocido"
-    fetch("/api/tracking", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ module }),
-    }).catch(() => {})
+    const ping = () => {
+      fetch("/api/tracking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ module }),
+      }).catch(() => {})
+    }
+    ping()
+
+    let hiddenSince = 0
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenSince = Date.now()
+        return
+      }
+      const away = hiddenSince ? Date.now() - hiddenSince : 0
+      hiddenSince = 0
+      if (away > SESSION_GAP_MS) ping()
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange)
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname])
 

@@ -28,6 +28,7 @@ interface ActivitySummaryRow {
   role: string
   login_count: number
   last_login: string | null
+  last_seen: string | null
   view_counts: Record<string, number>
   action_counts: Record<string, number>
   name: string | null
@@ -55,11 +56,31 @@ const ROLE_STYLES: Record<string, string> = {
   participante: "bg-amber-50 text-amber-700 border-amber-200",
 }
 
+/** Etiquetas del timeline: en la base los eventos viven en inglés/snake_case. */
+const EVENT_LABELS: Record<string, string> = {
+  login: "Ingreso",
+  view: "Vista",
+  create: "Alta",
+  edit: "Edición",
+  delete: "Baja",
+}
+
+/** Login que abrió el backend solo, sin que la persona tipeara email y PIN. */
+const ACTION_LABELS: Record<string, string> = {
+  sesion_reanudada: "sesión guardada",
+}
+
 type SortKey = "name" | "login_count" | "last_login" | "actions"
 
 function formatDateTime(value: string | null): string {
   if (!value) return "Nunca"
   return new Date(value).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
+}
+
+/** Solo fecha: en "Último ingreso" la hora no agrega nada y recarga la columna. */
+function formatDate(value: string | null): string {
+  if (!value) return "Nunca"
+  return new Date(value).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" })
 }
 
 /** Fecha relativa amigable ("hace 5 min", "ayer", …) */
@@ -130,7 +151,10 @@ function ModulesSummary({ modules }: { modules: [string, number][] }) {
 export default function ActividadManager({ user }: { user: CurrentUser }) {
   const [summary, setSummary] = useState<ActivitySummaryRow[]>([])
   const [loading, setLoading] = useState(true)
-  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "login_count", dir: "desc" })
+  // Alfabético por defecto, igual que Voluntarios: la lista se lee para
+  // buscar a alguien, no para ver un ranking de uso. Las columnas siguen
+  // siendo ordenables si se quiere mirar por ingresos o actividad.
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "name", dir: "asc" })
   const [expandedId, setExpandedId] = useState<string | null>(null)   // card mobile expandida
 
   const [selected, setSelected] = useState<ActivitySummaryRow | null>(null)
@@ -172,13 +196,16 @@ export default function ActividadManager({ user }: { user: CurrentUser }) {
   }
 
   // ── KPIs sobre el total ──────────────────────────────────────────────
+  // "Activos" se mide con last_seen y no con last_login: alguien que entró
+  // ayer a la noche y siguió navegando hoy estuvo activo hoy, aunque su
+  // ingreso figure con fecha de ayer.
   const kpi = useMemo(() => {
     let logins = 0, actions = 0, active = 0
     const dayAgo = Date.now() - 24 * 60 * 60 * 1000
     for (const r of summary) {
       logins += r.login_count
       actions += totalActions(r)
-      if (r.last_login && new Date(r.last_login).getTime() >= dayAgo) active++
+      if (r.last_seen && new Date(r.last_seen).getTime() >= dayAgo) active++
     }
     return { users: summary.length, logins, actions, active }
   }, [summary])
@@ -224,17 +251,17 @@ export default function ActividadManager({ user }: { user: CurrentUser }) {
         <div className="flex-1 min-w-0">
           <h2 className="text-lg font-semibold text-[#00838f] leading-tight">Actividad de usuarios</h2>
           <p className="text-sm text-[#00838f]/80 mt-0.5">
-            Seguí quién usa la plataforma: ingresos, módulos visitados y últimas acciones de cada persona.
+            Seguí quién usa la plataforma: ingresos, módulos visitados y cambios que hizo cada persona.
           </p>
         </div>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard icon={Users} label="Usuarios" value={kpi.users} tint="text-[#4dd0e1]" />
+        <KpiCard icon={Users} label="Con actividad" value={kpi.users} tint="text-[#4dd0e1]" />
         <KpiCard icon={Activity} label="Activos (24 h)" value={kpi.active} tint="text-emerald-500" />
         <KpiCard icon={LogIn} label="Ingresos" value={kpi.logins} tint="text-violet-500" />
-        <KpiCard icon={MousePointerClick} label="Acciones" value={kpi.actions} tint="text-amber-500" />
+        <KpiCard icon={MousePointerClick} label="Cambios" value={kpi.actions} tint="text-amber-500" />
       </div>
 
       {/* Listado */}
@@ -285,7 +312,7 @@ export default function ActividadManager({ user }: { user: CurrentUser }) {
                       <div className="px-4 pb-4 pt-3 border-t border-gray-100 space-y-3">
                         <div className="flex gap-4">
                           <Stat icon={LogIn} label="Ingresos" value={row.login_count} />
-                          <Stat icon={MousePointerClick} label="Acciones" value={acts} />
+                          <Stat icon={MousePointerClick} label="Cambios" value={acts} />
                         </div>
                         <div>
                           <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Módulos vistos</p>
@@ -297,7 +324,7 @@ export default function ActividadManager({ user }: { user: CurrentUser }) {
                             </div>
                           )}
                         </div>
-                        <p className="text-xs text-gray-400">Último ingreso: {formatDateTime(row.last_login)}</p>
+                        <p className="text-xs text-gray-400">Último ingreso: {formatDate(row.last_login)}</p>
                         <Button variant="outline" size="sm" onClick={() => openTimeline(row)} className="w-full h-9 gap-1.5 text-gray-600">
                           <Eye className="w-3.5 h-3.5" /> Ver detalle
                         </Button>
@@ -319,7 +346,7 @@ export default function ActividadManager({ user }: { user: CurrentUser }) {
                   <SortableTh label="Ingresos" k="login_count" onClick={toggleSort} SortIcon={SortIcon} />
                   <SortableTh label="Último ingreso" k="last_login" onClick={toggleSort} SortIcon={SortIcon} />
                   <th className="px-4 py-2 font-semibold">Módulos vistos</th>
-                  <SortableTh label="Acciones" k="actions" onClick={toggleSort} SortIcon={SortIcon} />
+                  <SortableTh label="Cambios" k="actions" onClick={toggleSort} SortIcon={SortIcon} />
                   <th className="px-4 py-2 font-semibold text-right"></th>
                 </tr>
               </thead>
@@ -349,7 +376,7 @@ export default function ActividadManager({ user }: { user: CurrentUser }) {
                       <td className="px-4 py-2">
                         <div className="flex flex-col leading-tight">
                           <span className="text-gray-700">{relativeTime(row.last_login)}</span>
-                          <span className="text-[11px] text-gray-400">{formatDateTime(row.last_login)}</span>
+                          <span className="text-[11px] text-gray-400">{formatDate(row.last_login)}</span>
                         </div>
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap">
@@ -417,9 +444,11 @@ export default function ActividadManager({ user }: { user: CurrentUser }) {
                   <span className={`absolute -left-4 top-1.5 w-1.5 h-1.5 rounded-full ring-2 ring-white ${event.event_type === "login" ? "bg-violet-400" : "bg-[#4dd0e1]"}`} />
                   <div className="flex items-center justify-between gap-2 text-sm">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="capitalize font-medium text-gray-700">{event.event_type}</span>
+                      <span className="capitalize font-medium text-gray-700">{EVENT_LABELS[event.event_type] ?? event.event_type}</span>
                       {event.module && <span className="text-gray-500 truncate">{event.module}</span>}
-                      {event.action && <span className="text-gray-400 truncate">({event.action})</span>}
+                      {event.action && (
+                        <span className="text-gray-400 truncate">({ACTION_LABELS[event.action] ?? event.action})</span>
+                      )}
                     </div>
                     <span className="text-gray-400 whitespace-nowrap text-xs">{formatDateTime(event.created_at)}</span>
                   </div>

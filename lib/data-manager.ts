@@ -988,6 +988,8 @@ export interface ActivityUserSummary {
   role: string
   login_count: number
   last_login: string | null
+  /** Último evento de cualquier tipo (no solo el login que abrió la sesión). */
+  last_seen: string | null
   view_counts: Record<string, number>
   action_counts: Record<string, number>
 }
