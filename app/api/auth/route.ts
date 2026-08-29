@@ -101,6 +101,7 @@ export async function POST(request: NextRequest) {
       _clearRL(rlKey)
       logInfo("Inicio de sesión exitoso (admin env)", {
         module: "auth", action: "login_success", user: adminCheck.user?.id ?? "admin_env",
+        meta: { email },
       })
       logActivityEvent({ event_type: "login", user_type: "voluntario", user_id: adminCheck.user?.id ?? 0, role: "admin" }).catch(() => {})
       return makeAuthResponse(adminCheck.user, remember)
@@ -158,7 +159,7 @@ export async function POST(request: NextRequest) {
       }
 
       _clearRL(rlKey)
-      logInfo("Inicio de sesión exitoso", { module: "auth", action: "login_success", user: volunteer.id, meta: { role, remember } })
+      logInfo("Inicio de sesión exitoso", { module: "auth", action: "login_success", user: volunteer.id, meta: { role, remember, email: volunteer.email } })
       logActivityEvent({ event_type: "login", user_type: "voluntario", user_id: volunteer.id, role }).catch(() => {})
       return makeAuthResponse(user, remember)
     }
@@ -219,7 +220,7 @@ export async function POST(request: NextRequest) {
       }
 
       _clearRL(rlKey)
-      logInfo("Inicio de sesión exitoso", { module: "auth", action: "login_success", user: participant.id, meta: { role: "participante", remember } })
+      logInfo("Inicio de sesión exitoso", { module: "auth", action: "login_success", user: participant.id, meta: { role: "participante", remember, email: participant.email } })
       logActivityEvent({ event_type: "login", user_type: "participante", user_id: participant.id, role: "participante" }).catch(() => {})
       return makeAuthResponse(user, remember)
     }
