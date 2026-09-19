@@ -153,7 +153,9 @@ export default function CapacitacionesManager({ user }: { user: any }) {
           <h2 className="text-xl font-bold text-gray-900">Academia ALMA</h2>
           {/* Para mostrarle la vidriera a alguien en el stand. El participante
               no lo necesita: ya está adentro. */}
-          {user.role !== "participante" && <QrVidriera className="ml-1 h-8" />}
+          {user.role !== "participante" && (
+            <QrVidriera className="ml-1 h-8" ruta="/academia" titulo="Academia ALMA" />
+          )}
         </div>
 
         {isManager && (
@@ -218,13 +220,25 @@ export default function CapacitacionesManager({ user }: { user: any }) {
         />
       ) : (
         <div className="space-y-4">
-          <button
-            onClick={() => router.push(irA())}
-            className="flex items-center gap-1.5 text-sm font-medium text-gray-500 transition hover:text-[#00838f]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Todas las capacitaciones
-          </button>
+          <div className="flex items-center justify-between gap-3">
+            <button
+              onClick={() => router.push(irA())}
+              className="flex items-center gap-1.5 text-sm font-medium text-gray-500 transition hover:text-[#00838f]"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Todas las capacitaciones
+            </button>
+
+            {/* QR de ESTA capacitación: en el stand alguien pregunta por una
+                puntual y hay que llegar al código sin navegar a otro lado. */}
+            {user.role !== "participante" && (
+              <QrVidriera
+                soloIcono
+                ruta={`/academia/${current.slug}`}
+                titulo={current.title}
+              />
+            )}
+          </div>
 
           <TrainingView
             training={current}

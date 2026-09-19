@@ -26,6 +26,7 @@ import {
   KeyRound,
   ChevronDown,
   ChevronLeft,
+  Home,
 } from "lucide-react"
 
 const GAMES_URL = process.env.NEXT_PUBLIC_GAMES_URL ?? ""
@@ -510,9 +511,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
             nombre={user.name ?? ""}
             modules={navModules}
             onAbrir={(mod) => navigateTo(rutaVisible(mod, mod.route))}
-            subtitulo={(mod) =>
-              visibleChildren(user, mod, grants).map((h) => h.label).join(" · ")
-            }
+            hijos={(mod) => visibleChildren(user, mod, grants)}
           />
         ) : (
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
@@ -529,6 +528,22 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                 : "hidden md:flex md:flex-nowrap md:justify-center w-full bg-white border border-gray-200 p-1 rounded-lg gap-0.5 overflow-x-auto overflow-y-hidden"
             }
           >
+            {/*
+              Inicio no es un módulo del registro: es la pantalla de baldosas.
+              Va como botón y no como TabsTrigger porque no tiene contenido
+              propio dentro de estas pestañas — navega y listo. Sin esto, desde
+              escritorio la única forma de volver era el logo, que es un gesto
+              que hay que conocer de antes.
+            */}
+            <button
+              onClick={() => navigateTo("/inicio")}
+              className={tabTriggerClass + " text-gray-500 hover:text-[#00838f]"}
+              title="Volver al inicio"
+            >
+              <Home className="w-4 h-4 shrink-0" />
+              <span className="hidden sm:inline">Inicio</span>
+            </button>
+
             {navModules.map((mod) => {
               const Icon = mod.icon
               const submenu = visibleChildren(user, mod, grants)
