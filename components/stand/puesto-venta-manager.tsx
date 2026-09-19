@@ -56,6 +56,35 @@ type Vista = "vender" | "stock" | "caja" | "historial"
 const pesos = (n: number) =>
   `$${Number(n || 0).toLocaleString("es-AR", { maximumFractionDigits: 0 })}`
 
+/**
+ * Fecha y hora en el huso del teléfono, con red por si el navegador no sabe
+ * leer lo que mandó el servidor.
+ *
+ * El backend manda ISO con offset (`2026-09-19T20:49:00+02:00`) y eso lo
+ * parsea cualquier navegador moderno. Pero Safari viejo se atraganta con los
+ * microsegundos y con la variante que usa un espacio en vez de la `T`, y
+ * devuelve `Invalid Date` — que en pantalla se lee como "NaN".
+ *
+ * Tres intentos, de mejor a peor: parseo directo, parseo normalizado, y si
+ * todo falla, se recortan los dígitos del propio texto. Mal que mal, ver la
+ * hora del servidor es mejor que ver "Invalid Date" en medio de una venta.
+ */
+function fechaHora(valor?: string | null): { fecha: string; hora: string } {
+  if (!valor) return { fecha: "", hora: "" }
+
+  let d = new Date(valor)
+  if (isNaN(d.getTime())) {
+    d = new Date(valor.replace(" ", "T").replace(/\.\d+/, ""))
+  }
+  if (isNaN(d.getTime())) {
+    return { fecha: valor.slice(8, 10) + "/" + valor.slice(5, 7), hora: valor.slice(11, 16) }
+  }
+  return {
+    fecha: d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" }),
+    hora: d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }),
+  }
+}
+
 /** Puesto de venta del stand.
  *
  *  Pensado para usarse parado en el Monumento, con una mano y sin tiempo:
@@ -523,9 +552,9 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
                       <td className="w-20 px-1 py-2 text-right text-[11px] leading-tight text-gray-400">
                         {v.created_at && (
                           <>
-                            {new Date(v.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" })}
+                            {fechaHora(v.created_at).fecha}
                             <br />
-                            {new Date(v.created_at).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                            {fechaHora(v.created_at).hora}
                           </>
                         )}
                       </td>
@@ -571,9 +600,7 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
                   </p>
                   <p className="mt-0.5 text-xs text-gray-400">
                     {v.created_at
-                      ? new Date(v.created_at).toLocaleString("es-AR", {
-                          day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
-                        })
+                      ? `${fechaHora(v.created_at).fecha} ${fechaHora(v.created_at).hora}`
                       : ""}
                     {" · "}
                     {v.payment_method === "efectivo" ? "Efectivo" : "Transferencia"}
