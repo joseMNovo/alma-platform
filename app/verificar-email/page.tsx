@@ -16,13 +16,13 @@ function VerificarEmailContent() {
    * Adónde volver después de verificar. Lo usa la compra exprés de una
    * capacitación para retomar donde la persona dejó.
    *
-   * SOLO se aceptan rutas internas que arranquen con "/capacitacion/": sin
+   * SOLO se aceptan rutas internas que arranquen con "/formacion/": sin
    * ese candado, cualquiera podría armar un link con el dominio de ALMA que
    * deposite a la persona en otro sitio.
    */
   const destinoCrudo = searchParams.get("next") ?? ""
   const destino =
-    destinoCrudo.startsWith("/capacitacion/") && !destinoCrudo.startsWith("//")
+    destinoCrudo.startsWith("/formacion/") && !destinoCrudo.startsWith("//")
       ? destinoCrudo
       : ""
 

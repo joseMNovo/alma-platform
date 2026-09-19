@@ -57,7 +57,7 @@ export default function CompraWizard({
     if (verificado) setPaso("pagar")
   }, [verificado])
 
-  const volverA = `/capacitacion/${slug}/comprar`
+  const volverA = `/formacion/${slug}/comprar`
 
   const crearCuenta = async () => {
     if (!nombre.trim() || !apellido.trim()) {

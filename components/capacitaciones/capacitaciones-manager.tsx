@@ -50,7 +50,7 @@ export default function CapacitacionesManager({ user }: { user: any }) {
   const setView = (modo: "ver" | "administrar") => {
     const params = new URLSearchParams(searchParams.toString())
     params.set("vista", modo)
-    router.push(`/capacitaciones?${params.toString()}`)
+    router.push(`/academia?${params.toString()}`)
   }
   // Pedido puntual para que el botón "Nueva capacitación" del header abra el
   // formulario de alta dentro de la vista de administración. Se apaga apenas
@@ -61,9 +61,9 @@ export default function CapacitacionesManager({ user }: { user: any }) {
   /**
    * Qué se está mirando vive en la URL, no en el estado.
    *
-   *   /capacitaciones                → la vidriera
-   *   /capacitaciones?c=<slug>       → una capacitación
-   *   /capacitaciones?c=<slug>&m=12  → una pieza de contenido puntual
+   *   /academia                → la vidriera
+   *   /academia?c=<slug>       → una capacitación
+   *   /academia?c=<slug>&m=12  → una pieza de contenido puntual
    *
    * Así el botón "atrás" del navegador vuelve al catálogo, la pantalla se
    * puede recargar sin perder dónde estabas, y el link se puede pasar.
@@ -82,7 +82,7 @@ export default function CapacitacionesManager({ user }: { user: any }) {
     if (slug) params.set("c", slug)
     if (slug && itemId) params.set("m", String(itemId))
     const qs = params.toString()
-    return qs ? `/capacitaciones?${qs}` : "/capacitaciones"
+    return qs ? `/academia?${qs}` : "/academia"
   }
 
   /**
@@ -149,7 +149,7 @@ export default function CapacitacionesManager({ user }: { user: any }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <GraduationCap className="h-6 w-6 text-[#4dd0e1]" />
-          <h2 className="text-xl font-bold text-gray-900">Capacitaciones</h2>
+          <h2 className="text-xl font-bold text-gray-900">Academia</h2>
         </div>
 
         {isManager && (

@@ -116,7 +116,7 @@ export const MODULES: ModuleDef[] = [
   {
     key: "contenido",
     label: "Contenido",
-    route: "/capacitaciones",
+    route: "/academia",
     icon: GraduationCap,
     // El participante entra: la vidriera es justamente para que vea lo que
     // todavía no compró. El contenido lo sigue gateando el backend.
@@ -130,7 +130,7 @@ export const MODULES: ModuleDef[] = [
     // El participante ve una sola de estas (Capacitaciones) y por eso no le
     // aparece la barra de sub-pestañas: el resto es admin.
     children: [
-      { key: "capacitaciones", label: "Capacitaciones", route: "/capacitaciones", icon: GraduationCap, defaultRoles: ["admin", "voluntario", "participante"], grantable: true, itemGrants: true },
+      { key: "capacitaciones", label: "Academia", route: "/academia", icon: GraduationCap, defaultRoles: ["admin", "voluntario", "participante"], grantable: true, itemGrants: true },
       {
         key: "accesos",
         label: "Accesos",
