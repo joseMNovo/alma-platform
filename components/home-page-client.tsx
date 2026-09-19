@@ -16,7 +16,15 @@ function isVolunteerProfileIncomplete(u: any): boolean {
   return missing(u.phone)
 }
 
-export default function HomePageClient({ gamesUrl }: { gamesUrl: string }) {
+export default function HomePageClient({
+  gamesUrl,
+  sesionValida,
+}: {
+  gamesUrl: string
+  /** Lo dice el servidor leyendo la cookie firmada. Es LA autoridad: sin
+   *  esto el cliente adivinaba con localStorage y se armaba el rebote. */
+  sesionValida: boolean
+}) {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [sesionVencida, setSesionVencida] = useState(false)
@@ -50,23 +58,40 @@ export default function HomePageClient({ gamesUrl }: { gamesUrl: string }) {
     }
 
     const savedUser = localStorage.getItem("alma_user")
-    if (savedUser) {
+
+    /**
+     * Tres combinaciones posibles, y las tres terminan en algo estable.
+     * La clave es que solo se entra cuando el SERVIDOR confirmó la cookie:
+     * así "/" nunca puede empujar hacia adentro contra el criterio del
+     * middleware, que era el origen del rebote.
+     */
+    if (sesionValida && savedUser) {
       try {
-        const userData = JSON.parse(savedUser)
-        setUser(userData)
+        setUser(JSON.parse(savedUser))
         document.cookie = "alma_session=1; path=/; SameSite=Strict; max-age=2592000"
-        // Navegación DURA a propósito. Con `router.push`, si el middleware
-        // rebotaba por cookie vencida el componente no se volvía a montar, el
-        // efecto no corría otra vez y el spinner quedaba girando para siempre
-        // — se veía sobre todo en la PWA del teléfono.
+        // Navegación dura: cualquier redirección del servidor termina en una
+        // carga limpia, no en un estado a medias del router del cliente.
         window.location.replace(destinoPostLogin())
+        return
       } catch {
-        // Guardado corrupto: se descarta en vez de dejar la pantalla colgada.
         localStorage.removeItem("alma_user")
       }
+    } else if (sesionValida && !savedUser) {
+      // Cookie huérfana: hay sesión en el servidor pero el navegador no sabe
+      // quién es (storage limpiado, otro dispositivo). Se cierra de verdad,
+      // porque si no "/" y el módulo se la pasarían la pelota para siempre.
+      fetch("/api/auth/logout", { method: "POST" }).catch(() => {})
+      document.cookie = "alma_session=; path=/; max-age=0"
+    } else if (savedUser) {
+      // Al revés: quedó el usuario local pero la cookie ya no vale.
+      localStorage.removeItem("alma_user")
+      document.cookie = "alma_session=; path=/; max-age=0"
+      setSesionVencida(true)
     }
+
     setLoading(false)
-  }, [router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router, sesionValida])
 
   const handleLogin = (userData: any) => {
     setUser(userData)
