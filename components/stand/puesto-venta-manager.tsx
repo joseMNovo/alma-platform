@@ -11,7 +11,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import {
   Loader2, ShoppingCart, Package, Wallet, Minus, Trash2,
-  Banknote, ArrowLeftRight, Ban, PackagePlus, ListOrdered, UserPlus,
+  Banknote, ArrowLeftRight, Ban, PackagePlus, ListOrdered, UserPlus, AlertTriangle,
 } from "lucide-react"
 
 interface CurrentUser {
@@ -108,6 +108,9 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
   const [pidiendoDatos, setPidiendoDatos] = useState(false)
 
   const [editando, setEditando] = useState<Partial<StandProduct> | null>(null)
+  /** Producto a punto de quitarse. Quitar no puede ser un click al pasar:
+   *  los dos botones viven pegados y ya hubo quien lo tocó sin querer. */
+  const [porQuitar, setPorQuitar] = useState<StandProduct | null>(null)
   const [guardandoProducto, setGuardandoProducto] = useState(false)
 
   useEffect(() => { cargar() }, [])
@@ -233,9 +236,11 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
     try {
       const res = await fetch(`/api/stand/productos?id=${id}`, { method: "DELETE" })
       if (!res.ok) throw new Error()
+      toast({ title: "Producto quitado" })
+      setPorQuitar(null)
       cargar()
     } catch {
-      toast({ title: "No se pudo desactivar", variant: "destructive" })
+      toast({ title: "No se pudo quitar", variant: "destructive" })
     }
   }
 
@@ -444,7 +449,7 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
                   <Button
                     variant="outline"
                     className="h-10 flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                    onClick={() => desactivar(p.id)}
+                    onClick={() => setPorQuitar(p)}
                   >
                     Quitar
                   </Button>
@@ -476,11 +481,20 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
                     <td className={`px-4 py-2 font-semibold tabular-nums ${p.stock <= 0 ? "text-red-500" : "text-gray-900"}`}>
                       {p.stock}
                     </td>
-                    <td className="px-4 py-2 text-right">
-                      <Button variant="ghost" size="sm" onClick={() => setEditando(p)}>Editar</Button>
-                      <Button variant="ghost" size="sm" className="text-red-500" onClick={() => desactivar(p.id)}>
-                        Quitar
-                      </Button>
+                    <td className="px-4 py-2">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setEditando(p)}>
+                          Editar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                          onClick={() => setPorQuitar(p)}
+                        >
+                          Quitar
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -625,6 +639,41 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
           ))}
         </div>
       )}
+
+      {/* Confirmación de baja. Existe porque los dos botones viven pegados y
+          alguien quitó productos sin querer durante una prueba. Se explica
+          qué pasa de verdad —que las ventas viejas no se tocan— para que la
+          decisión se tome con información y no con miedo. */}
+      <Dialog open={!!porQuitar} onOpenChange={abierto => !abierto && setPorQuitar(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-50">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+              </span>
+              ¿Quitar {porQuitar?.name}?
+            </DialogTitle>
+          </DialogHeader>
+
+          <p className="text-sm text-gray-600">
+            Deja de aparecer en <strong>Vender</strong> y en <strong>Stock</strong>.
+            Las ventas que ya se hicieron con este producto quedan como están, y la
+            caja sigue cerrando igual.
+          </p>
+
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setPorQuitar(null)}>
+              Cancelar
+            </Button>
+            <Button
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={() => porQuitar && desactivar(porQuitar.id)}
+            >
+              Sí, quitar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Alta / edición de producto */}
       <Dialog open={!!editando} onOpenChange={abierto => !abierto && setEditando(null)}>

@@ -1,6 +1,7 @@
 "use client"
 
 import type { ModuleDef } from "@/lib/modules"
+import InstalarApp from "@/components/pwa/instalar-app"
 
 /**
  * Pantalla de Inicio: una baldosa por módulo.
@@ -37,6 +38,10 @@ export default function InicioLauncher({
         </h2>
         <p className="mt-1 text-gray-500">¿Con qué querés empezar?</p>
       </div>
+
+      {/* Solo aparece si se puede instalar y todavía no lo está: si ya abriste
+          la app desde el ícono, el componente no dibuja nada. */}
+      <InstalarApp />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {modules.map((mod) => {
