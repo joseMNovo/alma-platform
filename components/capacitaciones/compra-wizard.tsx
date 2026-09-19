@@ -57,7 +57,7 @@ export default function CompraWizard({
     if (verificado) setPaso("pagar")
   }, [verificado])
 
-  const volverA = `/formacion/${slug}/comprar`
+  const volverA = `/academia/${slug}/comprar`
 
   const crearCuenta = async () => {
     if (!nombre.trim() || !apellido.trim()) {
@@ -84,13 +84,19 @@ export default function CompraWizard({
           role: "participante",
           name: nombre,
           last_name: apellido,
-          next: volverA,
+          // Al confirmar queda logueado y cae DENTRO de la capacitación que
+          // compró. `?c=` y no `/academia/<slug>`: esa es la landing pública,
+          // y con sesión lo que corresponde ver es el módulo.
+          next: `/academia?c=${slug}`,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || "No se pudo crear la cuenta")
 
-      setPaso("revisa-tu-mail")
+      // NO se espera la verificación para cobrar. En el stand, mandar a
+      // alguien a abrir el mail antes de pagar es perder la venta: el mail
+      // sale igual y se confirma cuando pueda.
+      setPaso("pagar")
     } catch (error: any) {
       toast({ title: "Error", description: error?.message, variant: "destructive" })
     } finally {
@@ -113,7 +119,6 @@ export default function CompraWizard({
 
   const pasos: { clave: Paso; label: string }[] = [
     { clave: "datos", label: "Tus datos" },
-    { clave: "revisa-tu-mail", label: "Confirmar mail" },
     { clave: "pagar", label: "Pagar" },
   ]
   const indiceActual = pasos.findIndex((p) => p.clave === paso)
@@ -196,42 +201,45 @@ export default function CompraWizard({
             <p className="mt-1 text-xs text-gray-500">Es con lo que vas a entrar después.</p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button
-              onClick={crearCuenta}
-              disabled={enviando}
-              className="bg-[#4dd0e1] hover:bg-[#3bb8c9]"
-            >
-              {enviando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Continuar
-            </Button>
+          {/* Secundario a la izquierda, primario a la derecha: es el orden que
+              usa el resto de la app (Personas, Grupos, Inventario). Acá estaba
+              al revés. El de avanzar ocupa el resto del ancho para que sea el
+              blanco obvio en el teléfono. */}
+          <div className="flex gap-2">
             <Button variant="outline" onClick={() => setPaso("inicio")}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Volver
             </Button>
+            <Button
+              onClick={crearCuenta}
+              disabled={enviando}
+              className="flex-1 bg-[#4dd0e1] hover:bg-[#3bb8c9]"
+            >
+              {enviando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Continuar
+            </Button>
           </div>
-        </div>
-      )}
-
-      {paso === "revisa-tu-mail" && (
-        <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-6 text-center">
-          <Mail className="mx-auto h-10 w-10 text-[#4dd0e1]" />
-          <div>
-            <p className="font-semibold text-gray-900">Te mandamos un correo</p>
-            <p className="mt-1 text-sm text-gray-600">
-              Abrilo y tocá el link para confirmar tu dirección. Después volvés acá solo
-              para pagar.
-            </p>
-          </div>
-          <p className="text-sm font-medium text-gray-800">{email}</p>
-          <Button variant="outline" onClick={reenviar}>
-            No me llegó, reenviar
-          </Button>
         </div>
       )}
 
       {paso === "pagar" && (
         <div className="space-y-4">
+          {/* El mail queda como pendiente, no como traba. Se avisa acá para
+              que la persona sepa que tiene que confirmarlo en algún momento. */}
+          {!verificado && email && (
+            <div className="flex items-start gap-2 rounded-lg border border-[#4dd0e1]/40 bg-[#4dd0e1]/5 p-3 text-sm">
+              <Mail className="mt-0.5 h-4 w-4 shrink-0 text-[#00838f]" />
+              <div className="min-w-0">
+                <p className="text-gray-800">
+                  Te mandamos un correo a <strong className="break-all">{email}</strong> para
+                  confirmar tu dirección. Podés hacerlo cuando quieras: no hace falta para pagar.
+                </p>
+                <button onClick={reenviar} className="mt-1 font-medium text-[#00838f] hover:underline">
+                  No me llegó, reenviar
+                </button>
+              </div>
+            </div>
+          )}
           <p className="flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-900">
             <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600" />
             Tu correo quedó confirmado. Ya tenés cuenta en ALMA.

@@ -1,9 +1,10 @@
 "use client"
 
+import { Loader2 } from "lucide-react"
+
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import LoginForm from "@/components/auth/login-form"
-import Dashboard from "@/components/dashboard/dashboard"
 import { toast } from "@/hooks/use-toast"
 
 // Onboarding: un voluntario tiene el perfil "incompleto" si le faltan datos de
@@ -45,7 +46,7 @@ export default function HomePageClient({ gamesUrl }: { gamesUrl: string }) {
         const userData = JSON.parse(savedUser)
         setUser(userData)
         document.cookie = "alma_session=1; path=/; SameSite=Strict; max-age=2592000"
-        router.push("/calendarios")
+        router.push("/inicio")
       } catch {
         // Guardado corrupto: se descarta en vez de dejar la pantalla colgada.
         localStorage.removeItem("alma_user")
@@ -68,7 +69,7 @@ export default function HomePageClient({ gamesUrl }: { gamesUrl: string }) {
         localStorage.setItem("alma_new_registration", userData.role)
       }
     } catch {}
-    router.push("/calendarios")
+    router.push("/inicio")
   }
 
   const handleLogout = useCallback(async () => {
@@ -145,7 +146,16 @@ export default function HomePageClient({ gamesUrl }: { gamesUrl: string }) {
           Tu sesión se cerró por seguridad. Ingresá de nuevo.
         </div>
       )}
-      {!user ? <LoginForm onLogin={handleLogin} gamesUrl={gamesUrl} /> : <Dashboard user={user} onLogout={handleLogout} />}
+      {!user ? (
+        <LoginForm onLogin={handleLogin} gamesUrl={gamesUrl} />
+      ) : (
+        /* Con sesión, "/" solo redirige a /inicio. Montar el dashboard acá
+           haría que se vea el calendario un instante: sin ruta de módulo,
+           resolveRoute cae en el primer grupo del registro (Agenda). */
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[#4dd0e1]" />
+        </div>
+      )}
     </div>
   )
 }

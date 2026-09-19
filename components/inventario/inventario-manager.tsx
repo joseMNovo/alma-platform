@@ -790,93 +790,89 @@ export default function InventarioManager({ user }: { user: any }) {
       </div>
 
       {/* ── DESKTOP: Grid de cards (≥ sm) ── */}
-      <div className="hidden sm:grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 px-4 sm:px-0">
-        {filteredInventory.map((item) => (
-          <Card key={item.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-lg">{item.name}</CardTitle>
-                  <CardDescription>{item.category}</CardDescription>
-                </div>
-                {isLowStock(item) && (
-                  <Badge variant="destructive" className="bg-red-500">Stock bajo</Badge>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Cantidad:</span>
-                  <span className="font-medium">{item.quantity}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Stock mínimo:</span>
-                  <span className="font-medium">{item.minimum_stock}</span>
-                </div>
-                {item.price > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Precio unitario:</span>
-                    <span className="font-medium">${item.price.toLocaleString()}</span>
-                  </div>
-                )}
-                {item.price > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Valor total:</span>
-                    <span className="font-medium text-[#4dd0e1]">${(item.quantity * item.price).toLocaleString()}</span>
-                  </div>
-                )}
-                {item.supplier && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Proveedor:</span>
-                    <span className="font-medium text-sm">{item.supplier}</span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Voluntario:</span>
-                  <span className={`font-medium text-sm ${item.assigned_volunteer_id ? "text-[#4dd0e1]" : "text-gray-400"}`}>
+      {/* ── ESCRITORIO: tabla (≥ sm) ──
+          Antes eran tarjetas y con pocos ítems ya había que scrollear: la
+          tabla muestra todo de un vistazo y aguanta cuando el inventario
+          crezca. El detalle completo vive en el modal de edición, que se abre
+          tocando el renglón. Los −1/+1 quedan a la vista porque es lo que más
+          se hace. */}
+      <div className="hidden sm:block overflow-x-auto rounded-xl border border-gray-200 bg-white">
+        <table className="w-full min-w-[720px] text-sm">
+          <thead>
+            <tr className="border-b border-gray-200 bg-gray-50/80 text-left text-gray-600">
+              <th className="px-4 py-2 font-semibold">Ítem</th>
+              <th className="px-4 py-2 font-semibold">Cantidad</th>
+              <th className="px-4 py-2 font-semibold">Mínimo</th>
+              <th className="px-4 py-2 font-semibold">Valor</th>
+              <th className="px-4 py-2 font-semibold">Voluntario</th>
+              <th className="px-4 py-2" />
+            </tr>
+          </thead>
+          <tbody>
+            {filteredInventory.map((item) => {
+              const lowStock = isLowStock(item)
+              return (
+                <tr
+                  key={item.id}
+                  onClick={() => openEditDialog(item)}
+                  className={`cursor-pointer border-b border-gray-100 transition-colors last:border-0 hover:bg-[#4dd0e1]/[0.06] ${
+                    lowStock ? "bg-red-50/40" : ""
+                  }`}
+                >
+                  <td className="px-4 py-2">
+                    <div className="flex items-center gap-2">
+                      {lowStock && <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 text-red-500" />}
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-900">{item.name}</p>
+                        {item.category && <p className="text-xs text-gray-400">{item.category}</p>}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-2">
+                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => updateStock(item.id, Math.max(0, item.quantity - 1))}
+                        disabled={item.quantity === 0}
+                        className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                      >
+                        −
+                      </button>
+                      <span className={`min-w-[2.5rem] text-center font-semibold tabular-nums ${lowStock ? "text-red-600" : "text-gray-900"}`}>
+                        {item.quantity}
+                      </span>
+                      <button
+                        onClick={() => updateStock(item.id, item.quantity + 1)}
+                        className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </td>
+                  <td className="px-4 py-2 tabular-nums text-gray-500">{item.minimum_stock}</td>
+                  <td className="px-4 py-2 tabular-nums text-gray-700">
+                    {item.price > 0 ? `$${(item.quantity * item.price).toLocaleString("es-AR")}` : "—"}
+                  </td>
+                  <td className={`px-4 py-2 ${item.assigned_volunteer_id ? "text-[#00838f]" : "text-gray-400"}`}>
                     {getVolunteerName(item.assigned_volunteer_id)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={() => updateStock(item.id, Math.max(0, item.quantity - 1))}
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  disabled={item.quantity === 0}
-                >
-                  -1
-                </Button>
-                <Button
-                  onClick={() => updateStock(item.id, item.quantity + 1)}
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                >
-                  +1
-                </Button>
-              </div>
-
-              <div className="flex gap-2">
-                <Button onClick={() => openEditDialog(item)} variant="outline" size="sm" className="flex-1">
-                  <Edit className="w-4 h-4 mr-1" />
-                  Editar
-                </Button>
-                <Button
-                  onClick={() => handleDeleteClick(item)}
-                  variant="outline"
-                  size="sm"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                  </td>
+                  <td className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="sm" onClick={() => openEditDialog(item)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                      onClick={() => handleDeleteClick(item)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
 
       {filteredInventory.length === 0 && inventory.length > 0 && (

@@ -59,13 +59,13 @@ export default async function VerificarCertificadoPage({
     <div className="flex min-h-screen flex-col bg-gray-50">
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
-          <Link href="/formacion" className="flex items-center gap-3">
+          <Link href="/academia" className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/images/flor.png" alt="ALMA" className="h-8 w-auto" />
             <MarcaAlma className="text-xl" />
           </Link>
           <Link
-            href="/formacion"
+            href="/academia"
             className="text-sm font-medium text-[#4dd0e1] underline-offset-2 hover:underline"
           >
             Ver capacitaciones

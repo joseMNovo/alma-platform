@@ -116,6 +116,8 @@ export interface CalendarInstance {
   notes: string | null
   status: 'programado' | 'realizado' | 'cancelado'
   notify_enabled: boolean
+  /** Si los participantes ven este evento. Lo decide quien lo crea. */
+  visible_participantes: boolean
   reminder_offsets: number[] | null
   created_by_volunteer_id: number | null
   coordinator: VolunteerRef | null
@@ -193,6 +195,8 @@ export interface Persona {
   participant_id?: number | null   // presente => la persona tiene cuenta de login
   is_volunteer?: boolean           // rol voluntario (flag descriptivo)
   volunteer_id?: number | null     // presente => tiene ficha en `voluntarios`
+  /** Vive en `voluntarios`. Solo puede ser true si hay volunteer_id. */
+  is_admin?: boolean
   name?: string | null
   last_name?: string | null
   email?: string | null
@@ -548,12 +552,15 @@ export async function importAllData(data: AllData): Promise<void> {
 export async function getCalendarInstances(
   year: number,
   month: number | null,
-  filters?: { type?: string; volunteer_id?: number }
+  filters?: { type?: string; volunteer_id?: number; viewer_role?: string }
 ): Promise<CalendarInstance[]> {
   const params = new URLSearchParams({ year: String(year) })
   if (month !== null && month !== undefined) params.set('month', String(month))
   if (filters?.type) params.set('type', filters.type)
   if (filters?.volunteer_id) params.set('volunteer_id', String(filters.volunteer_id))
+  // El rol de quien mira lo pone el BFF desde el JWT. El backend filtra con
+  // esto los eventos internos: no alcanza con esconderlos en la pantalla.
+  if (filters?.viewer_role) params.set('viewer_role', filters.viewer_role)
   return api.get<CalendarInstance[]>(`/calendar/instances-rich?${params}`)
 }
 
@@ -567,6 +574,7 @@ export async function createCalendarInstance(data: {
   notes?: string | null
   status?: string
   notify_enabled?: boolean
+  visible_participantes?: boolean
   reminder_offsets?: number[] | null
   created_by_volunteer_id?: number | null
 }): Promise<CalendarInstance> {
@@ -600,6 +608,7 @@ export async function updateCalendarInstance(
     notes: string | null
     status: string
     notify_enabled: boolean
+    visible_participantes: boolean
     reminder_offsets: number[] | null
   }>
 ): Promise<CalendarInstance> {
@@ -1995,4 +2004,89 @@ export async function getCertificatePdf(code: string): Promise<Response> {
 
 export async function getDeliveryBoard(trainingId: number): Promise<DeliveryRow[]> {
   return api.get<DeliveryRow[]>(`/certificados/entrega/${trainingId}`)
+}
+
+// ============================================================
+// Puesto de venta (stand)
+// ============================================================
+
+export interface StandProduct {
+  id: number
+  name: string
+  unit_price: number
+  initial_stock: number
+  is_active: boolean
+  sort_order: number
+  /** Unidades vendidas (no cuenta las ventas anuladas). Lo calcula el backend. */
+  sold: number
+  /** initial_stock - sold. Calculado, no guardado. */
+  stock: number
+}
+
+export interface StandSaleItem {
+  product_id: number
+  product_name?: string | null
+  quantity: number
+  unit_price: number
+}
+
+export interface StandSale {
+  id: number
+  payment_method: 'efectivo' | 'transferencia'
+  total: number
+  notes?: string | null
+  sold_by_volunteer_id?: number | null
+  /** Datos que la persona deja si quiere. No se le manda nada: se guardan. */
+  customer_name?: string | null
+  customer_email?: string | null
+  is_void: boolean
+  created_at?: string | null
+  items: StandSaleItem[]
+}
+
+export interface StandSummary {
+  total: number
+  efectivo: number
+  transferencia: number
+  sales_count: number
+  by_product: { product_id: number; name: string; units: number; revenue: number }[]
+}
+
+export async function getStandProducts(incluirInactivos = false): Promise<StandProduct[]> {
+  return api.get<StandProduct[]>(`/stand/products?incluir_inactivos=${incluirInactivos}`)
+}
+
+export async function createStandProduct(data: Partial<StandProduct>): Promise<StandProduct> {
+  return api.post<StandProduct>('/stand/products', data)
+}
+
+export async function updateStandProduct(id: number, data: Partial<StandProduct>): Promise<StandProduct> {
+  return api.put<StandProduct>(`/stand/products/${id}`, data)
+}
+
+export async function deactivateStandProduct(id: number): Promise<void> {
+  await api.delete(`/stand/products/${id}`)
+}
+
+export async function createStandSale(data: {
+  payment_method: string
+  items: { product_id: number; quantity: number }[]
+  notes?: string | null
+  sold_by_volunteer_id?: number | null
+  customer_name?: string | null
+  customer_email?: string | null
+}): Promise<StandSale> {
+  return api.post<StandSale>('/stand/sales', data)
+}
+
+export async function getStandSales(limit = 50): Promise<StandSale[]> {
+  return api.get<StandSale[]>(`/stand/sales?limit=${limit}`)
+}
+
+export async function voidStandSale(id: number): Promise<StandSale> {
+  return api.post<StandSale>(`/stand/sales/${id}/void`, {})
+}
+
+export async function getStandSummary(): Promise<StandSummary> {
+  return api.get<StandSummary>('/stand/summary')
 }

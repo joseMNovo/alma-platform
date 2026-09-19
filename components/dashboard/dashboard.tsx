@@ -25,6 +25,7 @@ import {
   GraduationCap,
   KeyRound,
   ChevronDown,
+  ChevronLeft,
 } from "lucide-react"
 
 const GAMES_URL = process.env.NEXT_PUBLIC_GAMES_URL ?? ""
@@ -58,6 +59,8 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import PuestoVentaManager from "@/components/stand/puesto-venta-manager"
+import InicioLauncher from "@/components/inicio/inicio-launcher"
 import AlmaFooter from "@/components/ui/alma-footer"
 import MarcaAlma from "@/components/ui/marca-alma"
 import ProfileCompletionModal from "@/components/auth/profile-completion-modal"
@@ -121,6 +124,10 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
 
   const isAdmin = user.role === "admin"
 
+  /** Inicio no es un módulo del registro: es la pantalla de bienvenida con las
+   *  baldosas. Por eso se decide por la ruta y no por `navModules`. */
+  const esInicio = pathname === "/inicio"
+
   useEffect(() => {
     setNavigating(false)
     if (!isAdmin) return
@@ -171,6 +178,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
     aprobaciones: <AprobacionesManager user={user} onPendingCount={setPendingCount} />,
     actividad: <ActividadManager user={user} />,
     anuncios: <BroadcastManager user={user} />,
+    "puesto-venta": <PuestoVentaManager user={user} />,
     "mis-datos": <MiCuenta user={user} />,
   }
 
@@ -193,7 +201,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
    */
   useEffect(() => {
     const r = resolveRoute(pathname)
-    const module = r?.grandchild?.key ?? r?.child?.key ?? r?.group.key ?? "desconocido"
+    const module = r?.grandchild?.key ?? r?.child?.key ?? r?.group.key ?? (esInicio ? "inicio" : "desconocido")
     const ping = () => {
       fetch("/api/tracking", {
         method: "POST",
@@ -304,7 +312,10 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <img src="/images/flor.png" alt="ALMA" className="h-8 w-auto" />
+              {/* Única forma segura de volver a Inicio: ahí no hay pestañas. */}
+              <button onClick={() => navigateTo("/inicio")} title="Ir a Inicio" className="transition-transform active:scale-95">
+                <img src="/images/flor.png" alt="Inicio" className="h-8 w-auto" />
+              </button>
             </div>
 
             {/* La marca, escrita con la tipografía institucional. Ver
@@ -494,6 +505,16 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
             </div>
           </div>
         )}
+        {esInicio ? (
+          <InicioLauncher
+            nombre={user.name ?? ""}
+            modules={navModules}
+            onAbrir={(mod) => navigateTo(rutaVisible(mod, mod.route))}
+            subtitulo={(mod) =>
+              visibleChildren(user, mod, grants).map((h) => h.label).join(" · ")
+            }
+          />
+        ) : (
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           {/*
             Las pestañas salen del registro de módulos (lib/modules.ts) filtrado
@@ -572,6 +593,18 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
           {/* Breadcrumb mobile */}
           <div className="md:hidden bg-white p-3 rounded-lg shadow-sm mb-4">
             <h2 className="text-lg font-medium flex items-center">
+              {/* En el celular no hay pestañas a la vista, y el logo como botón
+                  de Inicio es un gesto invisible: lo descubre quien ya sabe que
+                  está. El chevron se lee como "salir de acá" sin ocupar alto
+                  extra, que es el lugar más caro de una pantalla chica. */}
+              <button
+                type="button"
+                onClick={() => navigateTo("/inicio")}
+                aria-label="Volver al inicio"
+                className="-ml-1 mr-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors active:bg-gray-100"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
               {ActiveIcon && <ActiveIcon className="w-5 h-5 mr-2" />}
               {activeTabLabel}
             </h2>
@@ -665,6 +698,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
             )
           })}
         </Tabs>
+        )}
       </main>
 
       <AlmaFooter borderTop />

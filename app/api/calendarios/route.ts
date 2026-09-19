@@ -27,7 +27,14 @@ export async function GET(req: NextRequest) {
     const volunteerParam = searchParams.get('volunteer_id')
     const volunteer_id = volunteerParam ? parseInt(volunteerParam) : undefined
 
-    const instances = await getCalendarInstances(year, month, { type, volunteer_id })
+    // El rol sale del JWT, nunca de la query: el backend filtra con esto los
+    // eventos internos, así que dejarlo elegir al navegador sería regalarlo.
+    const session = getSessionUser(req)
+    const instances = await getCalendarInstances(year, month, {
+      type,
+      volunteer_id,
+      viewer_role: session?.role,
+    })
     return NextResponse.json(instances)
   } catch (err: any) {
     logError('Error al obtener instancias de calendario', { module: 'calendar', action: 'list', error: err })

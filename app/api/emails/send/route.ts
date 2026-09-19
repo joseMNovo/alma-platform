@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { api } from '@/lib/api-client'
 import { logInfo, logWarn, logError } from '@/lib/logger'
+import { getSessionUser } from '@/lib/serverAuth'
+import { can } from '@/lib/permissions'
 
 export async function POST(req: NextRequest) {
+  // Despacha mails REALES con el remitente de ALMA. Sin este candado era un
+  // relay abierto: cualquiera que supiera la ruta podía escribirle a quien
+  // quisiera desde el dominio de la asociación.
+  const session = getSessionUser(req)
+  if (!session || !can(session, "emails:send")) {
+    logWarn("Envío de email denegado por permisos", { module: "emails", action: "send_denied", user: session?.id })
+    return NextResponse.json({ error: "Sin permisos" }, { status: 403 })
+  }
+
   try {
     const body = await req.json()
     const result = await api.post('/emails/send', body)

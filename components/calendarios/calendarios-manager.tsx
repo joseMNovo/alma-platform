@@ -41,6 +41,7 @@ interface CalendarInstance {
   notes: string | null
   status: "programado" | "realizado" | "cancelado"
   notify_enabled: boolean
+  visible_participantes: boolean
   reminder_offsets: number[] | null
   coordinator: VolunteerRef | null
   /** @deprecated queda con el primero; usar co_coordinators */
@@ -485,6 +486,7 @@ export default function CalendariosManager({ user }: { user: any }) {
     co_coordinator_ids: [] as number[],
     volunteer_ids: [] as number[],
     notify_enabled: false,
+    visible_participantes: true,
     reminder_offsets: [] as number[],
     status: "programado",
     notes: "",
@@ -726,6 +728,7 @@ export default function CalendariosManager({ user }: { user: any }) {
       co_coordinator_ids: [] as number[],
       volunteer_ids: [],
       notify_enabled: false,
+      visible_participantes: true,
       reminder_offsets: [],
       status: "programado",
       notes: "",
@@ -750,6 +753,7 @@ export default function CalendariosManager({ user }: { user: any }) {
       co_coordinator_ids: (inst.co_coordinators ?? (inst.co_coordinator ? [inst.co_coordinator] : [])).map(c => c.id),
       volunteer_ids: (inst.volunteers || []).map(v => v.id),
       notify_enabled: inst.notify_enabled ?? false,
+      visible_participantes: inst.visible_participantes ?? inst.type !== "actividad",
       reminder_offsets: inst.reminder_offsets || [],
       status: inst.status,
       notes: inst.notes || "",
@@ -810,6 +814,7 @@ export default function CalendariosManager({ user }: { user: any }) {
         co_coordinator_ids: instanceForm.module !== "actividad" ? instanceForm.co_coordinator_ids : [],
         volunteer_ids: instanceForm.volunteer_ids,
         notify_enabled: instanceForm.notify_enabled,
+        visible_participantes: instanceForm.visible_participantes,
         reminder_offsets: instanceForm.notify_enabled ? instanceForm.reminder_offsets : null,
         status: instanceForm.status,
         notes: instanceForm.notes || null,
@@ -2068,7 +2073,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                 <Label>Módulo</Label>
                 <Select
                   value={instanceForm.module}
-                  onValueChange={(v: any) => setInstanceForm(f => ({ ...f, module: v, source_id: "", coordinator_id: "", co_coordinator_ids: [] }))}
+                  onValueChange={(v: any) => setInstanceForm(f => ({ ...f, module: v, visible_participantes: v !== "actividad", source_id: "", coordinator_id: "", co_coordinator_ids: [] }))}
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -2307,6 +2312,23 @@ export default function CalendariosManager({ user }: { user: any }) {
                   </div>
                 )
               })()}
+            </div>
+
+            {/* Qué ve un participante. El default sale del tipo: grupo y
+                taller son para participantes por definición; "actividad" es el
+                cajón donde también entran las reuniones internas, así que nace
+                destildada. Olvidarse nunca expone nada. */}
+            <div className="flex items-center gap-2 rounded-md border p-3">
+              <Checkbox
+                id="visible_participantes"
+                checked={instanceForm.visible_participantes}
+                onCheckedChange={checked =>
+                  setInstanceForm(f => ({ ...f, visible_participantes: checked as boolean }))
+                }
+              />
+              <Label htmlFor="visible_participantes" className="cursor-pointer">
+                Los participantes pueden ver este evento
+              </Label>
             </div>
 
             {/* Notificación por email a los voluntarios asignados */}

@@ -10,7 +10,7 @@ import {
 import { validateAdminCredentials } from "@/lib/config"
 import { verifyPassword } from "@/lib/utils/password"
 import { logInfo, logWarn, logError } from "@/lib/logger"
-import jwt from "jsonwebtoken"
+import { responderConSesion } from "@/lib/session"
 
 const JWT_SECRET = process.env.JWT_SECRET || "fallback-dev-secret"
 const COOKIE_MAX_AGE_REMEMBER = 60 * 60 * 24 * 15 // 15 days
@@ -53,24 +53,9 @@ function _recordFail(key: string) {
 
 function _clearRL(key: string) { _loginAttempts.delete(key) }
 
-const TOKEN_VERSION = parseInt(process.env.APP_TOKEN_VERSION || "1")
-
-function makeAuthResponse(user: any, remember: boolean) {
-  const response = NextResponse.json({ user })
-  const token = jwt.sign(
-    { id: user.id, email: user.email, role: user.role, is_admin: user.is_admin, tv: TOKEN_VERSION },
-    JWT_SECRET,
-    { expiresIn: remember ? "15d" : "1d" }
-  )
-  response.cookies.set("alma_token", token, {
-    httpOnly: true,
-    sameSite: "strict",
-    ...(remember ? { maxAge: COOKIE_MAX_AGE_REMEMBER } : {}),
-    path: "/",
-    secure: process.env.HTTPS_ENABLED === "true",
-  })
-  return response
-}
+/** La sesión se arma en lib/session.ts: la comparte con el link de
+ *  verificación del mail, que también deja a la persona adentro. */
+const makeAuthResponse = responderConSesion
 
 export async function POST(request: NextRequest) {
   try {

@@ -10,6 +10,7 @@ import { can } from "@/lib/permissions"
 import { config } from "@/lib/config"
 import TrainingPlayer from "@/components/capacitaciones/training-player"
 import CatalogoCapacitaciones from "@/components/capacitaciones/catalogo-capacitaciones"
+import QrVidriera from "@/components/capacitaciones/qr-vidriera"
 import TrainingSurvey from "@/components/capacitaciones/training-survey"
 import CapacitacionesAdmin from "@/components/capacitaciones/capacitaciones-admin"
 import type { Training, TrainingItem } from "@/lib/data-manager"
@@ -149,7 +150,10 @@ export default function CapacitacionesManager({ user }: { user: any }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <GraduationCap className="h-6 w-6 text-[#4dd0e1]" />
-          <h2 className="text-xl font-bold text-gray-900">Academia</h2>
+          <h2 className="text-xl font-bold text-gray-900">Academia ALMA</h2>
+          {/* Para mostrarle la vidriera a alguien en el stand. El participante
+              no lo necesita: ya está adentro. */}
+          {user.role !== "participante" && <QrVidriera className="ml-1 h-8" />}
         </div>
 
         {isManager && (

@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { esDestinoInterno } from "@/lib/destino-seguro"
 import { hashPassword } from "@/lib/utils/password"
 import { api } from "@/lib/api-client"
 import { logError } from "@/lib/logger"
@@ -51,12 +52,8 @@ export async function POST(request: NextRequest) {
     const pin_hash = await hashPassword(String(pin))
 
     // El PIN en claro nunca sale de acá: al backend viaja solo el hash bcrypt.
-    // `next` solo puede volver a una capacitación: sin este candado, el mail
-    // de verificación se podría usar para depositar a alguien en otro sitio.
-    const destino =
-      typeof next === "string" && next.startsWith("/capacitacion/") && !next.startsWith("//")
-        ? next
-        : null
+    // La regla vive en lib/destino-seguro.ts, compartida con la verificación.
+    const destino = esDestinoInterno(next) ? next : null
 
     const result = await api.post<RegisterResponse>(`/register/${role}`, {
       email,

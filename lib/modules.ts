@@ -26,6 +26,7 @@ import {
   History,
   Send,
   UserCheck,
+  ShoppingCart,
 } from "lucide-react"
 
 export type Role = "admin" | "voluntario" | "participante"
@@ -115,7 +116,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "contenido",
-    label: "Contenido",
+    label: "Academia",
     route: "/academia",
     icon: GraduationCap,
     // El participante entra: la vidriera es justamente para que vea lo que
@@ -130,7 +131,7 @@ export const MODULES: ModuleDef[] = [
     // El participante ve una sola de estas (Capacitaciones) y por eso no le
     // aparece la barra de sub-pestañas: el resto es admin.
     children: [
-      { key: "capacitaciones", label: "Academia", route: "/academia", icon: GraduationCap, defaultRoles: ["admin", "voluntario", "participante"], grantable: true, itemGrants: true },
+      { key: "capacitaciones", label: "Capacitaciones", route: "/academia", icon: GraduationCap, defaultRoles: ["admin", "voluntario", "participante"], grantable: true, itemGrants: true },
       {
         key: "accesos",
         label: "Accesos",
@@ -176,6 +177,7 @@ export const MODULES: ModuleDef[] = [
       { key: "pendientes", label: "Pendientes", route: "/pendientes", icon: CheckSquare, defaultRoles: ["admin", "voluntario"], grantable: false },
       { key: "inventario", label: "Inventario", route: "/inventario", icon: Package, defaultRoles: ["admin", "voluntario"], grantable: false },
       { key: "ideas", label: "Ideas", route: "/ideas", icon: Lightbulb, defaultRoles: ["admin", "voluntario"], grantable: false },
+      { key: "puesto-venta", label: "Puesto de venta", route: "/puesto-venta", icon: ShoppingCart, defaultRoles: ["admin", "voluntario"], grantable: false },
     ],
   },
 

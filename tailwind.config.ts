@@ -72,10 +72,17 @@ const config: Config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        // El "+1" que sale de la tarjeta al tocarla en el puesto de venta.
+        "sumar-uno": {
+          "0%": { opacity: "0", transform: "translate(-50%, 0) scale(0.8)" },
+          "25%": { opacity: "1", transform: "translate(-50%, -6px) scale(1)" },
+          "100%": { opacity: "0", transform: "translate(-50%, -26px) scale(1)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "sumar-uno": "sumar-uno 700ms ease-out forwards",
       },
     },
   },

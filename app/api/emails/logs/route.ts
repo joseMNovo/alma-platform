@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { api } from '@/lib/api-client'
-import { logError } from '@/lib/logger'
+import { logError, logWarn } from '@/lib/logger'
+import { getSessionUser } from '@/lib/serverAuth'
+import { can } from '@/lib/permissions'
 
 export async function GET(req: NextRequest) {
+  // El registro de envíos es la lista de mails de la gente de ALMA.
+  const session = getSessionUser(req)
+  if (!session || !can(session, "emails:view")) {
+    logWarn("Lectura de logs de email denegada", { module: "emails", action: "logs_denied", user: session?.id })
+    return NextResponse.json({ error: "Sin permisos" }, { status: 403 })
+  }
+
   try {
     const { searchParams } = new URL(req.url)
     const params = new URLSearchParams()

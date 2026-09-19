@@ -36,6 +36,8 @@ const PUEDE_VOLUNTARIO: Action[] = [
   "personas:create",
   "personas:edit",
   "capacitaciones:view",
+  "stand:sell",
+  "stand:manage",
   "files:upload",
   "files:edit",
 ]
@@ -57,6 +59,8 @@ const SOLO_ADMIN: Action[] = [
   "accesos:manage",
   "files:delete",
   "tracking:view",
+  "emails:view",
+  "emails:send",
 ]
 
 /** Lo único que puede tocar un participante. */

@@ -1,5 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  /**
+   * Probar desde el celular contra la IP de la LAN. Sin esto, Next 15 avisa
+   * que el pedido a /_next/* es cross-origin y en una versión futura lo va a
+   * bloquear. Es SOLO para desarrollo: en producción todo sale del dominio.
+   *
+   * Los rangos privados cubren cualquier IP que te dé el router.
+   */
+  allowedDevOrigins: ["192.168.0.0/16", "10.0.0.0/8", "172.16.0.0/12"],
   eslint: {
     ignoreDuringBuilds: true,
   },

@@ -1,5 +1,7 @@
 "use client"
 
+import { esDestinoInterno } from "@/lib/destino-seguro"
+
 import { useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { CheckCircle2, Clock, XCircle, Loader2 } from "lucide-react"
@@ -16,15 +18,12 @@ function VerificarEmailContent() {
    * Adónde volver después de verificar. Lo usa la compra exprés de una
    * capacitación para retomar donde la persona dejó.
    *
-   * SOLO se aceptan rutas internas que arranquen con "/formacion/": sin
+   * SOLO se aceptan rutas internas que arranquen con "/academia/": sin
    * ese candado, cualquiera podría armar un link con el dominio de ALMA que
    * deposite a la persona en otro sitio.
    */
   const destinoCrudo = searchParams.get("next") ?? ""
-  const destino =
-    destinoCrudo.startsWith("/formacion/") && !destinoCrudo.startsWith("//")
-      ? destinoCrudo
-      : ""
+  const destino = esDestinoInterno(destinoCrudo) ? destinoCrudo : ""
 
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
   const [countdown, setCountdown] = useState(5)
@@ -39,30 +38,50 @@ function VerificarEmailContent() {
     fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token }),
+      body: JSON.stringify({ token, next: destino }),
     })
-      .then((res) => {
-        if (res.ok) setStatus("success")
-        else setStatus("error")
+      .then(async (res) => {
+        if (!res.ok) { setStatus("error"); return }
+        // Si el BFF devolvió un usuario, además de verificar abrió la sesión:
+        // hay que dejarlo en localStorage, que es de donde lo lee el dashboard.
+        const data = await res.json().catch(() => null)
+        if (data?.user) {
+          try {
+            localStorage.setItem("alma_user", JSON.stringify(data.user))
+            document.cookie = "alma_session=1; path=/; SameSite=Strict; max-age=2592000"
+          } catch {}
+        }
+        setStatus("success")
       })
       .catch(() => setStatus("error"))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, type])
 
-  // Redirect participante al login después de 5 segundos — o de vuelta a la
-  // compra, si venía de ahí.
+  /**
+   * Con destino (vino de una compra) ya quedó logueado: se lo manda derecho,
+   * sin cuenta regresiva. Hacerlo esperar cinco segundos para entrar a algo
+   * que ya puede ver no tiene sentido.
+   *
+   * Sin destino (registro común) no hay sesión, así que va a la vidriera:
+   * ve el catálogo y tiene "Ingresar" a mano. Mandarlo a un login pelado no
+   * le muestra nada. Ahí sí conviene el respiro para que lea que quedó
+   * verificado.
+   */
   useEffect(() => {
     if (status !== "success" || type !== "participant") return
+    if (destino) { router.push(destino); return }
     const interval = setInterval(() => {
       setCountdown((c) => {
         if (c <= 1) {
           clearInterval(interval)
-          router.push(destino ? `${destino}?verificado=1` : "/")
+          router.push("/academia")
         }
         return c - 1
       })
     }, 1000)
     return () => clearInterval(interval)
-  }, [status, type, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, type, destino, router])
 
   return (
     <div
@@ -117,17 +136,23 @@ function VerificarEmailContent() {
                 <CheckCircle2 className="w-12 h-12 text-[#0099b0] mx-auto" />
                 <h2 className="text-xl font-bold text-gray-800">¡Email verificado!</h2>
                 <p className="text-gray-600 text-sm">
-                  Tu cuenta está activa. Ya podés iniciar sesión.
+                  {destino
+                    ? "Tu cuenta está activa. Te llevamos a tu capacitación."
+                    : "Tu cuenta está activa. Ya podés entrar con tu PIN."}
                 </p>
-                <p className="text-gray-400 text-sm">
-                  Redirigiendo en <span className="font-bold text-[#0099b0]">{countdown}</span> segundos...
-                </p>
-                <a
-                  href="/"
-                  className="block w-full bg-[#0099b0] hover:bg-[#007a8e] text-white font-semibold py-2.5 px-4 rounded-lg transition-all text-center shadow-md"
-                >
-                  Ir al inicio de sesión
-                </a>
+                {!destino && (
+                  <>
+                    <p className="text-gray-400 text-sm">
+                      Redirigiendo en <span className="font-bold text-[#0099b0]">{countdown}</span> segundos...
+                    </p>
+                    <a
+                      href="/academia"
+                      className="block w-full bg-[#0099b0] hover:bg-[#007a8e] text-white font-semibold py-2.5 px-4 rounded-lg transition-all text-center shadow-md"
+                    >
+                      Ver las capacitaciones
+                    </a>
+                  </>
+                )}
               </>
             )}
           </div>

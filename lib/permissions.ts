@@ -34,6 +34,10 @@ export type Action =
   | "capacitaciones:report"
   | "accesos:view"
   | "accesos:manage"
+  | "stand:sell"
+  | "stand:manage"
+  | "emails:view"
+  | "emails:send"
 
 /**
  * Returns true if the given user is allowed to perform the given action.
@@ -157,6 +161,18 @@ export function can(user: { role: string } | null, action: Action): boolean {
 
     // Actividad (tracking de uso): solo admin puede ver el resumen y timeline.
     case "tracking:view":
+      return isAdmin
+
+    // Puesto de venta del stand: lo atienden voluntarios, no admins. Si
+    // pidiera admin, el sábado en el Monumento no lo podría usar nadie.
+    case "stand:sell":
+    case "stand:manage":
+      return true
+
+    // Emails: mandar sale con el remitente de ALMA, y el registro de envíos es
+    // la lista de mails de la gente. Las dos cosas, solo admin.
+    case "emails:view":
+    case "emails:send":
       return isAdmin
 
     default:

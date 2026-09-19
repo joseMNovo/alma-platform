@@ -170,12 +170,12 @@ export default function NotificationBell() {
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
-                          <p className={`text-sm truncate ${n.is_read ? "font-medium text-gray-700" : "font-semibold text-gray-900"}`}>
+                          <p className={`text-sm break-words ${n.is_read ? "font-medium text-gray-700" : "font-semibold text-gray-900"}`}>
                             {n.title}
                           </p>
                           {!n.is_read && <span className="mt-1.5 w-2 h-2 rounded-full bg-[#4dd0e1] shrink-0" />}
                         </div>
-                        {n.body && <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{n.body}</p>}
+                        {n.body && <p className="text-xs text-gray-600 mt-0.5 break-words">{n.body}</p>}
                         <p className="text-[11px] text-gray-400 mt-1">{timeAgo(n.created_at)}</p>
                       </div>
                     </button>

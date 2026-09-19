@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { setCalendarAssignment, removeCalendarAssignment } from '@/lib/data-manager'
 import { logInfo, logWarn, logError } from '@/lib/logger'
+import { getSessionUser } from '@/lib/serverAuth'
+import { can } from '@/lib/permissions'
 
 export async function POST(req: NextRequest) {
+  const session = getSessionUser(req)
+  if (!session || !can(session, "calendar:edit")) {
+    logWarn("Asignación de calendario denegada", { module: "calendarios", action: "assign_denied", user: session?.id })
+    return NextResponse.json({ error: "Sin permisos" }, { status: 403 })
+  }
+
   try {
     const { instance_id, role, volunteer_id } = await req.json()
 
@@ -32,6 +40,12 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const session = getSessionUser(req)
+  if (!session || !can(session, "calendar:edit")) {
+    logWarn("Baja de asignación denegada", { module: "calendarios", action: "unassign_denied", user: session?.id })
+    return NextResponse.json({ error: "Sin permisos" }, { status: 403 })
+  }
+
   try {
     const { searchParams } = new URL(req.url)
     const instance_id = parseInt(searchParams.get('instance_id') || '')

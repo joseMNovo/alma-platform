@@ -5,8 +5,8 @@ import { logError } from "@/lib/logger"
 /**
  * GET /api/capacitaciones/portada/[guid] — portada de una capacitación, PÚBLICA.
  *
- * Existe porque /api/files/[guid]/raw exige sesión, y la vidriera (/formacion y
- * las landings /formacion/<slug>) la mira gente sin cuenta: con aquella ruta
+ * Existe porque /api/files/[guid]/raw exige sesión, y la vidriera (/academia y
+ * las landings /academia/<slug>) la mira gente sin cuenta: con aquella ruta
  * las portadas salían rotas para el visitante, que es justo a quien queremos
  * convencer.
  *

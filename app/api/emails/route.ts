@@ -1,7 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { logInfo, logWarn, logError } from "@/lib/logger"
+import { getSessionUser } from "@/lib/serverAuth"
+import { can } from "@/lib/permissions"
 
 export async function POST(request: NextRequest) {
+  const session = getSessionUser(request)
+  if (!session || !can(session, "emails:send")) {
+    return NextResponse.json({ error: "Sin permisos" }, { status: 403 })
+  }
+
   try {
     const { to, subject, message, type } = await request.json()
 
@@ -30,7 +37,12 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const session = getSessionUser(request)
+  if (!session || !can(session, "emails:view")) {
+    return NextResponse.json({ error: "Sin permisos" }, { status: 403 })
+  }
+
   try {
     const emailHistory = [
       {

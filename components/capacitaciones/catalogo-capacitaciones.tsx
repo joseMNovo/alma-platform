@@ -10,7 +10,7 @@ import TrainingCard, { groupByCategory, colorDeCategoria } from "./training-card
  *
  * Es la MISMA pieza en los dos lados:
  *
- *   - /formacion (pública, sin sesión) → se le pasa `hrefBase`
+ *   - /academia (una sola ruta: vidriera sin sesión, módulo con sesión) → se le pasa `hrefBase`
  *   - el catálogo de adentro del módulo → se le pasa `onSelect`
  *
  * La academia es un server component y no puede pasarle una función, por eso el

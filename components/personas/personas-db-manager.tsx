@@ -12,6 +12,7 @@ import {
   Plus, Edit, Trash2, Database, Search, X, ChevronDown,
   ArrowUpDown, ArrowUp, ArrowDown, Send, Loader2, AlertTriangle,
   Mail, Phone, MapPin, IdCard, UserCheck, UserX, BadgeCheck, Users, UserCircle, LogIn,
+  ShieldCheck,
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { can } from "@/lib/permissions"
@@ -462,6 +463,30 @@ export default function PersonasDbManager({ user }: { user: any }) {
     }
   }
 
+  // ── Toggle administrador ────────────────────────────────────────────
+  /** Marca o desmarca a la persona como admin. El flag vive en `voluntarios`,
+   *  así que solo tiene sentido si ya tiene ficha de voluntario/a. */
+  const toggleAdmin = async (p: Persona) => {
+    if (!isAdmin || !p.volunteer_id || togglingId != null) return
+    const next = !p.is_admin
+    setTogglingId(p.id)
+    setPersonas(prev => prev.map(x => (x.id === p.id ? { ...x, is_admin: next } : x)))
+    try {
+      const res = await fetch(`/api/voluntarios?id=${p.volunteer_id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_admin: next }),
+      })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Error")
+      toast({ title: next ? "Ahora es administrador/a" : "Ya no es administrador/a" })
+    } catch (error: any) {
+      setPersonas(prev => prev.map(x => (x.id === p.id ? { ...x, is_admin: !next } : x)))
+      toast({ title: "Error", description: error.message || "No se pudo actualizar", variant: "destructive" })
+    } finally {
+      setTogglingId(null)
+    }
+  }
+
   // ── Habilitar como voluntario/a ─────────────────────────────────────
   const [volFormOpen, setVolFormOpen] = useState(false)
   const [volPersona, setVolPersona] = useState<Persona | null>(null) // persona a habilitar; null = voluntario nuevo
@@ -687,6 +712,21 @@ export default function PersonasDbManager({ user }: { user: any }) {
                       </button>
                     ) : (
                       <MemberMark active={!!p.is_member} />
+                    )}
+                    {/* Administrador/a — solo lo ve y lo toca un admin, y solo
+                        aparece si la persona ya es voluntaria: el flag vive en
+                        su ficha de voluntario/a. */}
+                    {isAdmin && p.volunteer_id && (
+                      <button
+                        type="button"
+                        onClick={e => { e.stopPropagation(); toggleAdmin(p) }}
+                        disabled={togglingId === p.id}
+                        title={p.is_admin ? "Administrador/a — tocar para quitar" : "Tocar para hacer administrador/a"}
+                        aria-pressed={!!p.is_admin}
+                        className="p-1 rounded-full transition-transform active:scale-90 disabled:opacity-50"
+                      >
+                        <ShieldCheck className={`w-[18px] h-[18px] ${p.is_admin ? "text-[#00838f]" : "text-gray-300"}`} />
+                      </button>
                     )}
                     {/* Voluntario/a — flor: toca para habilitar (si no lo es) o
                         para quitar el rol y volverlo participante (si lo es). */}

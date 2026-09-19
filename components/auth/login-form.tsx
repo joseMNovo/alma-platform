@@ -11,6 +11,12 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
   const [email, setEmail] = useState("")
   const [pin, setPin] = useState("")
   const [error, setError] = useState("")
+  /** El login frena a quien no confirmó el mail. Sin esto, la persona veía el
+   *  cartel y no tenía de dónde agarrarse: el correo podía estar en spam o
+   *  borrado, y desde acá no había forma de pedirlo de nuevo. */
+  const [faltaVerificar, setFaltaVerificar] = useState(false)
+  const [reenviando, setReenviando] = useState(false)
+  const [reenviado, setReenviado] = useState(false)
   const [loading, setLoading] = useState(false)
   const [accordionOpen, setAccordionOpen] = useState(false)
   const [remember, setRemember] = useState(true)
@@ -54,6 +60,8 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
     if (e) e.preventDefault()
     setLoading(true)
     setError("")
+    setFaltaVerificar(false)
+    setReenviado(false)
 
     if (pin.length !== 4) {
       setError("El PIN debe tener exactamente 4 dígitos")
@@ -74,12 +82,31 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
         onLogin(data.user)
       } else {
         setError(data.error || "Credenciales inválidas")
+        setFaltaVerificar(!!data.needs_verification)
         setPin("")
       }
     } catch {
       setError("Error de conexión")
     } finally {
       setLoading(false)
+    }
+  }
+
+  /** Reenvía el mail de verificación. Mismo endpoint que el botón del wizard
+   *  de compra; no hizo falta nada nuevo del lado del servidor. */
+  const reenviarVerificacion = async () => {
+    setReenviando(true)
+    try {
+      await fetch("/api/registro", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      })
+      setReenviado(true)
+    } catch {
+      setError("No pudimos reenviarlo. Probá de nuevo en un momento.")
+    } finally {
+      setReenviando(false)
     }
   }
 
@@ -236,7 +263,25 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
 
                   {error && (
                     <Alert className="border-red-200 bg-red-50 rounded-xl">
-                      <AlertDescription className="text-red-700 text-sm">{error}</AlertDescription>
+                      <AlertDescription className="text-red-700 text-sm">
+                        {error}
+                        {faltaVerificar && (
+                          reenviado ? (
+                            <span className="mt-2 block font-medium text-green-700">
+                              Listo, te lo mandamos de nuevo. Revisá también el correo no deseado.
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={reenviarVerificacion}
+                              disabled={reenviando}
+                              className="mt-2 block font-semibold text-[#0099b0] underline-offset-2 hover:underline disabled:opacity-50"
+                            >
+                              {reenviando ? "Enviando..." : "Reenviar el correo"}
+                            </button>
+                          )
+                        )}
+                      </AlertDescription>
                     </Alert>
                   )}
 
