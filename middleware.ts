@@ -78,10 +78,14 @@ export async function middleware(request: NextRequest) {
    * En las páginas se avisa el motivo en la URL: sin eso, el login ve el
    * localStorage intacto y vuelve a empujar adentro → rebote infinito.
    */
-  const rechazar = () =>
-    isApi
-      ? NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-      : NextResponse.redirect(new URL('/?sesion=vencida', request.url))
+  const rechazar = () => {
+    if (isApi) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    // Se lleva a dónde quería ir: si alguien comparte el link de un módulo,
+    // después de entrar tiene que caer ahí y no en Inicio.
+    const destino = new URL('/?sesion=vencida', request.url)
+    destino.searchParams.set('next', pathname + request.nextUrl.search)
+    return NextResponse.redirect(destino)
+  }
 
   const token = request.cookies.get('alma_token')?.value
   if (!token) return rechazar()

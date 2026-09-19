@@ -22,6 +22,15 @@ export default function HomePageClient({ gamesUrl }: { gamesUrl: string }) {
   const [sesionVencida, setSesionVencida] = useState(false)
   const router = useRouter()
 
+  /** Adónde mandar después de entrar. El middleware deja en la URL el módulo
+   *  que la persona quiso abrir; si no hay ninguno, va a Inicio. Solo rutas
+   *  internas: `//otro-sitio.com` parece interna y no lo es. */
+  const destinoPostLogin = () => {
+    if (typeof window === "undefined") return "/inicio"
+    const pedido = new URLSearchParams(window.location.search).get("next")
+    return pedido && pedido.startsWith("/") && !pedido.startsWith("//") ? pedido : "/inicio"
+  }
+
   useEffect(() => {
     /**
      * El localStorage NO vence; la cookie del token sí (15 días), y además
@@ -46,7 +55,11 @@ export default function HomePageClient({ gamesUrl }: { gamesUrl: string }) {
         const userData = JSON.parse(savedUser)
         setUser(userData)
         document.cookie = "alma_session=1; path=/; SameSite=Strict; max-age=2592000"
-        router.push("/inicio")
+        // Navegación DURA a propósito. Con `router.push`, si el middleware
+        // rebotaba por cookie vencida el componente no se volvía a montar, el
+        // efecto no corría otra vez y el spinner quedaba girando para siempre
+        // — se veía sobre todo en la PWA del teléfono.
+        window.location.replace(destinoPostLogin())
       } catch {
         // Guardado corrupto: se descarta en vez de dejar la pantalla colgada.
         localStorage.removeItem("alma_user")
@@ -69,7 +82,7 @@ export default function HomePageClient({ gamesUrl }: { gamesUrl: string }) {
         localStorage.setItem("alma_new_registration", userData.role)
       }
     } catch {}
-    router.push("/inicio")
+    window.location.replace(destinoPostLogin())
   }
 
   const handleLogout = useCallback(async () => {
