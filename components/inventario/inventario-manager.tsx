@@ -753,21 +753,36 @@ export default function InventarioManager({ user }: { user: any }) {
       </div>
 
       {/* Low stock alerts */}
-      {lowStockItems.length > 1 && (
+      {/* El cartel aparece desde UN ítem en rojo, no desde dos.
+          Con el corte en `> 1`, un solo ítem marcado dejaba un triangulito
+          rojo en la fila y nada que explicara por qué estaba ahí. Y "1 ítem"
+          es justamente el caso en que es más fácil no entenderlo.
+
+          El texto dice el motivo, que es lo que faltaba: el triángulo no
+          significa "algo anda mal", significa "quedan menos unidades que el
+          mínimo que vos definiste para este ítem". */}
+      {lowStockItems.length > 0 && (
         <Card className="border-red-200 bg-red-50 mx-4 sm:mx-0">
-          <CardHeader className="px-4 sm:px-6">
+          <CardHeader className="px-4 pb-2 sm:px-6">
             <CardTitle className="text-red-800 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5" />
-              Alertas de stock bajo
+              {lowStockItems.length === 1
+                ? "1 ítem por debajo del stock mínimo"
+                : `${lowStockItems.length} ítems por debajo del stock mínimo`}
             </CardTitle>
+            <CardDescription className="text-red-700/80">
+              Quedan menos unidades que el mínimo definido para {lowStockItems.length === 1 ? "ese ítem" : "esos ítems"}.
+              El mínimo se cambia al editarlo.
+            </CardDescription>
           </CardHeader>
           <CardContent className="px-4 sm:px-6">
             <div className="space-y-2">
               {lowStockItems.map((item) => (
-                <div key={item.id} className="flex justify-between items-center text-sm">
+                <div key={item.id} className="flex justify-between items-center gap-2 text-sm">
                   <span className="font-medium truncate">{item.name}</span>
-                  <span className="text-red-600 text-xs sm:text-sm ml-2 flex-shrink-0">
-                    {item.quantity} / {item.minimum_stock}
+                  {/* "7 / 10" obligaba a adivinar cuál era cuál. */}
+                  <span className="ml-2 flex-shrink-0 text-xs text-red-600 sm:text-sm">
+                    Quedan <strong>{item.quantity}</strong> · mínimo {item.minimum_stock}
                   </span>
                 </div>
               ))}
@@ -800,7 +815,12 @@ export default function InventarioManager({ user }: { user: any }) {
                       {item.name}
                     </span>
                     {lowStock && (
-                      <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
+                      <span
+                        title={`Quedan ${item.quantity}, el mínimo es ${item.minimum_stock}`}
+                        className="flex shrink-0 items-center"
+                      >
+                        <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
+                      </span>
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 mt-1">
@@ -950,7 +970,18 @@ export default function InventarioManager({ user }: { user: any }) {
                 >
                   <td className="px-4 py-2">
                     <div className="flex items-center gap-2">
-                      {lowStock && <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 text-red-500" />}
+                      {/* El motivo, al pasar el mouse: el triángulo solo no
+                          dice cuánto queda ni cuál era el mínimo. Va en un
+                          `span` con `title` y no como hijo del icono, porque
+                          eso depende de que lucide reenvíe children al svg. */}
+                      {lowStock && (
+                        <span
+                          title={`Quedan ${item.quantity}, el mínimo es ${item.minimum_stock}`}
+                          className="flex shrink-0 items-center"
+                        >
+                          <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
+                        </span>
+                      )}
                       <div className="min-w-0">
                         <p className="flex items-center gap-1.5 font-medium text-gray-900">
                           {item.name}
@@ -1037,6 +1068,13 @@ export default function InventarioManager({ user }: { user: any }) {
         itemType="inventario"
         action="delete"
         loading={deleting}
+        // Borrar un ítem que está a la venta también lo saca del puesto. Se
+        // avisa antes: enterarse después, con el stand abierto, es tarde.
+        description={
+          itemToDelete?.for_sale
+            ? `"${itemToDelete.name}" está a la venta en el puesto. Si lo borrás, también deja de ofrecerse ahí. Esta acción no se puede deshacer.`
+            : undefined
+        }
       />
     </div>
   )
