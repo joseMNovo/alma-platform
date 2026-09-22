@@ -24,6 +24,7 @@ const PROTECTED_PATHS = [
   '/participantes',
   '/inscripciones',
   '/puesto-venta',
+  '/ingresos',
   '/inicio',
 ]
 
@@ -128,6 +129,7 @@ export const config = {
     '/participantes/:path*',
     '/inscripciones/:path*',
     '/puesto-venta/:path*',
+    '/ingresos/:path*',
     '/inicio/:path*',
   ],
 }

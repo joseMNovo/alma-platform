@@ -36,6 +36,7 @@ export type Action =
   | "accesos:manage"
   | "stand:sell"
   | "stand:manage"
+  | "ingresos:view"
   | "emails:view"
   | "emails:send"
 
@@ -168,6 +169,12 @@ export function can(user: { role: string } | null, action: Action): boolean {
     case "stand:sell":
     case "stand:manage":
       return true
+
+    // Ingresos: el total de lo que entra por todos lados. Un voluntario cobra
+    // en el puesto y ve SU caja, pero la recaudación completa de ALMA es otra
+    // cosa y la mira quien administra.
+    case "ingresos:view":
+      return isAdmin
 
     // Emails: mandar sale con el remitente de ALMA, y el registro de envíos es
     // la lista de mails de la gente. Las dos cosas, solo admin.

@@ -31,6 +31,7 @@ type Paso = "inicio" | "datos" | "revisa-tu-mail" | "pagar"
 
 export default function CompraWizard({
   slug,
+  trainingId,
   titulo,
   precio,
   moneda,
@@ -38,6 +39,9 @@ export default function CompraWizard({
   verificado,
 }: {
   slug: string
+  /** Se manda en el alta para dejar anotado qué quiso comprar. Sin eso, el
+   *  recordatorio de pago no sabría a quién escribirle. */
+  trainingId: number
   titulo: string
   precio: number
   moneda: string
@@ -88,6 +92,7 @@ export default function CompraWizard({
           // compró. `?c=` y no `/academia/<slug>`: esa es la landing pública,
           // y con sesión lo que corresponde ver es el módulo.
           next: `/academia?c=${slug}`,
+          training_id: trainingId,
         }),
       })
       const data = await res.json()

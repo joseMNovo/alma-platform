@@ -61,6 +61,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import PuestoVentaManager from "@/components/stand/puesto-venta-manager"
+import IngresosTablero from "@/components/ingresos/ingresos-tablero"
 import InicioLauncher from "@/components/inicio/inicio-launcher"
 import AlmaFooter from "@/components/ui/alma-footer"
 import MarcaAlma from "@/components/ui/marca-alma"
@@ -86,6 +87,9 @@ const SESSION_GAP_MS = 30 * 60 * 1000
 export default function Dashboard({ user, onLogout }: { user: any, onLogout: () => void }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
+  /** Avisos de "ya pagué" sin resolver. Se muestran en el nav para que no haya
+   *  que entrar a Accesos todos los días a ver si alguien está esperando. */
+  const [avisosPago, setAvisosPago] = useState(0)
   const [navigating, setNavigating] = useState(false)
   // Habilitaciones del usuario (person_access_grants). Se usan SOLO para
   // decidir qué pestañas pintar; el acceso real lo verifica el servidor en
@@ -136,6 +140,10 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       .then(r => r.ok ? r.json() : [])
       .then(data => setPendingCount(Array.isArray(data) ? data.length : 0))
       .catch(() => {})
+    fetch("/api/accesos/avisos-de-pago?status=pendiente")
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setAvisosPago(Array.isArray(data) ? data.length : 0))
+      .catch(() => {})
   }, [pathname, isAdmin])
   useEffect(() => {
     fetch("/api/accesos/mios")
@@ -180,6 +188,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
     actividad: <ActividadManager user={user} />,
     anuncios: <BroadcastManager user={user} />,
     "puesto-venta": <PuestoVentaManager user={user} />,
+    ingresos: <IngresosTablero />,
     "mis-datos": <MiCuenta user={user} />,
   }
 
@@ -416,6 +425,9 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                                         <p className="flex items-center gap-2 px-3 pt-2 pb-0.5 pl-8 text-xs font-medium text-gray-400">
                                           <ChildIcon className="h-4 w-4 shrink-0" />
                                           {child.label}
+                                          {child.key === "accesos" && avisosPago > 0 && (
+                                            <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" />
+                                          )}
                                         </p>
                                         {nietos.map((nieto) => {
                                           const NietoIcon = nieto.icon
@@ -429,6 +441,11 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                                             >
                                               <NietoIcon className="w-4 h-4 mr-3" />
                                               {nieto.label}
+                                              {nieto.key === "pagos-capacitaciones" && avisosPago > 0 && (
+                                                <span className="ml-auto inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                                                  {avisosPago}
+                                                </span>
+                                              )}
                                             </Button>
                                           )
                                         })}
@@ -563,6 +580,12 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                         {pendingCount}
                       </span>
                     )}
+                    {/* El desplegable solo aparece al pasar el mouse, así que un
+                        aviso que viva únicamente ahí adentro hay que adivinarlo.
+                        Este punto es el que se ve sin hacer nada. */}
+                    {mod.key === "contenido" && avisosPago > 0 && (
+                      <span className="ml-1 h-2 w-2 shrink-0 rounded-full bg-red-500" />
+                    )}
                   </TabsTrigger>
                 </div>
               )
@@ -595,6 +618,14 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                         >
                           <ChildIcon className="w-4 h-4 shrink-0" />
                           {child.label}
+                          {child.key === "accesos" && avisosPago > 0 && (
+                            <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" />
+                          )}
+                          {child.key === "aprobaciones" && pendingCount > 0 && (
+                            <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                              {pendingCount}
+                            </span>
+                          )}
                         </button>
                       )
                     })}
@@ -668,6 +699,12 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                               {pendingCount}
                             </span>
                           )}
+                          {/* Punto y no número: el padre avisa que hay algo, el
+                              nieto dice cuánto. Repetir el mismo número en dos
+                              niveles no agrega nada. */}
+                          {child.key === "accesos" && avisosPago > 0 && (
+                            <span className="ml-1 h-2 w-2 shrink-0 rounded-full bg-red-500" />
+                          )}
                         </TabsTrigger>
                       )
                     })}
@@ -694,6 +731,11 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                                   <TabsTrigger key={nieto.key} value={nieto.key} className={subSubTabTriggerClass}>
                                     <NietoIcon className="h-3.5 w-3.5 shrink-0" />
                                     <span>{nieto.label}</span>
+                                    {nieto.key === "pagos-capacitaciones" && avisosPago > 0 && (
+                                      <span className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                                        {avisosPago}
+                                      </span>
+                                    )}
                                   </TabsTrigger>
                                 )
                               })}

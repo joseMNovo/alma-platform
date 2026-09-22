@@ -14,6 +14,8 @@ import GrantWizard from "@/components/accesos/grant-wizard"
 import PaymentDialog from "@/components/accesos/payment-dialog"
 import { VolunteerFlower, ParticipantMark } from "@/components/personas/role-marks"
 import { toast } from "@/hooks/use-toast"
+import ColaAvisosPago from "@/components/accesos/cola-avisos-pago"
+import HistorialAvisosPago from "@/components/accesos/historial-avisos-pago"
 import { GRANTABLE_MODULES } from "@/lib/modules"
 import type { AccessMatrixRow, Training, PersonPayment, AccessAuditEntry, SharedAccountAlert } from "@/lib/data-manager"
 import {
@@ -398,6 +400,10 @@ export default function AccesosManager({
 const ANIOS = Array.from({ length: 4 }, (_, i) => new Date().getFullYear() - i)
 
 function PagosTab() {
+  /** Dos miradas del mismo tema: la plata que entró, y quién dijo que pagó.
+   *  Van juntas porque confirmar un aviso crea un pago; separarlas en pestañas
+   *  del nav habría escondido la relación. */
+  const [subVista, setSubVista] = useState<"pagos" | "avisos">("pagos")
   const [payments, setPayments] = useState<PersonPayment[]>([])
   const [summary, setSummary] = useState<{ concept_type: string; label?: string | null; pagos: number; total: number }[]>([])
   const [year, setYear] = useState(new Date().getFullYear())
@@ -438,6 +444,35 @@ function PagosTab() {
 
   return (
     <div className="space-y-4">
+      {/* Arriba de todo: es trabajo pendiente, no historial. Al confirmar uno
+          se recarga la lista de abajo, porque acaba de entrar un pago. */}
+      <ColaAvisosPago onResuelto={load} />
+
+      {/* Elegir entre la plata y los avisos. La cola de arriba queda visible en
+          las dos: es lo único accionable de la pantalla. */}
+      <div className="flex gap-1.5">
+        <button
+          onClick={() => setSubVista("pagos")}
+          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+            subVista === "pagos" ? "bg-[#4dd0e1] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          Pagos registrados
+        </button>
+        <button
+          onClick={() => setSubVista("avisos")}
+          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+            subVista === "avisos" ? "bg-[#4dd0e1] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          Avisos resueltos
+        </button>
+      </div>
+
+      {subVista === "avisos" && <HistorialAvisosPago />}
+
+      {subVista === "pagos" && (
+      <>
       {/* Pastillas y no un campo numérico: los años son cuatro botones, no un
           número que haya que escribir. Con el input se podía tipear 3026 y
           quedar mirando una pantalla vacía sin entender por qué. */}
@@ -521,6 +556,8 @@ function PagosTab() {
             </table>
           </CardContent>
         </Card>
+      )}
+      </>
       )}
 
       {toDelete && (

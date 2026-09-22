@@ -4,12 +4,13 @@ import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import CamposPago from "@/components/accesos/campos-pago"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { toast } from "@/hooks/use-toast"
-import { Loader2, Search, ChevronLeft, ChevronRight, GraduationCap, Users, CheckCircle2, CreditCard } from "lucide-react"
+import { Loader2, Search, ChevronLeft, ChevronRight, GraduationCap, Users, CheckCircle2, CreditCard, X } from "lucide-react"
 import type { AccessMatrixRow, Training } from "@/lib/data-manager"
 
 export interface WizardColumn {
@@ -67,6 +68,9 @@ export default function GrantWizard({
   const [trainingSearch, setTrainingSearch] = useState("")
 
   const [personIds, setPersonIds] = useState<Set<number>>(new Set(initialPersonIds ?? []))
+  /** Filtro por rol dentro del paso de personas. Con veintipico de fichas, la
+   *  lista alfabética obliga a scrollear para encontrar a alguien. */
+  const [filtroRol, setFiltroRol] = useState<"todos" | "voluntarios" | "participantes">("todos")
   const [personSearch, setPersonSearch] = useState("")
   const [people, setPeople] = useState<AccessMatrixRow[]>([])
   const [loadingPeople, setLoadingPeople] = useState(false)
@@ -131,6 +135,31 @@ export default function GrantWizard({
       return next
     })
   }
+  /** Si se eligió UNA sola capacitación, se puede saber quién ya la tiene y
+   *  no ofrecerla de nuevo. Con varias no hay una respuesta única, así que no
+   *  se marca nada. */
+  const capacitacionUnica = trainingIds.size === 1 ? [...trainingIds][0] : null
+  const yaTiene = (p: AccessMatrixRow) =>
+    capacitacionUnica !== null && !!p.grants?.[String(capacitacionUnica)]
+
+  const visibles = people.filter((p) =>
+    filtroRol === "todos" ? true : filtroRol === "voluntarios" ? p.is_volunteer : !p.is_volunteer,
+  )
+
+  /** Marca o desmarca a todos los que se estén viendo, salvo los que ya
+   *  tienen acceso: seleccionarlos no haría nada. */
+  const alternarTodos = () => {
+    const elegibles = visibles.filter((p) => !yaTiene(p))
+    const faltan = elegibles.some((p) => !personIds.has(p.person_id))
+    setPersonIds((prev) => {
+      const copia = new Set(prev)
+      elegibles.forEach((p) => (faltan ? copia.add(p.person_id) : copia.delete(p.person_id)))
+      return copia
+    })
+  }
+
+  const seleccionadas = people.filter((p) => personIds.has(p.person_id))
+
   const togglePerson = (id: number) => {
     setPersonIds((prev) => {
       const next = new Set(prev)
@@ -234,7 +263,7 @@ export default function GrantWizard({
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-lg">
+      <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Habilitar acceso</DialogTitle>
         </DialogHeader>
@@ -317,30 +346,90 @@ export default function GrantWizard({
                   autoFocus
                 />
               </div>
+              {/* Quiénes van elegidos, arriba y siempre visibles. Sin esto, con
+                  la lista ordenada alfabéticamente, alguien que eligió a
+                  "Zulema" ve cinco casillas vacías y cree que no marcó nada. */}
+              {seleccionadas.length > 0 && (
+                <div className="max-h-24 overflow-y-auto rounded-lg bg-[#4dd0e1]/5 p-2">
+                  <div className="flex flex-wrap gap-1.5">
+                    {seleccionadas.map((p) => (
+                      <button
+                        key={p.person_id}
+                        onClick={() => togglePerson(p.person_id)}
+                        title="Quitar de la selección"
+                        className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-[#00838f] shadow-sm ring-1 ring-[#4dd0e1]/40 hover:bg-red-50 hover:text-red-600 hover:ring-red-200"
+                      >
+                        {`${p.name ?? ""} ${p.last_name ?? ""}`.trim() || p.email || "Sin nombre"}
+                        <X className="h-3 w-3" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                {([
+                  ["todos", "Todos"],
+                  ["voluntarios", "Voluntarios"],
+                  ["participantes", "Participantes"],
+                ] as const).map(([clave, texto]) => (
+                  <button
+                    key={clave}
+                    onClick={() => setFiltroRol(clave)}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                      filtroRol === clave
+                        ? "border-[#4dd0e1] bg-[#4dd0e1] text-white"
+                        : "border-gray-200 bg-white text-gray-600 hover:border-[#4dd0e1]"
+                    }`}
+                  >
+                    {texto}
+                  </button>
+                ))}
+                <button
+                  onClick={alternarTodos}
+                  className="ml-auto text-xs font-medium text-[#00838f] hover:underline"
+                >
+                  Seleccionar todos
+                </button>
+              </div>
+
               <div className="max-h-72 space-y-1 overflow-y-auto rounded-lg border border-gray-100 p-1">
                 {loadingPeople ? (
                   <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-[#4dd0e1]" /></div>
-                ) : people.length === 0 ? (
+                ) : visibles.length === 0 ? (
                   <p className="p-3 text-center text-sm text-gray-400">Sin resultados.</p>
                 ) : (
-                  people.map((p) => (
-                    <label
-                      key={p.person_id}
-                      className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 text-sm hover:bg-[#4dd0e1]/5"
-                    >
-                      <Checkbox
-                        checked={personIds.has(p.person_id)}
-                        onCheckedChange={() => togglePerson(p.person_id)}
-                        className="border-gray-300 data-[state=checked]:border-[#4dd0e1] data-[state=checked]:bg-[#4dd0e1]"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-gray-800">
-                          {`${p.name ?? ""} ${p.last_name ?? ""}`.trim() || "Sin nombre"}
-                        </p>
-                        <p className="truncate text-xs text-gray-400">{p.email || "sin email"}</p>
-                      </div>
-                    </label>
-                  ))
+                  visibles.map((p) => {
+                    const tiene = yaTiene(p)
+                    return (
+                      <label
+                        key={p.person_id}
+                        className={`flex items-center gap-2.5 rounded-md px-2 py-2 text-sm ${
+                          tiene ? "opacity-50" : "cursor-pointer hover:bg-[#4dd0e1]/5"
+                        }`}
+                      >
+                        <Checkbox
+                          checked={personIds.has(p.person_id)}
+                          disabled={tiene}
+                          onCheckedChange={() => togglePerson(p.person_id)}
+                          className="border-gray-300 data-[state=checked]:border-[#4dd0e1] data-[state=checked]:bg-[#4dd0e1]"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium text-gray-800">
+                            {`${p.name ?? ""} ${p.last_name ?? ""}`.trim() || "Sin nombre"}
+                          </p>
+                          <p className="truncate text-xs text-gray-400">{p.email || "sin email"}</p>
+                        </div>
+                        {/* Se muestran igual, atenuados: esconderlos haría
+                            pensar que la búsqueda falló o que la ficha no existe. */}
+                        {tiene && (
+                          <span className="shrink-0 text-[11px] font-medium text-gray-400">
+                            Ya tiene acceso
+                          </span>
+                        )}
+                      </label>
+                    )
+                  })
                 )}
               </div>
               <p className="text-xs text-gray-400">{personIds.size} seleccionada{personIds.size === 1 ? "" : "s"}</p>
@@ -374,35 +463,13 @@ export default function GrantWizard({
                   </div>
 
                   {withPayment && (
-                    <div className="space-y-3 rounded-lg border border-gray-200 p-3">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label className="text-xs">Monto *</Label>
-                          <Input type="number" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Medio</Label>
-                          <Select value={method} onValueChange={setMethod}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="transferencia">Transferencia</SelectItem>
-                              <SelectItem value="efectivo">Efectivo</SelectItem>
-                              <SelectItem value="mercadopago">Mercado Pago</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label className="text-xs">Fecha</Label>
-                          <Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Comprobante</Label>
-                          <Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="0012-4471" />
-                        </div>
-                      </div>
-                    </div>
+                    <CamposPago
+                      datos={{ amount, method, paidAt, reference }}
+                      onChange={(d) => {
+                        setAmount(d.amount); setMethod(d.method)
+                        setPaidAt(d.paidAt); setReference(d.reference)
+                      }}
+                    />
                   )}
                 </>
               ) : (

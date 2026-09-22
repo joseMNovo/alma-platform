@@ -30,7 +30,7 @@ export async function PUT(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, pin, role, name, last_name, next } = await request.json()
+    const { email, pin, role, name, last_name, next, training_id } = await request.json()
 
     if (!email || !pin || !role) {
       return NextResponse.json({ error: "Todos los campos son requeridos" }, { status: 400 })
@@ -61,6 +61,8 @@ export async function POST(request: NextRequest) {
       name: typeof name === "string" ? name.trim() || null : null,
       last_name: typeof last_name === "string" ? last_name.trim() || null : null,
       next: destino,
+      // Qué capacitación venía a comprar. Queda como intención en la base.
+      training_id: Number(training_id) || null,
     })
 
     return NextResponse.json(result, { status: 201 })

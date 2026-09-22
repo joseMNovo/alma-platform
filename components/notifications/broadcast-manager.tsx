@@ -233,8 +233,17 @@ export default function BroadcastManager({ user }: { user: any }) {
   const sinDestinatarios = audienceMode === "participante" && participantes === 0
 
   const algunaVia = conNotificacion || (wholeAudience && alsoPopup) || conMail
+
+  // El mail como ÚNICA vía. Ahí el título y el mensaje del aviso no llegan a
+  // ninguna pantalla: solo servirían de respaldo del asunto y el cuerpo. Pedir
+  // un texto que nadie va a leer confunde, así que el formulario se queda con
+  // el del mail y el asunto pasa a ser lo obligatorio, porque es lo único que
+  // sale. El backend ya lo resuelve con `email_subject or title`, así que no
+  // hay que tocar nada del otro lado.
+  const soloMail = conMail && !conNotificacion && !(wholeAudience && alsoPopup)
+
   const canSend =
-    title.trim().length > 0 &&
+    (soloMail ? asunto.trim().length > 0 : title.trim().length > 0) &&
     !sending &&
     algunaVia &&
     !sinDestinatarios &&
@@ -434,7 +443,8 @@ export default function BroadcastManager({ user }: { user: any }) {
           {/* El texto del aviso y el del mail, uno al lado del otro y con la
               misma pinta: son dos textos distintos del mismo anuncio, no un
               formulario y su apéndice. */}
-          <div className={conMail ? "grid gap-3 lg:grid-cols-2" : ""}>
+          <div className={conMail && !soloMail ? "grid gap-3 lg:grid-cols-2" : ""}>
+          {!soloMail && (
           <div className="space-y-3 rounded-lg border border-gray-200 p-3">
             <p className="text-sm font-medium text-gray-700">Texto del aviso</p>
             <div className="space-y-1.5">
@@ -459,6 +469,7 @@ export default function BroadcastManager({ user }: { user: any }) {
               />
             </div>
           </div>
+          )}
 
           {/* El texto del mail, en su propia sección y no colgando de la
               casilla: es tan importante como el del aviso, no una nota al pie. */}
@@ -467,14 +478,14 @@ export default function BroadcastManager({ user }: { user: any }) {
               <p className="text-sm font-medium text-gray-700">Texto del mail</p>
               <div className="space-y-1.5">
                 <Label htmlFor="bc-asunto">
-                  Asunto
-                  <Ayuda lado="abajo">Vacío, sale el título del aviso.</Ayuda>
+                  Asunto {soloMail && <span className="text-red-500">*</span>}
+                  {!soloMail && <Ayuda lado="abajo">Vacío, sale el título del aviso.</Ayuda>}
                 </Label>
                 <Input
                   id="bc-asunto"
                   value={asunto}
                   onChange={(e) => setAsunto(e.target.value)}
-                  placeholder={title || "El título del aviso"}
+                  placeholder={soloMail ? "Ej: Encuentro de este sábado" : title || "El título del aviso"}
                   maxLength={150}
                 />
               </div>
@@ -483,14 +494,15 @@ export default function BroadcastManager({ user }: { user: any }) {
                   Cuerpo
                   <Ayuda lado="abajo">
                     Un mail se lee sin contexto: casi siempre necesita más texto que
-                    una campanita de una línea. Vacío, sale el mismo del aviso.
+                    una campanita de una línea.
+                    {!soloMail && " Vacío, sale el mismo del aviso."}
                   </Ayuda>
                 </Label>
                 <Textarea
                   id="bc-cuerpo"
                   value={cuerpoMail}
                   onChange={(e) => setCuerpoMail(e.target.value)}
-                  placeholder={body || "El mensaje del aviso"}
+                  placeholder={soloMail ? "Detalle del aviso (opcional)" : body || "El mensaje del aviso"}
                   rows={4}
                 />
               </div>

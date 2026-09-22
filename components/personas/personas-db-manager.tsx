@@ -844,6 +844,9 @@ export default function PersonasDbManager({ user }: { user: any }) {
                 <th className="px-4 py-2 font-semibold text-center">Socio/a</th>
                 <th className="px-4 py-2 font-semibold text-center">Voluntario/a</th>
                 <th className="px-4 py-2 font-semibold text-center">Participante</th>
+                {/* Solo para admins: es el permiso más alto del sistema y no
+                    tiene por qué estar a la vista de todo el mundo. */}
+                {isAdmin && <th className="px-4 py-2 font-semibold text-center">Admin</th>}
                 <th className="px-4 py-2 font-semibold">Estado</th>
                 <th className="px-4 py-2 font-semibold text-right">Acciones</th>
               </tr>
@@ -921,6 +924,28 @@ export default function PersonasDbManager({ user }: { user: any }) {
                         <ParticipantMark active={p.participant_id != null} />
                       </div>
                     </td>
+                    {isAdmin && (
+                      <td className="px-4 py-2">
+                        <div className="flex justify-center">
+                          {/* El flag vive en la ficha de voluntario/a, así que
+                              solo tiene sentido si la persona ya lo es. */}
+                          {p.volunteer_id ? (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); toggleAdmin(p) }}
+                              disabled={togglingId === p.id}
+                              title={p.is_admin ? "Administrador/a — clic para quitar" : "Clic para hacer administrador/a"}
+                              aria-pressed={!!p.is_admin}
+                              className="p-1 rounded-full transition-transform hover:scale-110 active:scale-95 disabled:opacity-50"
+                            >
+                              <ShieldCheck className={`w-[18px] h-[18px] ${p.is_admin ? "text-[#00838f]" : "text-gray-300"}`} />
+                            </button>
+                          ) : (
+                            <span className="text-gray-200">—</span>
+                          )}
+                        </div>
+                      </td>
+                    )}
                     <td className="px-4 py-2">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] leading-none font-medium border whitespace-nowrap ${st.cls}`}>
                         <st.Icon className="w-2.5 h-2.5" />

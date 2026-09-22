@@ -16,8 +16,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Plus, Edit, Trash2, Package, AlertTriangle, Search, Filter, ArrowUp, ArrowDown, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react"
+import { Plus, Edit, Trash2, Package, AlertTriangle, Search, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, X, SlidersHorizontal } from "lucide-react"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
+import FilterChip from "@/components/ui/filter-chip"
+import SelectorBuscable from "@/components/ui/selector-buscable"
 import { toast } from "@/hooks/use-toast"
 
 function isLowStock(item: any) {
@@ -43,6 +45,10 @@ export default function InventarioManager({ user }: { user: any }) {
     stockStatus: "todos",
     priceMin: "",
     priceMax: "",
+    // "En venta" es un filtro, no una sub-pestaña: partir la lista en dos
+    // parte también la búsqueda, y buscás "mates" en la mitad equivocada y
+    // concluís que no está cargado.
+    forSale: "todos",
   })
   const [sortField, setSortField] = useState("")
   const [sortDirection, setSortDirection] = useState("asc")
@@ -55,6 +61,11 @@ export default function InventarioManager({ user }: { user: any }) {
     price: "",
     supplier: "",
     assigned_volunteer_id: "sin-asignar",
+    // Atrás no es una columna de inventario: tildarlo crea la fila en la
+    // góndola del puesto de venta. Acá es un check y nada más, que es como
+    // se piensa el problema.
+    for_sale: false,
+    sale_price: "",
   })
 
   const categories = ["Material Didáctico", "Material Terapéutico", "Mobiliario", "Tecnología", "Oficina", "Limpieza", "Merchandising"]
@@ -112,6 +123,12 @@ export default function InventarioManager({ user }: { user: any }) {
       touch("minimum_stock"); document.getElementById("inv-minimum_stock")?.focus()
       return
     }
+    // Un producto en góndola sin precio se cobra $0 y la caja no cierra.
+    if (formData.for_sale && !(Number.parseFloat(formData.sale_price) > 0)) {
+      toast({ title: "Falta el precio de venta", description: "Un ítem a la venta necesita a cuánto se vende", variant: "destructive" })
+      touch("sale_price"); document.getElementById("inv-sale_price")?.focus()
+      return
+    }
     try {
       const method = editingItem ? "PUT" : "POST"
       const url = editingItem ? `/api/inventario?id=${editingItem.id}` : "/api/inventario"
@@ -124,6 +141,7 @@ export default function InventarioManager({ user }: { user: any }) {
           quantity: Number.parseInt(formData.quantity),
           minimum_stock: Number.parseInt(formData.minimum_stock),
           price: formData.price ? Number.parseFloat(formData.price) : 0,
+          sale_price: formData.sale_price ? Number.parseFloat(formData.sale_price) : null,
           supplier: formData.supplier || "",
           assigned_volunteer_id:
             formData.assigned_volunteer_id && formData.assigned_volunteer_id !== "sin-asignar"
@@ -160,6 +178,16 @@ export default function InventarioManager({ user }: { user: any }) {
         fetchInventory()
         setDeleteDialogOpen(false)
         setItemToDelete(null)
+      } else {
+        // Antes el diálogo se quedaba abierto sin decir nada y parecía colgado.
+        // El caso más común ahora es el 409 de un ítem que está en el puesto
+        // de venta, que además explica cómo salir.
+        const data = await response.json().catch(() => ({}))
+        toast({
+          title: "No se pudo borrar",
+          description: data.error || "Intentá de nuevo en un momento",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error("Error deleting item:", error)
@@ -190,6 +218,8 @@ export default function InventarioManager({ user }: { user: any }) {
       price: "",
       supplier: "",
       assigned_volunteer_id: "sin-asignar",
+      for_sale: false,
+      sale_price: "",
     })
     setEditingItem(null)
     setTouched({})
@@ -205,13 +235,20 @@ export default function InventarioManager({ user }: { user: any }) {
       price: item.price.toString(),
       supplier: item.supplier,
       assigned_volunteer_id: item.assigned_volunteer_id?.toString() || "sin-asignar",
+      for_sale: !!item.for_sale,
+      // El backend devuelve el precio aunque esté fuera de la góndola, así que
+      // volver a ponerlo a la venta no obliga a acordarse de a cuánto era.
+      sale_price: item.sale_price != null ? String(item.sale_price) : "",
     })
     setDialogOpen(true)
   }
 
   const getVolunteerName = (volunteerId: any) => {
     const volunteer = volunteers.find((v) => v.id === volunteerId)
-    return volunteer ? volunteer.name : "Sin asignar"
+    if (!volunteer) return "Sin asignar"
+    // Nombre y apellido: con solo el nombre de pila, dos "María" son la misma
+    // persona en pantalla — y la búsqueda por apellido no encontraba nada.
+    return `${volunteer.name || ""} ${volunteer.last_name || ""}`.trim() || "Sin asignar"
   }
 
   const getFilteredAndSortedInventory = () => {
@@ -221,9 +258,11 @@ export default function InventarioManager({ user }: { user: any }) {
       const search = filters.searchTerm.toLowerCase()
       filtered = filtered.filter(
         (item) =>
+          // Proveedor salió de la búsqueda junto con el campo: si no se ve en
+          // ningún lado, un ítem que aparece "porque sí" hace desconfiar del
+          // buscador entero.
           item.name.toLowerCase().includes(search) ||
           item.category?.toLowerCase().includes(search) ||
-          (item.supplier && item.supplier.toLowerCase().includes(search)) ||
           getVolunteerName(item.assigned_volunteer_id).toLowerCase().includes(search)
       )
     }
@@ -240,12 +279,17 @@ export default function InventarioManager({ user }: { user: any }) {
       }
     }
 
-    if (filters.stockStatus !== "todos") {
-      if (filters.stockStatus === "bajo-stock") {
-        filtered = filtered.filter(isLowStock)
-      } else if (filters.stockStatus === "stock-normal") {
-        filtered = filtered.filter((item) => !isLowStock(item))
-      }
+    // Solo "bajo stock". La opción inversa ("stock normal") existía en el
+    // desplegable viejo y nadie filtra por "lo que está bien": el que entra
+    // acá viene a buscar lo que falta.
+    if (filters.stockStatus === "bajo-stock") {
+      filtered = filtered.filter(isLowStock)
+    }
+
+    if (filters.forSale !== "todos") {
+      filtered = filtered.filter((item) =>
+        filters.forSale === "en-venta" ? !!item.for_sale : !item.for_sale,
+      )
     }
 
     if (filters.priceMin) {
@@ -291,14 +335,19 @@ export default function InventarioManager({ user }: { user: any }) {
     }
   }
 
+  /** Chips de un toque: volver a tocar el que ya está activo lo apaga.
+   *  Sin esto habría que abrir un desplegable para deshacer un click. */
+  const alternar = (campo: "stockStatus" | "forSale" | "volunteer", valor: string) =>
+    setFilters((f) => ({ ...f, [campo]: f[campo] === valor ? "todos" : valor }))
+
   const clearFilters = () => {
-    setFilters({ searchTerm: "", category: "todas", volunteer: "todos", stockStatus: "todos", priceMin: "", priceMax: "" })
+    setFilters({ searchTerm: "", category: "todas", volunteer: "todos", stockStatus: "todos", priceMin: "", priceMax: "", forSale: "todos" })
     setSortField("")
     setSortDirection("asc")
   }
 
   const lowStockItems = inventory.filter(isLowStock)
-  const totalInventoryValue = inventory.reduce((total, item) => total + item.quantity * (item.price || 0), 0)
+  const enVentaItems = inventory.filter((item) => item.for_sale)
   const filteredInventory = getFilteredAndSortedInventory()
 
   const hasActiveFilters =
@@ -306,6 +355,15 @@ export default function InventarioManager({ user }: { user: any }) {
     filters.category !== "todas" ||
     filters.volunteer !== "todos" ||
     filters.stockStatus !== "todos" ||
+    filters.priceMin !== "" ||
+    filters.priceMax !== "" ||
+    filters.forSale !== "todos" ||
+    sortField !== ""
+
+  /** Lo que vive detrás de "Más filtros". Se mira aparte para poder marcar el
+   *  botón cuando hay algo activo que no se está viendo. */
+  const hayFiltrosAvanzados =
+    (filters.volunteer !== "todos" && filters.volunteer !== "sin-asignar") ||
     filters.priceMin !== "" ||
     filters.priceMax !== "" ||
     sortField !== ""
@@ -322,22 +380,9 @@ export default function InventarioManager({ user }: { user: any }) {
           <h2 className="text-2xl font-bold text-gray-900">Inventario</h2>
           <p className="text-sm text-gray-500">Gestión de materiales y recursos</p>
         </div>
+        {/* Ya no hay botón de "Mostrar filtros": el buscador está siempre a la
+            vista, que es el 90% de las veces que alguien venía a tocar acá. */}
         <div className="flex flex-col sm:flex-row items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setShowFilters(!showFilters)}
-            className={`w-full sm:w-auto flex items-center justify-center gap-2 relative ${hasActiveFilters ? "border-[#4dd0e1] text-[#4dd0e1]" : ""}`}
-          >
-            <Filter className="w-4 h-4" />
-            {showFilters ? (
-              <><ChevronUp className="w-4 h-4" /><span className="hidden sm:inline">Ocultar filtros</span><span className="sm:hidden">Ocultar</span></>
-            ) : (
-              <><ChevronDown className="w-4 h-4" /><span className="hidden sm:inline">Mostrar filtros</span><span className="sm:hidden">Filtros</span></>
-            )}
-            {hasActiveFilters && !showFilters && (
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#4dd0e1] rounded-full"></div>
-            )}
-          </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={resetForm} className="w-full sm:w-auto bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
@@ -345,18 +390,37 @@ export default function InventarioManager({ user }: { user: any }) {
                 Nuevo Item
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+            {/* Dos columnas.
+                Antes era una columna de siete campos que no entraba en la
+                pantalla: había que scrollear adentro del modal para llegar al
+                botón, y en el celular quien llenaba el formulario no veía nunca
+                cuánto le faltaba. Emparejar los campos cortos —cantidad con
+                mínimo, los dos precios— lo baja a cuatro renglones.
+
+                El `max-h-[90vh] overflow-y-auto` se queda, igual que en los
+                otros modales de la app. No era eso lo que hacía scrollear
+                —era el contenido de más—: es la red para una pantalla baja o
+                un celular en horizontal. El DialogContent base no trae tope de
+                alto, así que sin esto el modal se sale del viewport y el botón
+                de guardar queda inalcanzable, que es peor que una barrita.
+
+                Proveedor salió de la vista por pedido: NO se borró. Sigue en
+                `formData` y se sigue mandando, así que el dato de los ítems
+                que ya lo tenían cargado no se pierde al editarlos. */}
+            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>{editingItem ? "Editar Item" : "Nuevo Item"}</DialogTitle>
+                <DialogTitle>{editingItem ? "Editar item" : "Nuevo item"}</DialogTitle>
                 <DialogDescription>
-                  {editingItem ? "Modifica los datos del item" : "Agrega un nuevo item al inventario"}
+                  {editingItem ? "Modificá los datos del item" : "Agregá un nuevo item al inventario"}
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit} noValidate className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="inv-name">Nombre del item *</Label>
+
+              <form onSubmit={handleSubmit} noValidate className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="inv-name" className="text-xs">Nombre *</Label>
                   <Input
                     id="inv-name"
+                    className="h-9"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     onBlur={() => touch("name")}
@@ -365,93 +429,126 @@ export default function InventarioManager({ user }: { user: any }) {
                     <p className="text-xs text-red-500">El nombre es requerido</p>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="inv-category">Categoría *</Label>
-                  <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                    <SelectTrigger id="inv-category">
-                      <SelectValue placeholder="Seleccionar categoría" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="inv-category" className="text-xs">Categoría *</Label>
+                    <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                      <SelectTrigger id="inv-category" className="h-9">
+                        <SelectValue placeholder="Elegir…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="inv-volunteer" className="text-xs">Voluntario asignado</Label>
+                    <SelectorBuscable
+                      id="inv-volunteer"
+                      className="h-9"
+                      valor={formData.assigned_volunteer_id}
+                      onChange={(v) => setFormData({ ...formData, assigned_volunteer_id: v })}
+                      opciones={[
+                        { valor: "sin-asignar", texto: "Sin asignar" },
+                        ...volunteers.map((v: any) => ({
+                          valor: v.id.toString(),
+                          texto: `${v.name || ""} ${v.last_name || ""}`.trim() || "(sin nombre)",
+                        })),
+                      ]}
+                      placeholder="Sin asignar"
+                      textoBusqueda="Buscar voluntario…"
+                      sinResultados="Ningún voluntario con ese nombre"
+                    />
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="inv-quantity">Cantidad *</Label>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="inv-quantity" className="text-xs">Cantidad *</Label>
                     <Input
                       id="inv-quantity"
                       type="number"
+                      className="h-9"
                       value={formData.quantity}
                       onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                       onBlur={() => touch("quantity")}
                     />
                     {touched.quantity && formData.quantity === "" && (
-                      <p className="text-xs text-red-500">La cantidad es requerida</p>
+                      <p className="text-xs text-red-500">Requerida</p>
                     )}
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="inv-minimum_stock">Stock mínimo *</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="inv-minimum_stock" className="text-xs">Stock mínimo *</Label>
                     <Input
                       id="inv-minimum_stock"
                       type="number"
+                      className="h-9"
                       value={formData.minimum_stock}
                       onChange={(e) => setFormData({ ...formData, minimum_stock: e.target.value })}
                       onBlur={() => touch("minimum_stock")}
                     />
                     {touched.minimum_stock && formData.minimum_stock === "" && (
-                      <p className="text-xs text-red-500">El stock mínimo es requerido</p>
+                      <p className="text-xs text-red-500">Requerido</p>
                     )}
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="price">Precio unitario ($) <span className="text-gray-400">(opcional)</span></Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    step="0.01"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    placeholder="0"
+
+                {/* Los dos precios juntos, que es justo donde se confunden: el
+                    de la izquierda es cuanto vale, el de la derecha a cuanto se
+                    vende. Uno al lado del otro la diferencia se ve sola. */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="price" className="text-xs">
+                      Valor unitario ($) <span className="text-gray-400">(opcional)</span>
+                    </Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      className="h-9"
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                  {formData.for_sale && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="inv-sale_price" className="text-xs">Precio de venta ($) *</Label>
+                      <Input
+                        id="inv-sale_price"
+                        type="number"
+                        step="0.01"
+                        className="h-9"
+                        value={formData.sale_price}
+                        onChange={(e) => setFormData({ ...formData, sale_price: e.target.value })}
+                        onBlur={() => touch("sale_price")}
+                        placeholder="0"
+                      />
+                      {touched.sale_price && !(Number.parseFloat(formData.sale_price) > 0) && (
+                        <p className="text-xs text-red-500">Necesita precio</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 shrink-0 accent-[#4dd0e1]"
+                    checked={formData.for_sale}
+                    onChange={(e) => setFormData({ ...formData, for_sale: e.target.checked })}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="supplier">Proveedor <span className="text-gray-400">(opcional)</span></Label>
-                  <Input
-                    id="supplier"
-                    value={formData.supplier}
-                    onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-                    placeholder="Nombre del proveedor"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="assigned_volunteer_id">Voluntario asignado</Label>
-                  <Select
-                    value={formData.assigned_volunteer_id}
-                    onValueChange={(value) => setFormData({ ...formData, assigned_volunteer_id: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar voluntario" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="sin-asignar">Sin asignar</SelectItem>
-                      {volunteers.map((volunteer) => (
-                        <SelectItem key={volunteer.id} value={volunteer.id.toString()}>
-                          {volunteer.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <p className="text-xs text-gray-400">* Campos obligatorios</p>
-                <DialogFooter>
-                  <Button
-                    type="submit"
-                    className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
-                  >
-                    {editingItem ? "Actualizar" : "Agregar"} Item
+                  <span className="text-sm font-medium text-gray-700">Para vender</span>
+                  <span className="text-xs text-gray-500">· aparece en el puesto y descuenta stock</span>
+                </label>
+
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <p className="mr-auto self-center text-xs text-gray-400">* Obligatorios</p>
+                  <Button type="submit" className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+                    {editingItem ? "Guardar" : "Agregar"}
                   </Button>
                 </DialogFooter>
               </form>
@@ -460,45 +557,95 @@ export default function InventarioManager({ user }: { user: any }) {
         </div>
       </div>
 
-      {/* Filters */}
-      {showFilters && (
-        <Card className="bg-gray-50 border-gray-200 mx-4 sm:mx-0">
-          <CardHeader className="px-4 sm:px-6">
-            <CardTitle className="flex items-center text-lg">
-              <Filter className="w-5 h-5 mr-2 text-[#4dd0e1]" />
-              Filtros y ordenamiento
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 px-4 sm:px-6">
-            <div className="grid grid-cols-1 gap-4">
-              <div className="space-y-2">
-                <Label>Búsqueda general</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    placeholder="Buscar por nombre, categoría, proveedor..."
-                    value={filters.searchTerm}
-                    onChange={(e) => setFilters({ ...filters, searchTerm: e.target.value })}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
+      {/* Barra de filtros.
+          Antes esto era una tarjeta con encabezado, siete controles apilados y
+          una fila de seis botones de orden: ocupaba la pantalla entera antes de
+          dejar ver un solo ítem, y el buscador —lo único que se usa siempre—
+          estaba escondido detrás de un botón.
 
-              <div className="space-y-2">
-                <Label>Categoría</Label>
-                <Select value={filters.category} onValueChange={(value) => setFilters({ ...filters, category: value })}>
-                  <SelectTrigger><SelectValue placeholder="Todas las categorías" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todas">Todas las categorías</SelectItem>
-                    {categories.map((cat) => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+          Es el mismo patrón que Personas y Voluntarios: buscar a la vista, los
+          cortes de todos los días como chips, y lo que se usa una vez cada
+          tanto detrás de "Más filtros".
 
-              <div className="space-y-2">
-                <Label>Voluntario</Label>
+          Lo único que se sacó es la opción "stock normal": nadie filtra por
+          lo que está bien. Todo el resto sigue estando. */}
+      <div className="space-y-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Input
+              placeholder="Buscar por nombre, categoría o voluntario…"
+              value={filters.searchTerm}
+              onChange={(e) => setFilters({ ...filters, searchTerm: e.target.value })}
+              className="pl-9"
+            />
+            {!!filters.searchTerm && (
+              <button
+                onClick={() => setFilters({ ...filters, searchTerm: "" })}
+                aria-label="Borrar la búsqueda"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition hover:text-gray-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Categoría queda como desplegable y no como chips: son siete, y
+              siete chips ocupan más que la lista que vienen a filtrar. */}
+          <Select value={filters.category} onValueChange={(value) => setFilters({ ...filters, category: value })}>
+            <SelectTrigger className="sm:w-52"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas las categorías</SelectItem>
+              {categories.map((cat) => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <FilterChip active={filters.stockStatus === "bajo-stock"} onClick={() => alternar("stockStatus", "bajo-stock")}>
+            Bajo stock
+          </FilterChip>
+          <FilterChip active={filters.forSale === "en-venta"} onClick={() => alternar("forSale", "en-venta")}>
+            En venta
+          </FilterChip>
+          <FilterChip active={filters.forSale === "no-en-venta"} onClick={() => alternar("forSale", "no-en-venta")}>
+            Sin vender
+          </FilterChip>
+          <FilterChip active={filters.volunteer === "sin-asignar"} onClick={() => alternar("volunteer", "sin-asignar")}>
+            Sin asignar
+          </FilterChip>
+
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+              showFilters || hayFiltrosAvanzados
+                ? "border-[#4dd0e1] text-[#00838f]"
+                : "border-gray-300 text-gray-500 hover:border-[#4dd0e1] hover:text-[#00838f]"
+            }`}
+          >
+            <SlidersHorizontal className="h-3 w-3" />
+            Más filtros
+            {/* Sin este punto, un filtro avanzado activo quedaba escondido y
+                la lista parecía estar mintiendo. */}
+            {hayFiltrosAvanzados && !showFilters && (
+              <span className="h-1.5 w-1.5 rounded-full bg-[#4dd0e1]" />
+            )}
+          </button>
+
+          {hasActiveFilters && (
+            <button onClick={clearFilters} className="text-xs text-gray-400 underline hover:text-gray-600">
+              Limpiar
+            </button>
+          )}
+        </div>
+
+        {showFilters && (
+          <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Voluntario</Label>
                 <Select value={filters.volunteer} onValueChange={(value) => setFilters({ ...filters, volunteer: value })}>
-                  <SelectTrigger><SelectValue placeholder="Todos los voluntarios" /></SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos los voluntarios</SelectItem>
                     <SelectItem value="sin-asignar">Sin asignar</SelectItem>
@@ -508,89 +655,57 @@ export default function InventarioManager({ user }: { user: any }) {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label>Estado de stock</Label>
-                <Select value={filters.stockStatus} onValueChange={(value) => setFilters({ ...filters, stockStatus: value })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos los estados</SelectItem>
-                    <SelectItem value="stock-normal">Stock normal</SelectItem>
-                    <SelectItem value="bajo-stock">Bajo stock</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Precio mínimo</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Precio mínimo</Label>
                 <Input type="number" placeholder="0" value={filters.priceMin} onChange={(e) => setFilters({ ...filters, priceMin: e.target.value })} />
               </div>
-
-              <div className="space-y-2">
-                <Label>Precio máximo</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Precio máximo</Label>
                 <Input type="number" placeholder="Sin límite" value={filters.priceMax} onChange={(e) => setFilters({ ...filters, priceMax: e.target.value })} />
-              </div>
-
-              <div className="flex items-end">
-                <Button variant="outline" onClick={clearFilters} className="w-full">Limpiar filtros</Button>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <Label>Ordenar por:</Label>
-              <div className="flex flex-wrap gap-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Ordenar por</Label>
+              <div className="flex flex-wrap gap-1.5">
                 {[
                   { field: "name", label: "Nombre" },
                   { field: "category", label: "Categoría" },
                   { field: "quantity", label: "Cantidad" },
                   { field: "price", label: "Precio" },
                   { field: "assigned_volunteer_id", label: "Voluntario" },
-                  { field: "totalValue", label: "Valor Total" },
+                  // "Valor total" se fue con su columna: ordenar por algo que
+                  // no se ve deja la lista barajada sin explicación.
                 ].map(({ field, label }) => (
-                  <Button
+                  <button
                     key={field}
-                    variant={sortField === field ? "default" : "outline"}
-                    size="sm"
                     onClick={() => handleSort(field)}
-                    className={`flex items-center gap-1 ${sortField === field ? "bg-[#4dd0e1] hover:bg-[#3bc0d1]" : ""}`}
+                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+                      sortField === field
+                        ? "border-[#4dd0e1] bg-[#4dd0e1] text-white"
+                        : "border-gray-300 text-gray-500 hover:border-[#4dd0e1] hover:text-[#00838f]"
+                    }`}
                   >
                     {label}
                     {sortField === field ? (
-                      sortDirection === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                      sortDirection === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
                     ) : (
-                      <ArrowUpDown className="w-3 h-3" />
+                      <ArrowUpDown className="h-3 w-3" />
                     )}
-                  </Button>
+                  </button>
                 ))}
               </div>
             </div>
+          </div>
+        )}
 
-            <div className="text-sm text-gray-600 pt-2 border-t">
-              Mostrando {filteredInventory.length} de {inventory.length} items
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {!showFilters && hasActiveFilters && (
-        <Card className="bg-blue-50 border-blue-200 mx-4 sm:mx-0">
-          <CardContent className="pt-4 px-4 sm:px-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-blue-600" />
-                <span className="text-sm text-blue-800">
-                  Filtros activos: {filteredInventory.length} de {inventory.length} items
-                </span>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => setShowFilters(true)} className="text-blue-600 hover:text-blue-800 self-end sm:self-auto">
-                Ver filtros
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+        <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
+          {filteredInventory.length} {filteredInventory.length === 1 ? "ítem" : "ítems"}
+          {hasActiveFilters && (
+            <span className="text-xs font-normal text-gray-400">de {inventory.length}</span>
+          )}
+        </span>
+      </div>
 
       {/* Summary cards */}
       <div className="grid gap-3 grid-cols-3 sm:gap-4 px-4 sm:px-0">
@@ -610,16 +725,31 @@ export default function InventarioManager({ user }: { user: any }) {
             <div className="text-xl sm:text-2xl font-bold text-red-600">{lowStockItems.length}</div>
           </CardContent>
         </Card>
-        {totalInventoryValue > 0 && (
-          <Card>
-            <CardHeader className="pb-1 pt-3 px-3 sm:px-4 sm:pt-4 sm:pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">Valor</CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
-              <div className="text-xl sm:text-2xl font-bold text-green-600">${totalInventoryValue.toLocaleString()}</div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Antes acá iba "Valor" (cantidad × precio de todo el inventario).
+            Se cambió por lo que hoy es el eje nuevo del módulo: cuánto de lo
+            que hay está a la venta. Clickeable, porque un número que se ve
+            invita a querer ver de qué está hecho. */}
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => setFilters({ ...filters, forSale: filters.forSale === "en-venta" ? "todos" : "en-venta" })}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault()
+              setFilters({ ...filters, forSale: filters.forSale === "en-venta" ? "todos" : "en-venta" })
+            }
+          }}
+          className={`cursor-pointer transition-colors hover:border-[#4dd0e1] ${
+            filters.forSale === "en-venta" ? "border-[#4dd0e1] bg-[#4dd0e1]/5" : ""
+          }`}
+        >
+          <CardHeader className="pb-1 pt-3 px-3 sm:px-4 sm:pt-4 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">En venta</CardTitle>
+          </CardHeader>
+          <CardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
+            <div className="text-xl sm:text-2xl font-bold text-[#00838f]">{enVentaItems.length}</div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Low stock alerts */}
@@ -673,7 +803,7 @@ export default function InventarioManager({ user }: { user: any }) {
                       <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
                     )}
                   </div>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
                     {item.category && (
                       <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
                         {item.category}
@@ -682,6 +812,11 @@ export default function InventarioManager({ user }: { user: any }) {
                     <span className={`text-xs font-medium ${lowStock ? "text-red-600" : "text-gray-500"}`}>
                       Cant: {item.quantity}
                     </span>
+                    {item.for_sale && (
+                      <span className="rounded bg-[#4dd0e1]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[#00838f]">
+                        En venta{item.sale_price ? ` · $${Number(item.sale_price).toLocaleString("es-AR")}` : ""}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <ChevronDown
@@ -746,12 +881,8 @@ export default function InventarioManager({ user }: { user: any }) {
                         </>
                       )}
 
-                      {item.supplier && (
-                        <div className="flex justify-between text-xs">
-                          <span className="text-gray-400">Proveedor</span>
-                          <span className="font-medium text-gray-600 text-right">{item.supplier}</span>
-                        </div>
-                      )}
+                      {/* Proveedor no se muestra en ningún lado del front por
+                          pedido. El dato se sigue guardando y mandando. */}
 
                       <div className="flex justify-between text-xs">
                         <span className="text-gray-400">Voluntario</span>
@@ -802,8 +933,6 @@ export default function InventarioManager({ user }: { user: any }) {
             <tr className="border-b border-gray-200 bg-gray-50/80 text-left text-gray-600">
               <th className="px-4 py-2 font-semibold">Ítem</th>
               <th className="px-4 py-2 font-semibold">Cantidad</th>
-              <th className="px-4 py-2 font-semibold">Mínimo</th>
-              <th className="px-4 py-2 font-semibold">Valor</th>
               <th className="px-4 py-2 font-semibold">Voluntario</th>
               <th className="px-4 py-2" />
             </tr>
@@ -823,7 +952,16 @@ export default function InventarioManager({ user }: { user: any }) {
                     <div className="flex items-center gap-2">
                       {lowStock && <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 text-red-500" />}
                       <div className="min-w-0">
-                        <p className="font-medium text-gray-900">{item.name}</p>
+                        <p className="flex items-center gap-1.5 font-medium text-gray-900">
+                          {item.name}
+                          {/* Se ve sin filtrar: para saber qué se vende no
+                              hace falta ir a buscarlo. */}
+                          {item.for_sale && (
+                            <span className="shrink-0 rounded-full bg-[#4dd0e1]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[#00838f]">
+                              En venta{item.sale_price ? ` · $${Number(item.sale_price).toLocaleString("es-AR")}` : ""}
+                            </span>
+                          )}
+                        </p>
                         {item.category && <p className="text-xs text-gray-400">{item.category}</p>}
                       </div>
                     </div>
@@ -848,10 +986,10 @@ export default function InventarioManager({ user }: { user: any }) {
                       </button>
                     </div>
                   </td>
-                  <td className="px-4 py-2 tabular-nums text-gray-500">{item.minimum_stock}</td>
-                  <td className="px-4 py-2 tabular-nums text-gray-700">
-                    {item.price > 0 ? `$${(item.quantity * item.price).toLocaleString("es-AR")}` : "—"}
-                  </td>
+                  {/* "Mínimo" y "Valor" salieron de la tabla. El mínimo sigue
+                      existiendo y sigue decidiendo quién está en rojo y quién
+                      sale en las alertas: lo que se fue es la columna, no el
+                      dato. El detalle de cada ítem se ve al editarlo. */}
                   <td className={`px-4 py-2 ${item.assigned_volunteer_id ? "text-[#00838f]" : "text-gray-400"}`}>
                     {getVolunteerName(item.assigned_volunteer_id)}
                   </td>

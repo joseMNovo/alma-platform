@@ -42,8 +42,20 @@ export async function POST(request: NextRequest) {
     }).catch(() => {})
     return NextResponse.json(venta, { status: 201 })
   } catch (error: any) {
+    // El backend contesta 409 cuando no alcanza el stock. Eso NO es una falla
+    // del sistema: es una respuesta, y quien está cobrando necesita leerla tal
+    // cual ("No hay stock suficiente de: Mates"). El api-client aplana todo a
+    // un Error, así que el código y el detalle se recuperan del texto.
+    const mensaje = String(error?.message ?? error)
+    const partes = /→ (\d{3}): ([\s\S]*)$/.exec(mensaje)
+    if (partes?.[1] === "409") {
+      logWarn("Venta de stand sin stock", {
+        module: "stand", action: "sale_no_stock", user: session.id, meta: { detalle: partes[2] },
+      })
+      return NextResponse.json({ error: partes[2] }, { status: 409 })
+    }
     logError("Error al registrar venta del stand", { module: "stand", action: "create_sale", user: session.id, error })
-    return NextResponse.json({ error: String(error?.message ?? error) }, { status: 500 })
+    return NextResponse.json({ error: "Error del servidor" }, { status: 500 })
   }
 }
 

@@ -64,10 +64,19 @@ export interface InventoryItem {
   category?: string
   quantity: number
   minimum_stock: number
+  /** Cuánto VALE el ítem, no a cuánto se vende: para eso está `sale_price`. */
   price: number
   supplier?: string
   assigned_volunteer_id?: number | null
   entry_date: string
+  /** Si está en la góndola del puesto de venta. Atrás no es una columna de
+   *  inventario: es tener fila activa en `stand_products`. */
+  for_sale?: boolean
+  /** Precio de venta. Se conserva aunque se saque de la venta, para no tener
+   *  que acordarse a cuánto se vendía si lo vuelven a poner. */
+  sale_price?: number | null
+  /** Unidades vendidas en el puesto (no cuenta las ventas anuladas). */
+  sold?: number
 }
 
 export interface Enrollment {
@@ -2010,16 +2019,19 @@ export async function getDeliveryBoard(trainingId: number): Promise<DeliveryRow[
 // Puesto de venta (stand)
 // ============================================================
 
+/** Una fila de la góndola: qué ítem del inventario está a la venta y a cuánto.
+ *  El stock NO vive acá — sale del inventario, que es la madre. */
 export interface StandProduct {
   id: number
   name: string
+  /** Null solo en productos anteriores a la unión de los dos catálogos. */
+  inventory_item_id?: number | null
   unit_price: number
-  initial_stock: number
   is_active: boolean
   sort_order: number
   /** Unidades vendidas (no cuenta las ventas anuladas). Lo calcula el backend. */
   sold: number
-  /** initial_stock - sold. Calculado, no guardado. */
+  /** Lo que queda, según el inventario. */
   stock: number
 }
 
@@ -2056,11 +2068,18 @@ export async function getStandProducts(incluirInactivos = false): Promise<StandP
   return api.get<StandProduct[]>(`/stand/products?incluir_inactivos=${incluirInactivos}`)
 }
 
-export async function createStandProduct(data: Partial<StandProduct>): Promise<StandProduct> {
+/** Da de alta el producto Y el ítem en el inventario: son las dos caras de lo
+ *  mismo. `quantity` es la mercadería que hay, y va al inventario. */
+export async function createStandProduct(
+  data: Partial<StandProduct> & { quantity?: number; category?: string },
+): Promise<StandProduct> {
   return api.post<StandProduct>('/stand/products', data)
 }
 
-export async function updateStandProduct(id: number, data: Partial<StandProduct>): Promise<StandProduct> {
+export async function updateStandProduct(
+  id: number,
+  data: Partial<StandProduct> & { quantity?: number },
+): Promise<StandProduct> {
   return api.put<StandProduct>(`/stand/products/${id}`, data)
 }
 
@@ -2089,4 +2108,79 @@ export async function voidStandSale(id: number): Promise<StandSale> {
 
 export async function getStandSummary(): Promise<StandSummary> {
   return api.get<StandSummary>('/stand/summary')
+}
+
+// ============================================================
+// Avisos de pago ("ya pagué")
+// ============================================================
+
+export interface PaymentClaim {
+  id: number
+  person_id: number
+  concept_type: string
+  concept_id: number
+  concept_label?: string | null
+  /** Comprobante en la tabla `files`. Opcional: no tenerlo no impide avisar. */
+  file_guid?: string | null
+  message?: string | null
+  status: 'pendiente' | 'confirmado' | 'rechazado'
+  resolved_by_volunteer_id?: number | null
+  resolved_at?: string | null
+  resolution_notes?: string | null
+  created_at?: string | null
+  person_name?: string | null
+  person_email?: string | null
+}
+
+export async function getPaymentClaims(status = 'pendiente'): Promise<PaymentClaim[]> {
+  return api.get<PaymentClaim[]>(`/accesos/avisos-de-pago?status=${encodeURIComponent(status)}`)
+}
+
+export async function createPaymentClaim(data: {
+  person_id: number
+  concept_type?: string
+  concept_id?: number
+  concept_label?: string | null
+  file_guid?: string | null
+  message?: string | null
+}): Promise<PaymentClaim> {
+  return api.post<PaymentClaim>('/accesos/avisos-de-pago', data)
+}
+
+/** Confirmar habilita y registra el pago; rechazar solo deja el rastro. */
+export async function resolvePaymentClaim(
+  id: number,
+  accion: 'confirmar' | 'rechazar',
+  data: {
+    volunteer_id?: number | null
+    amount?: number | null
+    method?: string | null
+    reference?: string | null
+    access_days?: number | null
+    notes?: string | null
+  },
+): Promise<PaymentClaim> {
+  return api.post<PaymentClaim>(`/accesos/avisos-de-pago/${id}/${accion}`, data)
+}
+
+// ============================================================
+// Ingresos — vista de lectura sobre Academia + puesto de venta
+// ============================================================
+
+export interface ResumenIngresos {
+  year?: number | null
+  /** Años con movimiento, para los chips. */
+  anios: number[]
+  total: number
+  operaciones: number
+  por_origen: { key: string; label: string; total: number; operaciones: number }[]
+  por_medio: { key: string; total: number }[]
+  por_mes: { month: number; total: number }[]
+  /** Pagos con `paid_at` en NULL: no entran en NINGÚN año, así que el resumen
+   *  los nombra en vez de tragárselos. */
+  sin_fecha: { cantidad: number; total: number }
+}
+
+export async function getIngresosResumen(year?: number): Promise<ResumenIngresos> {
+  return api.get<ResumenIngresos>(`/ingresos/resumen${year ? `?year=${year}` : ''}`)
 }

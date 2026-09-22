@@ -29,10 +29,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const session = getSessionUser(request)
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-  if (!can(session, "files:upload")) {
-    logWarn("Permiso denegado para subir archivo", { module: "files", action: "upload_denied", user: session.id })
-    return NextResponse.json({ error: "Sin permisos" }, { status: 403 })
-  }
 
   try {
     const data = await request.json()
@@ -40,10 +36,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Faltan datos del archivo" }, { status: 422 })
     }
 
+    /**
+     * El participante no tiene `files:upload` —no sube portadas ni firmas— pero
+     * sí necesita adjuntar el comprobante de lo que pagó. Se le abre esa única
+     * puerta en vez de darle el permiso entero: cualquier otro propósito sigue
+     * cerrado para él.
+     */
+    const proposito = data.purpose.trim()
+    const permitido =
+      can(session, "files:upload") ||
+      (session.role === "participante" && proposito === "comprobante_pago")
+    if (!permitido) {
+      logWarn("Permiso denegado para subir archivo", {
+        module: "files", action: "upload_denied", user: session.id, meta: { purpose: proposito },
+      })
+      return NextResponse.json({ error: "Sin permisos" }, { status: 403 })
+    }
+
     const file = await uploadFile({
       name: data.name.trim(),
       mime_type: data.mime_type || "",
-      purpose: data.purpose.trim(),
+      purpose: proposito,
       data_base64: data.data_base64,
       owner_type: data.owner_type?.trim() || null,
       owner_id: data.owner_id ?? null,

@@ -11,6 +11,7 @@ import { config } from "@/lib/config"
 import TrainingPlayer from "@/components/capacitaciones/training-player"
 import CatalogoCapacitaciones from "@/components/capacitaciones/catalogo-capacitaciones"
 import QrVidriera from "@/components/capacitaciones/qr-vidriera"
+import AvisoDePago from "@/components/capacitaciones/aviso-de-pago"
 import TrainingSurvey from "@/components/capacitaciones/training-survey"
 import CapacitacionesAdmin from "@/components/capacitaciones/capacitaciones-admin"
 import type { Training, TrainingItem } from "@/lib/data-manager"
@@ -466,18 +467,25 @@ function LockedTraining({ training }: { training: Training }) {
         )}
 
         {/* La plataforma NO se entera del pago: el cobro pasa por MercadoPago,
-            afuera. Por eso acá no hay ningún botón de "ya pagué" — lo confirma
-            una persona mirando el panel de MP. Este cartel es para que la
-            espera no se sienta como que algo se rompió. */}
-        <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
-          <p className="font-medium text-gray-800">¿Cómo sigue después de pagar?</p>
-          <p className="mt-1">
-            Un voluntario de ALMA confirma el pago y te habilita el acceso. Apenas lo
-            haga, el contenido aparece acá mismo: no tenés que volver a pagar ni
-            registrarte de nuevo.
-          </p>
-          <p className="mt-2">
-            ¿Ya pagaste y seguís viendo el candado? Escribinos a{" "}
+            afuera, y lo confirma una persona mirando ese panel. El botón de
+            abajo NO cambia eso — no habilita nada, solo avisa y adjunta el
+            comprobante para que ALMA sepa a quién ir a buscar. Antes, quien
+            pagaba quedaba en el limbo y su única salida era un mail suelto que
+            se perdía entre cincuenta. */}
+        <div className="space-y-3 rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
+          <div>
+            <p className="font-medium text-gray-800">¿Cómo sigue después de pagar?</p>
+            <p className="mt-1">
+              Un voluntario de ALMA confirma el pago y te habilita el acceso. Apenas lo
+              haga, el contenido aparece acá mismo: no tenés que volver a pagar ni
+              registrarte de nuevo.
+            </p>
+          </div>
+
+          <AvisoDePago trainingId={training.id} trainingTitle={training.title} />
+
+          <p className="text-xs">
+            ¿Alguna otra duda? Escribinos a{" "}
             <a
               href={`mailto:${config.contact.email}`}
               className="font-medium text-[#00838f] underline-offset-2 hover:underline"

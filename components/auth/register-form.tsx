@@ -42,13 +42,18 @@ export default function RegisterForm() {
     setLoading(true)
     try {
       if (role === "participante") {
+        if (!name.trim()) { setError("El nombre es requerido"); setLoading(false); return }
         if (!email) { setError("El email es requerido"); setLoading(false); return }
         if (pin.length !== 4) { setError("El PIN debe tener exactamente 4 dígitos"); setLoading(false); return }
 
         const res = await fetch("/api/registro", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, pin, role }),
+          body: JSON.stringify({
+            email, pin, role,
+            name: name.trim(),
+            last_name: lastName.trim() || null,
+          }),
         })
         const data = await res.json()
         if (res.ok) {
@@ -247,6 +252,31 @@ export default function RegisterForm() {
                 {/* Campos participante */}
                 {role === "participante" && (
                   <>
+                    {/* El nombre NO era opcional por diseño, faltaba: esta rama
+                        pedía solo email y PIN, y la ficha quedaba identificada
+                        apenas por la dirección. Además de no poder reconocer a
+                        nadie en Accesos, la emisión del certificado corta si no
+                        hay nombre. El apellido sí queda opcional. */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="part-name" className="text-gray-800 font-semibold text-sm">Nombre *</Label>
+                      <Input
+                        id="part-name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Tu nombre"
+                        className="border-[#b2ebf2] focus:border-[#0099b0] focus:ring-2 focus:ring-[#4dd0e1]/30 focus:ring-offset-0"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="part-last-name" className="text-gray-800 font-semibold text-sm">Apellido</Label>
+                      <Input
+                        id="part-last-name"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        placeholder="Tu apellido (opcional)"
+                        className="border-[#b2ebf2] focus:border-[#0099b0] focus:ring-2 focus:ring-[#4dd0e1]/30 focus:ring-offset-0"
+                      />
+                    </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="email" className="text-gray-800 font-semibold text-sm">Email</Label>
                       <Input

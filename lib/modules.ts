@@ -8,6 +8,7 @@ import {
   Calendar,
   Sparkles,
   Lightbulb,
+  TrendingUp,
   CreditCard,
   ClipboardCheck,
   BarChart3,
@@ -178,6 +179,10 @@ export const MODULES: ModuleDef[] = [
       { key: "inventario", label: "Inventario", route: "/inventario", icon: Package, defaultRoles: ["admin", "voluntario"], grantable: false },
       { key: "ideas", label: "Ideas", route: "/ideas", icon: Lightbulb, defaultRoles: ["admin", "voluntario"], grantable: false },
       { key: "puesto-venta", label: "Puesto de venta", route: "/puesto-venta", icon: ShoppingCart, defaultRoles: ["admin", "voluntario"], grantable: false },
+      // Solo lectura: junta lo que registran Academia y el puesto. No carga
+      // nada — para eso está cada módulo, y dos formularios creando la misma
+      // fila terminan separándose.
+      { key: "ingresos", label: "Ingresos", route: "/ingresos", icon: TrendingUp, defaultRoles: ["admin"], grantable: false },
     ],
   },
 

@@ -21,11 +21,13 @@ interface CurrentUser {
   is_admin?: boolean
 }
 
+/** Una fila de la góndola. El stock no se guarda acá: `stock` viene del
+ *  inventario, que es donde vive la mercadería. */
 interface StandProduct {
   id: number
   name: string
+  inventory_item_id?: number | null
   unit_price: number
-  initial_stock: number
   is_active: boolean
   sort_order: number
   sold: number
@@ -107,7 +109,9 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
   const [cliente, setCliente] = useState({ nombre: "", mail: "" })
   const [pidiendoDatos, setPidiendoDatos] = useState(false)
 
-  const [editando, setEditando] = useState<Partial<StandProduct> | null>(null)
+  // `quantity` no es del producto sino del ítem del inventario. Viaja en el
+  // mismo formulario porque para quien carga es un solo dato: cuánto hay.
+  const [editando, setEditando] = useState<(Partial<StandProduct> & { quantity?: number }) | null>(null)
   /** Producto a punto de quitarse. Quitar no puede ser un click al pasar:
    *  los dos botones viven pegados y ya hubo quien lo tocó sin querer. */
   const [porQuitar, setPorQuitar] = useState<StandProduct | null>(null)
@@ -177,15 +181,25 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
           customer_email: cliente.mail.trim() || null,
         }),
       })
-      if (!res.ok) throw new Error(await res.text())
+      if (!res.ok) {
+        // Sin stock no es un error del sistema: es el mostrador diciendo que
+        // no queda. Se muestra el motivo y se recargan los productos, porque
+        // lo más probable es que otro haya vendido lo que faltaba.
+        const detalle = (await res.json().catch(() => ({})))?.error
+        throw new Error(res.status === 409 ? detalle : "")
+      }
       const venta: StandSale = await res.json()
       toast({ title: `Venta registrada · ${pesos(venta.total)}` })
       vaciar()
       setCliente({ nombre: "", mail: "" })
       setPidiendoDatos(false)
       cargar()
-    } catch {
-      toast({ title: "No se pudo registrar la venta", variant: "destructive" })
+    } catch (error: any) {
+      toast({
+        title: error?.message || "No se pudo registrar la venta",
+        variant: "destructive",
+      })
+      if (error?.message) cargar()
     } finally {
       setCobrando(false)
     }
@@ -210,10 +224,12 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
     }
     setGuardandoProducto(true)
     try {
+      // `quantity` es la mercadería, y va al inventario. Dar de alta un
+      // producto acá da de alta el ítem allá: son la misma cosa.
       const body = {
         name: editando.name.trim(),
         unit_price: Number(editando.unit_price) || 0,
-        initial_stock: Number(editando.initial_stock) || 0,
+        quantity: Number(editando.quantity) || 0,
         sort_order: Number(editando.sort_order) || 0,
       }
       const url = editando.id ? `/api/stand/productos?id=${editando.id}` : "/api/stand/productos"
@@ -417,7 +433,7 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
           <div className="flex justify-end">
             <Button
               className="gap-2 bg-[#4dd0e1] hover:bg-[#3bb8c9]"
-              onClick={() => setEditando({ name: "", unit_price: 0, initial_stock: 0, sort_order: productos.length + 1 })}
+              onClick={() => setEditando({ name: "", unit_price: 0, quantity: 0, sort_order: productos.length + 1 })}
             >
               <PackagePlus className="h-4 w-4" /> Nuevo producto
             </Button>
@@ -434,8 +450,10 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
                   <p className="shrink-0 font-bold text-[#00838f]">{pesos(p.unit_price)}</p>
                 </div>
 
+                {/* "Inicial" ya no está: el stock lo lleva el inventario y se
+                    puede corregir a mano, así que un número de arranque
+                    congelado dejó de significar algo. */}
                 <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
-                  <span>Inicial <strong className="tabular-nums text-gray-700">{p.initial_stock}</strong></span>
                   <span>Vendidos <strong className="tabular-nums text-gray-700">{p.sold}</strong></span>
                   <span className={p.stock <= 0 ? "text-red-500" : ""}>
                     Quedan <strong className={`tabular-nums ${p.stock <= 0 ? "text-red-600" : "text-gray-900"}`}>{p.stock}</strong>
@@ -443,7 +461,7 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
                 </div>
 
                 <div className="mt-3 flex gap-2">
-                  <Button variant="outline" className="h-10 flex-1" onClick={() => setEditando(p)}>
+                  <Button variant="outline" className="h-10 flex-1" onClick={() => setEditando({ ...p, quantity: p.stock })}>
                     Editar
                   </Button>
                   <Button
@@ -465,7 +483,6 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
                 <tr className="border-b border-gray-200 bg-gray-50/80 text-left text-gray-600">
                   <th className="px-4 py-2 font-semibold">Producto</th>
                   <th className="px-4 py-2 font-semibold">Precio</th>
-                  <th className="px-4 py-2 font-semibold">Inicial</th>
                   <th className="px-4 py-2 font-semibold">Vendidos</th>
                   <th className="px-4 py-2 font-semibold">Quedan</th>
                   <th className="px-4 py-2" />
@@ -476,14 +493,13 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
                   <tr key={p.id} className="border-b border-gray-100 last:border-0">
                     <td className="px-4 py-2 font-medium text-gray-900">{p.name}</td>
                     <td className="px-4 py-2 tabular-nums">{pesos(p.unit_price)}</td>
-                    <td className="px-4 py-2 tabular-nums text-gray-500">{p.initial_stock}</td>
                     <td className="px-4 py-2 tabular-nums text-gray-500">{p.sold}</td>
                     <td className={`px-4 py-2 font-semibold tabular-nums ${p.stock <= 0 ? "text-red-500" : "text-gray-900"}`}>
                       {p.stock}
                     </td>
                     <td className="px-4 py-2">
                       <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="sm" onClick={() => setEditando(p)}>
+                        <Button variant="outline" size="sm" onClick={() => setEditando({ ...p, quantity: p.stock })}>
                           Editar
                         </Button>
                         <Button
@@ -699,14 +715,19 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
                 />
               </div>
               <div>
-                <Label>Stock inicial</Label>
+                <Label>Cantidad</Label>
                 <Input
                   type="number" inputMode="numeric"
-                  value={editando?.initial_stock ?? 0}
-                  onChange={e => setEditando(p => ({ ...p, initial_stock: Number(e.target.value) }))}
+                  value={editando?.quantity ?? 0}
+                  onChange={e => setEditando(p => ({ ...p, quantity: Number(e.target.value) }))}
                 />
               </div>
             </div>
+            <p className="text-xs text-gray-500">
+              {editando?.id
+                ? "La cantidad es el stock del inventario. Cambiala si contaste y no coincide."
+                : "Se da de alta también en el inventario: es la misma mercadería."}
+            </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditando(null)}>Cancelar</Button>

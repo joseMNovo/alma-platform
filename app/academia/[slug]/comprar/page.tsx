@@ -82,6 +82,7 @@ export default async function ComprarPage({
         <div className="rounded-xl border border-gray-200 bg-white p-6">
           <CompraWizard
             slug={slug}
+            trainingId={training.id}
             titulo={training.title}
             precio={Number(training.price)}
             moneda={training.currency}
