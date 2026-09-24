@@ -21,6 +21,7 @@ import { ChevronLeft, ChevronRight, ChevronDown, Plus, Edit, Trash2, Zap, AlertT
 import { toast } from "@/hooks/use-toast"
 import { can, canDeleteCalendarInstance } from "@/lib/permissions"
 import RecordatoriosEvento from "@/components/calendarios/recordatorios-evento"
+import SelectorBuscable from "@/components/ui/selector-buscable"
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -492,7 +493,8 @@ export default function CalendariosManager({ user }: { user: any }) {
     notes: "",
   })
   const [saving, setSaving] = useState(false)
-  const [volunteersOpen, setVolunteersOpen] = useState(false)
+  /** Día abierto en la hoja de celular. null = cerrada. */
+  const [diaAbierto, setDiaAbierto] = useState<number | null>(null)
 
   // Bulk delete dialog
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
@@ -733,7 +735,6 @@ export default function CalendariosManager({ user }: { user: any }) {
       status: "programado",
       notes: "",
     })
-    setVolunteersOpen(false)
     setInstanceDialogOpen(true)
   }
 
@@ -758,7 +759,6 @@ export default function CalendariosManager({ user }: { user: any }) {
       status: inst.status,
       notes: inst.notes || "",
     })
-    setVolunteersOpen(false)
     setDetailOpen(false)
     setInstanceDialogOpen(true)
   }
@@ -1219,21 +1219,73 @@ export default function CalendariosManager({ user }: { user: any }) {
               return (
                 <div
                   key={idx}
-                  onClick={() => day && canCreate && openNewInstance(dateStr(currentYear, currentMonth, day))}
-                  className={`min-h-[90px] border-r border-b p-1 ${
+                  className={`min-h-[64px] sm:min-h-[90px] border-r border-b p-1 ${
                     !day ? "bg-gray-50" : today_ ? "bg-blue-50" : "bg-white"
-                  } ${canCreate && day ? "cursor-pointer hover:bg-sky-50 transition-colors" : ""} ${idx % 7 === 6 ? "border-r-0" : ""}`}
+                  } ${idx % 7 === 6 ? "border-r-0" : ""}`}
                 >
                   {day && (
                     <>
-                      <div
-                        className={`text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full mx-auto ${
-                          today_ ? "bg-[#4dd0e1] text-white" : "text-gray-700"
-                        }`}
+                      {/* CELULAR: la celda entera es un solo botón que abre la
+                          hoja del dia.
+
+                          Antes esta misma grilla servía para las dos pantallas:
+                          en un teléfono cada celda mide ~55px y cada evento era
+                          un botón de 14px de alto con el texto cortado. Elegir
+                          entre dos era casi imposible, y lo peor es que errarle
+                          no hacía nada inofensivo: el toque caía en la celda y
+                          abría "Nuevo evento".
+
+                          Ahora el día muestra puntitos —cuántos eventos hay y
+                          de qué tipo— y elegir se hace en la hoja, con
+                          tarjetas grandes. */}
+                      <button
+                        type="button"
+                        onClick={() => setDiaAbierto(day)}
+                        className="flex h-full w-full flex-col items-center gap-1 py-1 sm:hidden"
                       >
-                        {day}
-                      </div>
-                      <div className="space-y-0.5">
+                        <span
+                          className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
+                            today_ ? "bg-[#4dd0e1] text-white" : "text-gray-700"
+                          }`}
+                        >
+                          {day}
+                        </span>
+                        <span className="flex flex-wrap items-center justify-center gap-0.5">
+                          {dayInsts.slice(0, 4).map(inst => (
+                            <span
+                              key={inst.id}
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                inst.type === "grupo"
+                                  ? "bg-[#4dd0e1]"
+                                  : inst.type === "taller"
+                                  ? "bg-purple-500"
+                                  : "bg-orange-400"
+                              } ${inst.status === "cancelado" ? "opacity-40" : ""}`}
+                            />
+                          ))}
+                          {dayInsts.length > 4 && (
+                            <span className="text-[9px] leading-none text-gray-400">+{dayInsts.length - 4}</span>
+                          )}
+                        </span>
+                      </button>
+
+                      {/* ESCRITORIO: como siempre. Con mouse, los renglones
+                          finitos se aciertan sin problema y muestran más datos
+                          que un puntito. El click para crear vive acá adentro y
+                          ya no en la celda, para que en el teléfono no haya dos
+                          cosas escuchando el mismo toque. */}
+                      <div
+                        className={`hidden h-full sm:block ${canCreate ? "cursor-pointer" : ""}`}
+                        onClick={() => canCreate && openNewInstance(dateStr(currentYear, currentMonth, day))}
+                      >
+                        <div
+                          className={`text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full mx-auto ${
+                            today_ ? "bg-[#4dd0e1] text-white" : "text-gray-700"
+                          }`}
+                        >
+                          {day}
+                        </div>
+                        <div className="space-y-0.5">
                         {dayInsts.map(inst => {
                           const mine = isUserAssigned(inst)
                           return (
@@ -1257,6 +1309,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                             </button>
                           )
                         })}
+                        </div>
                       </div>
                     </>
                   )}
@@ -1282,6 +1335,82 @@ export default function CalendariosManager({ user }: { user: any }) {
           <span className="inline-block w-3 h-3 rounded bg-blue-100 border border-blue-300" /> Hoy
         </span>
       </div>
+
+      {/* ── Hoja del día (solo celular) ──────────────────────────── */}
+      <Dialog open={diaAbierto !== null} onOpenChange={abierto => !abierto && setDiaAbierto(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base">
+              {diaAbierto !== null && (() => {
+                const d = new Date(currentYear, currentMonth, diaAbierto)
+                return `${DAY_NAMES_FULL[d.getDay()]} ${diaAbierto} de ${MONTH_NAMES[currentMonth].toLowerCase()}`
+              })()}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            {diaAbierto !== null && instancesForDay(diaAbierto).length === 0 ? (
+              <p className="py-6 text-center text-sm text-gray-400">No hay eventos este día.</p>
+            ) : (
+              diaAbierto !== null && instancesForDay(diaAbierto).map(inst => {
+                const mine = isUserAssigned(inst)
+                const color =
+                  inst.type === "grupo" ? "bg-[#4dd0e1]"
+                  : inst.type === "taller" ? "bg-purple-500"
+                  : "bg-orange-400"
+                return (
+                  <button
+                    key={inst.id}
+                    type="button"
+                    // Tarjeta, no renglón: el objetivo del dedo pasa de 14px a
+                    // más de 56, que es lo que hace que elegir deje de ser
+                    // puntería.
+                    onClick={() => { setDiaAbierto(null); openDetail(inst) }}
+                    className={`flex w-full items-stretch gap-3 overflow-hidden rounded-lg border bg-white text-left transition-colors active:bg-gray-50 ${
+                      inst.status === "cancelado" ? "opacity-50" : ""
+                    }`}
+                  >
+                    <span className={`w-1.5 shrink-0 ${color}`} />
+                    <span className="min-w-0 flex-1 py-2.5 pr-3">
+                      <span className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-gray-900">
+                          {formatTime(inst.start_time)}
+                        </span>
+                        {mine && (
+                          <span className="rounded-full bg-[#4dd0e1]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[#0097a7]">
+                            Voy
+                          </span>
+                        )}
+                        {inst.status === "cancelado" && (
+                          <span className="text-[10px] font-semibold uppercase text-red-500">Cancelado</span>
+                        )}
+                      </span>
+                      <span className={`block truncate text-sm text-gray-700 ${inst.status === "cancelado" ? "line-through" : ""}`}>
+                        {inst.title || getSourceName(inst)}
+                      </span>
+                    </span>
+                  </button>
+                )
+              })
+            )}
+          </div>
+
+          {/* Crear desde acá. En el teléfono la celda ya no crea al tocarla:
+              con eventos encima, ese toque se lo llevaba el evento equivocado. */}
+          {can(user, "calendar:create") && diaAbierto !== null && (
+            <Button
+              className="w-full bg-[#4dd0e1] text-white hover:bg-[#26c6da]"
+              onClick={() => {
+                const fecha = dateStr(currentYear, currentMonth, diaAbierto)
+                setDiaAbierto(null)
+                openNewInstance(fecha)
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Nuevo evento
+            </Button>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ── Detail Dialog ────────────────────────────────────────── */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
@@ -2059,345 +2188,427 @@ export default function CalendariosManager({ user }: { user: any }) {
 
       {/* ── New / Edit instance dialog ───────────────────────────── */}
       <Dialog open={instanceDialogOpen} onOpenChange={setInstanceDialogOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        {/* El formulario va en SECCIONES con titulo, no en una lista corrida.
+            Antes eran 17 controles seguidos donde los 13 opcionales gritaban
+            igual de fuerte que los 4 obligatorios (módulo, fecha y las dos
+            horas: es todo lo que pide el `disabled` del botón de guardar), y
+            el orden mezclaba cosas de distinta naturaleza — "Estado" caía
+            entre las notificaciones y el título.
+
+            No se pliega nada y no es un wizard: el mismo diálogo se usa para
+            EDITAR, y ahí caminar pasos para cambiar una hora es peor que
+            scrollear. Las secciones ordenan sin agregar clicks. */}
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingInstance ? "Editar evento" : "Nuevo evento"}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
-            {/* Módulo + Item */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>Módulo</Label>
-                <Select
-                  value={instanceForm.module}
-                  onValueChange={(v: any) => setInstanceForm(f => ({ ...f, module: v, visible_participantes: v !== "actividad", source_id: "", coordinator_id: "", co_coordinator_ids: [] }))}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="grupo">Grupo</SelectItem>
-                    <SelectItem value="taller">Taller</SelectItem>
-                    <SelectItem value="actividad">Actividad</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label>
-                  {instanceForm.module === "grupo" ? "Grupo" : instanceForm.module === "taller" ? "Taller" : "Actividad"}
-                </Label>
-                <Select
-                  value={instanceForm.source_id || "none"}
-                  onValueChange={v => setInstanceForm(f => ({ ...f, source_id: v === "none" ? "" : v }))}
-                >
-                  <SelectTrigger><SelectValue placeholder="Sin vincular" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sin vincular</SelectItem>
-                    {getSourceItems(instanceForm.module).map((item: any) => (
-                      <SelectItem key={item.id} value={String(item.id)}>{item.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+          <div className="space-y-5">
 
-            {/* Horario */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>Hora inicio</Label>
-                <Input
-                  type="time"
-                  value={instanceForm.start_time}
-                  onChange={e => setInstanceForm(f => ({ ...f, start_time: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Hora fin</Label>
-                <Input
-                  type="time"
-                  value={instanceForm.end_time}
-                  onChange={e => setInstanceForm(f => ({ ...f, end_time: e.target.value }))}
-                />
-              </div>
-            </div>
+            {/* ── QUE ────────────────────────────────────────────────── */}
+            <section className="space-y-3">
+              <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#00838f]">
+                <span className="h-3 w-1 shrink-0 rounded-full bg-[#4dd0e1]" />
+                Qué
+              </h3>
 
-            {editingInstance ? (
-              <div className="space-y-1">
-                <Label>Fecha</Label>
-                <Input
-                  type="date"
-                  value={instanceForm.date_from}
-                  onChange={e => setInstanceForm(f => ({ ...f, date_from: e.target.value }))}
-                />
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="is_single_day"
-                    checked={instanceForm.is_single_day}
-                    onCheckedChange={checked =>
-                      setInstanceForm(f => ({ ...f, is_single_day: checked as boolean, date_to: "", repeat_days: [] }))
-                    }
-                  />
-                  <Label htmlFor="is_single_day" className="cursor-pointer">Un solo día</Label>
-                </div>
-
-                {instanceForm.is_single_day ? (
-                  <div className="space-y-1">
-                    <Label>Fecha</Label>
-                    <Input
-                      type="date"
-                      value={instanceForm.date_from}
-                      onChange={e => setInstanceForm(f => ({ ...f, date_from: e.target.value }))}
-                    />
-                  </div>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label>Fecha inicio</Label>
-                        <Input
-                          type="date"
-                          value={instanceForm.date_from}
-                          onChange={e => setInstanceForm(f => ({ ...f, date_from: e.target.value }))}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label>Fecha fin</Label>
-                        <Input
-                          type="date"
-                          value={instanceForm.date_to}
-                          onChange={e => setInstanceForm(f => ({ ...f, date_to: e.target.value }))}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm">Días de la semana</Label>
-                      <div className="flex gap-2 flex-wrap">
-                        {WEEK_DAYS.map(day => (
-                          <button
-                            key={day.value}
-                            type="button"
-                            onClick={() => toggleRepeatDay(day.value)}
-                            className={`w-10 h-10 rounded-full text-xs font-medium transition-colors ${
-                              instanceForm.repeat_days.includes(day.value)
-                                ? "bg-[#4dd0e1] text-white"
-                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                            }`}
-                          >
-                            {day.label}
-                          </button>
-                        ))}
-                      </div>
-                      {instanceForm.repeat_days.length === 0 && instanceForm.date_from && instanceForm.date_to && (
-                        <p className="text-xs text-amber-600">
-                          Sin días seleccionados se crearán instancias para cada día del rango.
-                        </p>
-                      )}
-                    </div>
-                  </>
-                )}
-              </>
-            )}
-
-            {/* Coordinador / Co-coordinador solo para grupo y taller */}
-            {instanceForm.module !== "actividad" && (
-              <>
+              {/* [&>*]:min-w-0 — los hijos de un grid nacen con min-width:auto y no
+                  se achican debajo de su ancho mínimo. Los inputs date/time
+                  traen uno grande por el selector nativo de Chrome, así que
+                  sin esto se desbordaban por la derecha y el modal quedaba con
+                  scroll horizontal. */}
+              <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
                 <div className="space-y-1">
-                  <Label>Coordinador</Label>
+                  <Label className="text-xs">Módulo</Label>
                   <Select
-                    value={instanceForm.coordinator_id || "none"}
-                    onValueChange={v => setInstanceForm(f => {
-                      const coordinator_id = v === "none" ? "" : v
-                      const removedId = coordinator_id ? parseInt(coordinator_id) : null
-                      return {
-                        ...f,
-                        coordinator_id,
-                        volunteer_ids: removedId ? f.volunteer_ids.filter(id => id !== removedId) : f.volunteer_ids,
-                      }
-                    })}
+                    value={instanceForm.module}
+                    onValueChange={(v: any) => setInstanceForm(f => ({ ...f, module: v, visible_participantes: v !== "actividad", source_id: "", coordinator_id: "", co_coordinator_ids: [] }))}
                   >
-                    <SelectTrigger><SelectValue placeholder="Sin asignar" /></SelectTrigger>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Sin asignar</SelectItem>
-                      {volunteers.map(v => (
-                        <SelectItem key={v.id} value={String(v.id)}>{v.name} {v.last_name}</SelectItem>
-                      ))}
+                      <SelectItem value="grupo">Grupo</SelectItem>
+                      <SelectItem value="taller">Taller</SelectItem>
+                      <SelectItem value="actividad">Actividad</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label>Co-coordinadores</Label>
-                  {/* Varios por evento: se pidió poder asignar más de uno.
-                      Se excluye al coordinador para que nadie ocupe dos roles. */}
-                  {(() => {
-                    const coordId = instanceForm.coordinator_id ? parseInt(instanceForm.coordinator_id) : null
-                    const elegibles = volunteers
-                      .filter(v => v.id !== coordId)
-                      .sort((a, b) => `${a.name} ${a.last_name}`.localeCompare(`${b.name} ${b.last_name}`))
-                    const toggle = (id: number) => setInstanceForm(f => {
-                      const yaEsta = f.co_coordinator_ids.includes(id)
-                      const co_coordinator_ids = yaEsta
-                        ? f.co_coordinator_ids.filter(x => x !== id)
-                        : [...f.co_coordinator_ids, id]
-                      return {
-                        ...f,
-                        co_coordinator_ids,
-                        // Si pasa a co-coordinador, sale de la lista de voluntarios.
-                        volunteer_ids: yaEsta ? f.volunteer_ids : f.volunteer_ids.filter(x => x !== id),
+                  <Label className="text-xs">
+                    {instanceForm.module === "grupo" ? "Grupo" : instanceForm.module === "taller" ? "Taller" : "Actividad"}
+                  </Label>
+                  <Select
+                    value={instanceForm.source_id || "none"}
+                    onValueChange={v => setInstanceForm(f => ({ ...f, source_id: v === "none" ? "" : v }))}
+                  >
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Sin vincular" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sin vincular</SelectItem>
+                      {getSourceItems(instanceForm.module).map((item: any) => (
+                        <SelectItem key={item.id} value={String(item.id)}>{item.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* El título vive con el "qué" y no al final: es cómo se va a
+                  llamar el evento, no un apéndice de las notas. */}
+              <div className="space-y-1">
+                <Label className="text-xs">Título <span className="text-gray-400">(opcional)</span></Label>
+                <Input
+                  className="h-9"
+                  value={instanceForm.title}
+                  onChange={e => setInstanceForm(f => ({ ...f, title: e.target.value }))}
+                  maxLength={150}
+                  placeholder="Si lo dejás vacío, se muestra la actividad"
+                />
+              </div>
+            </section>
+
+            {/* ── CUANDO ─────────────────────────────────────────────── */}
+            <section className="space-y-3 border-t border-[#4dd0e1]/30 pt-4">
+              <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#00838f]">
+                <span className="h-3 w-1 shrink-0 rounded-full bg-[#4dd0e1]" />
+                Cuándo
+              </h3>
+
+              {editingInstance ? (
+                <div className="space-y-1">
+                  <Label className="text-xs">Fecha</Label>
+                  <Input
+                    className="h-9"
+                    type="date"
+                    value={instanceForm.date_from}
+                    onChange={e => setInstanceForm(f => ({ ...f, date_from: e.target.value }))}
+                  />
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="is_single_day"
+                      checked={instanceForm.is_single_day}
+                      onCheckedChange={checked =>
+                        setInstanceForm(f => ({ ...f, is_single_day: checked as boolean, date_to: "", repeat_days: [] }))
                       }
-                    })
-                    return (
-                      <div className="max-h-32 overflow-y-auto rounded-md border p-2 space-y-1">
-                        {elegibles.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">No hay voluntarios</p>
-                        ) : (
-                          elegibles.map(v => (
-                            <label key={v.id} className="flex items-center gap-2 cursor-pointer text-sm">
-                              <Checkbox
-                                checked={instanceForm.co_coordinator_ids.includes(v.id)}
-                                onCheckedChange={() => toggle(v.id)}
-                              />
-                              {v.name} {v.last_name}
-                            </label>
-                          ))
+                    />
+                    <Label htmlFor="is_single_day" className="cursor-pointer text-sm">Un solo día</Label>
+                  </div>
+
+                  {instanceForm.is_single_day ? (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Fecha</Label>
+                      <Input
+                        className="h-9"
+                        type="date"
+                        value={instanceForm.date_from}
+                        onChange={e => setInstanceForm(f => ({ ...f, date_from: e.target.value }))}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Fecha inicio</Label>
+                          <Input
+                            className="h-9"
+                            type="date"
+                            value={instanceForm.date_from}
+                            onChange={e => setInstanceForm(f => ({ ...f, date_from: e.target.value }))}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Fecha fin</Label>
+                          <Input
+                            className="h-9"
+                            type="date"
+                            value={instanceForm.date_to}
+                            onChange={e => setInstanceForm(f => ({ ...f, date_to: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs">Días de la semana</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {WEEK_DAYS.map(day => (
+                            <button
+                              key={day.value}
+                              type="button"
+                              onClick={() => toggleRepeatDay(day.value)}
+                              className={`h-9 w-9 rounded-full text-xs font-medium transition-colors ${
+                                instanceForm.repeat_days.includes(day.value)
+                                  ? "bg-[#4dd0e1] text-white"
+                                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                              }`}
+                            >
+                              {day.label}
+                            </button>
+                          ))}
+                        </div>
+                        {instanceForm.repeat_days.length === 0 && instanceForm.date_from && instanceForm.date_to && (
+                          <p className="text-xs text-amber-600">
+                            Sin días seleccionados se crearán instancias para cada día del rango.
+                          </p>
                         )}
                       </div>
-                    )
-                  })()}
-                </div>
-              </>
-            )}
-
-            {/* Voluntarios asignados (lista N) — acordeón, cerrado por defecto */}
-            <div className="space-y-1">
-              <button
-                type="button"
-                onClick={() => setVolunteersOpen(o => !o)}
-                className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm hover:bg-gray-50"
-              >
-                <span className="font-medium">
-                  Voluntarios asignados
-                  {instanceForm.volunteer_ids.length > 0 && (
-                    <span className="ml-2 text-[#0097a7]">({instanceForm.volunteer_ids.length})</span>
+                    </>
                   )}
-                </span>
-                {volunteersOpen
-                  ? <ChevronDown className="h-4 w-4 text-gray-500" />
-                  : <ChevronRight className="h-4 w-4 text-gray-500" />}
-              </button>
-              {volunteersOpen && (() => {
+                </>
+              )}
+
+              {/* Las horas DESPUÉS de la fecha: primero qué día, después a qué
+                  hora. Antes venían antes y se leía al revés. */}
+              <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
+                <div className="space-y-1">
+                  <Label className="text-xs">Hora inicio</Label>
+                  <Input
+                    className="h-9"
+                    type="time"
+                    value={instanceForm.start_time}
+                    onChange={e => setInstanceForm(f => ({ ...f, start_time: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Hora fin</Label>
+                  <Input
+                    className="h-9"
+                    type="time"
+                    value={instanceForm.end_time}
+                    onChange={e => setInstanceForm(f => ({ ...f, end_time: e.target.value }))}
+                  />
+                </div>
+              </div>
+            </section>
+
+            {/* ── QUIEN ──────────────────────────────────────────────── */}
+            <section className="space-y-3 border-t border-[#4dd0e1]/30 pt-4">
+              <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#00838f]">
+                <span className="h-3 w-1 shrink-0 rounded-full bg-[#4dd0e1]" />
+                Quién va
+              </h3>
+
+              {instanceForm.module !== "actividad" && (
+                <>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Coordinador</Label>
+                    {/* Con buscador, igual que en Inventario: un desplegable
+                        plano obliga a scrollear adentro para encontrar a
+                        alguien apenas pasan los diez voluntarios. */}
+                    <SelectorBuscable
+                      className="h-9"
+                      valor={instanceForm.coordinator_id || "none"}
+                      onChange={v => setInstanceForm(f => {
+                        const coordinator_id = v === "none" ? "" : v
+                        const removedId = coordinator_id ? parseInt(coordinator_id) : null
+                        return {
+                          ...f,
+                          coordinator_id,
+                          volunteer_ids: removedId ? f.volunteer_ids.filter(id => id !== removedId) : f.volunteer_ids,
+                        }
+                      })}
+                      opciones={[
+                        { valor: "none", texto: "Sin asignar" },
+                        ...volunteers.map(v => ({
+                          valor: String(v.id),
+                          texto: `${v.name || ""} ${v.last_name || ""}`.trim() || "(sin nombre)",
+                        })),
+                      ]}
+                      placeholder="Sin asignar"
+                      textoBusqueda="Buscar voluntario…"
+                      sinResultados="Ningún voluntario con ese nombre"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Co-coordinadores</Label>
+                    {/* Varios por evento. Se excluye al coordinador para que
+                        nadie ocupe dos roles. */}
+                    {(() => {
+                      const coordId = instanceForm.coordinator_id ? parseInt(instanceForm.coordinator_id) : null
+                      const elegibles = volunteers
+                        .filter(v => v.id !== coordId)
+                        .sort((a, b) => `${a.name} ${a.last_name}`.localeCompare(`${b.name} ${b.last_name}`))
+                      const toggle = (id: number) => setInstanceForm(f => {
+                        const yaEsta = f.co_coordinator_ids.includes(id)
+                        const co_coordinator_ids = yaEsta
+                          ? f.co_coordinator_ids.filter(x => x !== id)
+                          : [...f.co_coordinator_ids, id]
+                        return {
+                          ...f,
+                          co_coordinator_ids,
+                          volunteer_ids: yaEsta ? f.volunteer_ids : f.volunteer_ids.filter(x => x !== id),
+                        }
+                      })
+                      return (
+                        <div className="max-h-36 space-y-1 overflow-y-auto rounded-md border p-2">
+                          {elegibles.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">No hay voluntarios</p>
+                          ) : (
+                            elegibles.map(v => (
+                              <label key={v.id} className="flex cursor-pointer items-center gap-2 text-sm">
+                                <Checkbox
+                                  checked={instanceForm.co_coordinator_ids.includes(v.id)}
+                                  onCheckedChange={() => toggle(v.id)}
+                                />
+                                {v.name} {v.last_name}
+                              </label>
+                            ))
+                          )}
+                        </div>
+                      )
+                    })()}
+                  </div>
+                </>
+              )}
+
+              {/* Voluntarios asignados. La lista queda SIEMPRE a la vista: el
+                  acordeón escondía quién iba al evento, que es justo lo que
+                  se viene a mirar. */}
+              {(() => {
                 const coordId = instanceForm.coordinator_id ? parseInt(instanceForm.coordinator_id) : null
                 const coCoordIds = instanceForm.co_coordinator_ids
                 const assignable = volunteers
                   .filter(v => v.id !== coordId && !coCoordIds.includes(v.id))
                   .sort((a, b) => `${a.name} ${a.last_name}`.localeCompare(`${b.name} ${b.last_name}`))
+                const idsAsignables = assignable.map(v => v.id)
+                // "Todos" mira solo a los ASIGNABLES: quien ya coordina no
+                // vuelve a entrar como voluntario raso.
+                const todos = idsAsignables.length > 0 &&
+                  idsAsignables.every(id => instanceForm.volunteer_ids.includes(id))
                 return (
-                  <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
-                    {assignable.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No hay voluntarios</p>
-                    ) : (
-                      assignable.map(v => (
-                        <label key={v.id} className="flex items-center gap-2 cursor-pointer text-sm">
-                          <Checkbox
-                            checked={instanceForm.volunteer_ids.includes(v.id)}
-                            onCheckedChange={() => toggleVolunteer(v.id)}
-                          />
-                          {v.name} {v.last_name}
-                        </label>
-                      ))
-                    )}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <Label className="text-xs">
+                        Voluntarios asignados
+                        {instanceForm.volunteer_ids.length > 0 && (
+                          <span className="ml-1.5 text-[#0097a7]">({instanceForm.volunteer_ids.length})</span>
+                        )}
+                      </Label>
+                    </div>
+
+                    {/* Tilda a todos y bloquea la lista: con "todos" puesto,
+                        destildar a uno sería una contradicción silenciosa.
+                        Para sacar a alguien, primero se destilda "Todos". */}
+                    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-[#4dd0e1]/40 bg-[#4dd0e1]/5 px-3 py-2">
+                      <Checkbox
+                        checked={todos}
+                        disabled={idsAsignables.length === 0}
+                        onCheckedChange={checked =>
+                          setInstanceForm(f => ({
+                            ...f,
+                            volunteer_ids: checked ? idsAsignables : [],
+                          }))
+                        }
+                      />
+                      <span className="text-sm font-medium text-gray-700">Todos los voluntarios</span>
+                      <span className="text-xs text-gray-500">({idsAsignables.length})</span>
+                    </label>
+
+                    <div className={`max-h-44 space-y-1 overflow-y-auto rounded-md border p-2 ${todos ? "opacity-50" : ""}`}>
+                      {assignable.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No hay voluntarios</p>
+                      ) : (
+                        assignable.map(v => (
+                          <label
+                            key={v.id}
+                            className={`flex items-center gap-2 text-sm ${todos ? "cursor-not-allowed" : "cursor-pointer"}`}
+                          >
+                            <Checkbox
+                              checked={instanceForm.volunteer_ids.includes(v.id)}
+                              disabled={todos}
+                              onCheckedChange={() => toggleVolunteer(v.id)}
+                            />
+                            {v.name} {v.last_name}
+                          </label>
+                        ))
+                      )}
+                    </div>
                   </div>
                 )
               })()}
-            </div>
+            </section>
 
-            {/* Qué ve un participante. El default sale del tipo: grupo y
-                taller son para participantes por definición; "actividad" es el
-                cajón donde también entran las reuniones internas, así que nace
-                destildada. Olvidarse nunca expone nada. */}
-            <div className="flex items-center gap-2 rounded-md border p-3">
-              <Checkbox
-                id="visible_participantes"
-                checked={instanceForm.visible_participantes}
-                onCheckedChange={checked =>
-                  setInstanceForm(f => ({ ...f, visible_participantes: checked as boolean }))
-                }
-              />
-              <Label htmlFor="visible_participantes" className="cursor-pointer">
-                Los participantes pueden ver este evento
-              </Label>
-            </div>
+            {/* ── AVISOS ─────────────────────────────────────────────── */}
+            <section className="space-y-3 border-t border-[#4dd0e1]/30 pt-4">
+              <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#00838f]">
+                <span className="h-3 w-1 shrink-0 rounded-full bg-[#4dd0e1]" />
+                Avisos y visibilidad
+              </h3>
 
-            {/* Notificación por email a los voluntarios asignados */}
-            <div className="space-y-2 rounded-md border p-3">
-              <div className="flex items-center gap-2">
+              {/* Qué ve un participante. El default sale del tipo: grupo y
+                  taller son para participantes por definición; "actividad" es
+                  el cajón donde también entran las reuniones internas, así que
+                  nace destildada. Olvidarse nunca expone nada. */}
+              <label className="flex cursor-pointer items-center gap-2 rounded-md border p-3">
                 <Checkbox
-                  id="notify_enabled"
-                  checked={instanceForm.notify_enabled}
+                  checked={instanceForm.visible_participantes}
                   onCheckedChange={checked =>
-                    setInstanceForm(f => ({ ...f, notify_enabled: checked as boolean }))
+                    setInstanceForm(f => ({ ...f, visible_participantes: checked as boolean }))
                   }
                 />
-                <Label htmlFor="notify_enabled" className="cursor-pointer">
-                  Notificar a los voluntarios por email
-                </Label>
-              </div>
-              {instanceForm.notify_enabled && (
-                <div className="pl-6 space-y-1">
-                  <Label className="text-sm">¿Cuándo enviar el recordatorio?</Label>
-                  <div className="flex flex-col gap-1">
-                    {REMINDER_OPTIONS.map(opt => (
-                      <label key={opt.value} className="flex items-center gap-2 cursor-pointer text-sm">
-                        <Checkbox
-                          checked={instanceForm.reminder_offsets.includes(opt.value)}
-                          onCheckedChange={() => toggleReminderOffset(opt.value)}
-                        />
-                        {opt.label}
-                      </label>
-                    ))}
+                <span className="text-sm">Los participantes pueden ver este evento</span>
+              </label>
+
+              <div className="space-y-2 rounded-md border p-3">
+                <label className="flex cursor-pointer items-center gap-2">
+                  <Checkbox
+                    checked={instanceForm.notify_enabled}
+                    onCheckedChange={checked =>
+                      setInstanceForm(f => ({ ...f, notify_enabled: checked as boolean }))
+                    }
+                  />
+                  <span className="text-sm">Notificar a los voluntarios por email</span>
+                </label>
+                {instanceForm.notify_enabled && (
+                  <div className="space-y-1 pl-6">
+                    <Label className="text-xs">Cuándo enviar el recordatorio</Label>
+                    <div className="flex flex-col gap-1">
+                      {REMINDER_OPTIONS.map(opt => (
+                        <label key={opt.value} className="flex cursor-pointer items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={instanceForm.reminder_offsets.includes(opt.value)}
+                            onCheckedChange={() => toggleReminderOffset(opt.value)}
+                          />
+                          {opt.label}
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">El email sale a las 6:00 AM del día correspondiente.</p>
+                    {instanceForm.reminder_offsets.length === 0 && (
+                      <p className="text-xs text-red-600">Elegí al menos una opción para poder guardar.</p>
+                    )}
                   </div>
-                  <p className="text-xs text-muted-foreground">El email se envía a las 6:00 AM del día correspondiente.</p>
-                  {instanceForm.reminder_offsets.length === 0 && (
-                    <p className="text-xs text-red-600">Elegí al menos una opción para poder guardar.</p>
-                  )}
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            </section>
 
-            <div className="space-y-1">
-              <Label>Estado</Label>
-              <Select value={instanceForm.status} onValueChange={v => setInstanceForm(f => ({ ...f, status: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="programado">Programado</SelectItem>
-                  <SelectItem value="realizado">Realizado</SelectItem>
-                  <SelectItem value="cancelado">Cancelado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* ── NOTAS ──────────────────────────────────────────────── */}
+            {/* "Estado" (programado / realizado / cancelado) salió de la vista
+                porque nadie lo usaba. El DATO sigue: un evento nuevo nace
+                "programado" y al editar se conserva el que tenga, porque
+                `openEditInstance` lo carga desde la instancia y `makeBody` lo
+                sigue mandando.
 
-            <div className="space-y-1">
-              <Label>Título (opcional)</Label>
-              <Input
-                value={instanceForm.title}
-                onChange={e => setInstanceForm(f => ({ ...f, title: e.target.value }))}
-                maxLength={150}
-                placeholder="Si lo dejás vacío, se muestra la actividad"
-              />
-            </div>
+                Importante que siga existiendo: el calendario pinta los
+                cancelados tachados y los realizados en gris a partir de este
+                campo. Borrarlo de verdad se llevaría eso puesto. */}
+            <section className="space-y-3 border-t border-[#4dd0e1]/30 pt-4">
+              <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#00838f]">
+                <span className="h-3 w-1 shrink-0 rounded-full bg-[#4dd0e1]" />
+                Notas
+              </h3>
 
-            <div className="space-y-1">
-              <Label>Notas</Label>
-              <Textarea
-                value={instanceForm.notes}
-                onChange={e => setInstanceForm(f => ({ ...f, notes: e.target.value }))}
-                rows={2}
-                placeholder="Notas opcionales..."
-              />
-            </div>
+              <div className="space-y-1">
+                <Textarea
+                  value={instanceForm.notes}
+                  onChange={e => setInstanceForm(f => ({ ...f, notes: e.target.value }))}
+                  rows={2}
+                  placeholder="Notas opcionales..."
+                />
+              </div>
+            </section>
           </div>
 
           <DialogFooter>
