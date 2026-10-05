@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import FilterChip from "@/components/ui/filter-chip"
+import BotonesInforme from "@/components/ui/botones-informe"
 import {
   Loader2, TrendingUp, ShoppingCart, GraduationCap, Wallet,
   Banknote, ArrowLeftRight, CircleDollarSign, AlertTriangle, ArrowRight,
@@ -42,7 +43,7 @@ const ICONO_MEDIO: Record<string, any> = {
   mercadopago: CircleDollarSign,
 }
 
-export default function IngresosTablero() {
+export default function IngresosTablero({ esAdmin = false }: { esAdmin?: boolean }) {
   const router = useRouter()
   const [year, setYear] = useState<number>(new Date().getFullYear())
   const [datos, setDatos] = useState<ResumenIngresos | null>(null)
@@ -95,6 +96,19 @@ export default function IngresosTablero() {
             {a}
           </FilterChip>
         ))}
+        {/* El informe sale del MISMO año que estás mirando: los chips ya son
+            el selector de período, y sumar dos campos de fecha abriría la
+            puerta a bajar un año distinto del que está en pantalla. */}
+        {/* Solo admin: el informe lista quién pagó qué, con nombre y monto.
+            Los totales de esta pantalla no nombran a nadie, por eso sí los ve
+            un voluntario. */}
+        {esAdmin && (
+          <BotonesInforme
+            endpoint="/api/ingresos/informe"
+            rango={{ desde: `${year}-01-01`, hasta: `${year}-12-31` }}
+            className="ml-auto"
+          />
+        )}
       </div>
 
       {/* ── El número grande ───────────────────────────────────────────── */}
@@ -144,7 +158,10 @@ export default function IngresosTablero() {
           </p>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {datos.por_origen.map((o) => {
-              const destino = DESTINO[o.key]
+              // Para un voluntario, Pagos es un 403: la tarjeta informa pero
+              // no navega. Un link que lleva a "sin permisos" es peor que uno
+              // que no está.
+              const destino = esAdmin || o.key === "stand" ? DESTINO[o.key] : undefined
               const Icono = destino?.icono ?? Wallet
               const parte = Number(datos.total) > 0
                 ? (Number(o.total) / Number(datos.total)) * 100

@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useRef, type ReactNode } from "react"
-import { createPortal } from "react-dom"
+import { useState, useEffect, useMemo, type ReactNode } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -51,7 +50,7 @@ import LinkPagoAdmin from "@/components/capacitaciones/link-pago-admin"
 import EncuestasManager from "@/components/encuestas/encuestas-manager"
 import EntregaCertificados from "@/components/capacitaciones/entrega-certificados"
 import HistorialCertificados from "@/components/capacitaciones/historial-certificados"
-import { visibleModules, visibleChildren, type Grant } from "@/lib/access"
+import { visibleModules, userMenuModules, visibleChildren, type Grant } from "@/lib/access"
 import { getModule, resolveRoute, MODULES, type ModuleDef } from "@/lib/modules"
 import NotificationBell from "@/components/notifications/notification-bell"
 import BroadcastManager from "@/components/notifications/broadcast-manager"
@@ -63,13 +62,15 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/s
 import PuestoVentaManager from "@/components/stand/puesto-venta-manager"
 import IngresosTablero from "@/components/ingresos/ingresos-tablero"
 import InicioLauncher from "@/components/inicio/inicio-launcher"
+import BarraModulos from "@/components/dashboard/barra-modulos"
+import BuscadorModulos from "@/components/dashboard/buscador-modulos"
 import AlmaFooter from "@/components/ui/alma-footer"
 import MarcaAlma from "@/components/ui/marca-alma"
 import ProfileCompletionModal from "@/components/auth/profile-completion-modal"
 import ParticipanteOnboarding from "@/components/participantes/onboarding-modal"
 import AnnouncementModal from "@/components/announcements/announcement-modal"
 import ImpersonationBanner from "@/components/admin/impersonation-banner"
-import { Menu } from "lucide-react"
+import { Menu, Bell } from "lucide-react"
 
 // Human-readable role labels (UI)
 const ROLE_LABELS: Record<string, string> = {
@@ -86,6 +87,9 @@ const SESSION_GAP_MS = 30 * 60 * 1000
 
 export default function Dashboard({ user, onLogout }: { user: any, onLogout: () => void }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  /** Con qué pestaña abrir Mi perfil. El menú del avatar entra directo a
+   *  Notificaciones, que si no queda escondida adentro del módulo. */
+  const [seccionPerfil, setSeccionPerfil] = useState("perfil")
   const [pendingCount, setPendingCount] = useState(0)
   /** Avisos de "ya pagué" sin resolver. Se muestran en el nav para que no haya
    *  que entrar a Accesos todos los días a ver si alguien está esperando. */
@@ -109,23 +113,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
     router.push(target)
   }
 
-  // Dropdown de sub-módulos al hacer hover (desktop). Se porta a document.body
-  // porque la barra de módulos tiene overflow-x-auto/overflow-y-hidden (scroll
-  // horizontal cuando hay muchas pestañas) y eso recorta cualquier hijo
-  // posicionado absoluto que sobresalga hacia abajo.
-  const [navSubmenu, setNavSubmenu] = useState<{ key: string; left: number; top: number } | null>(null)
-  const navSubmenuCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const openNavSubmenu = (key: string, el: HTMLElement) => {
-    if (navSubmenuCloseTimer.current) { clearTimeout(navSubmenuCloseTimer.current); navSubmenuCloseTimer.current = null }
-    const rect = el.getBoundingClientRect()
-    setNavSubmenu({ key, left: rect.left + rect.width / 2, top: rect.bottom })
-  }
-  const scheduleCloseNavSubmenu = () => {
-    navSubmenuCloseTimer.current = setTimeout(() => setNavSubmenu(null), 150)
-  }
-  const cancelCloseNavSubmenu = () => {
-    if (navSubmenuCloseTimer.current) { clearTimeout(navSubmenuCloseTimer.current); navSubmenuCloseTimer.current = null }
-  }
 
   const isAdmin = user.role === "admin"
 
@@ -161,6 +148,15 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
    */
   const navModules = useMemo(() => visibleModules(user, grants), [user, grants])
 
+  /**
+   * Lo que vive en el menú del avatar: Mi perfil, Anuncios y Actividad.
+   *
+   * No son lugares donde se trabaja —son los datos propios, los avisos y las
+   * métricas de uso, cosas que se miran cada tanto—, así que sacarlos de la
+   * barra dejó ocho pestañas de trabajo diario en vez de once.
+   */
+  const menuModules = useMemo(() => userMenuModules(user, grants), [user, grants])
+
   /** Contenido de cada módulo. La clave tiene que coincidir con la del registro. */
   const MODULE_CONTENT: Record<string, ReactNode> = {
     calendarios: <CalendariosManager user={user} />,
@@ -188,15 +184,12 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
     actividad: <ActividadManager user={user} />,
     anuncios: <BroadcastManager user={user} />,
     "puesto-venta": <PuestoVentaManager user={user} />,
-    ingresos: <IngresosTablero />,
-    "mis-datos": <MiCuenta user={user} />,
+    ingresos: <IngresosTablero esAdmin={isAdmin} />,
+    // `key` fuerza el remonte: sin eso, entrar desde el menú a
+    // Notificaciones con Mi perfil ya abierto no cambiaba de pestaña.
+    "mis-datos": <MiCuenta key={seccionPerfil} user={user} seccionInicial={seccionPerfil} />,
   }
 
-  // Tailwind necesita las clases completas en el código para generarlas:
-  // `grid-cols-${n}` interpolado no existiría en el CSS final.
-  const GRID_COLS: Record<number, string> = {
-    1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4",
-  }
 
 
   /**
@@ -280,7 +273,49 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
     setMobileMenuOpen(false)
   }
 
-  const tabTriggerClass = "flex items-center gap-1 px-2 text-[13px] transition-all duration-200 active:scale-95 data-[state=inactive]:hover:bg-[#4dd0e1]/10 data-[state=inactive]:hover:text-[#00838f] data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
+  /**
+   * Key de módulo → a dónde lleva y de qué grupo cuelga.
+   *
+   * Solo HOJAS: son las únicas que el tracking escribe (resolveRoute siempre
+   * baja al nivel más profundo). Lo consume Inicio para resolver las keys que
+   * devuelve /api/inicio/recientes, que no sabe nada de etiquetas ni rutas.
+   */
+  const destinos = useMemo(() => {
+    const salida: Record<string, { mod: ModuleDef; grupo: string }> = {}
+    const recorrer = (mod: ModuleDef, grupo: string) => {
+      const kids = visibleChildren(user, mod, grants)
+      if (kids.length === 0) {
+        salida[mod.key] = { mod, grupo }
+        return
+      }
+      // El grupo que se muestra es el de PRIMER nivel: "Plata", no
+      // "Plata › Accesos". Es lo que hace falta para desempatar dos nombres
+      // parecidos, y más que eso no entra en el renglón.
+      for (const kid of kids) recorrer(kid, grupo || mod.label)
+    }
+    for (const mod of navModules) recorrer(mod, "")
+    return salida
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navModules, grants, user])
+
+  /**
+   * Lo que está esperando que alguien lo resuelva, para la franja de arriba
+   * de Inicio.
+   *
+   * Son los mismos contadores que pintan el globo rojo del sidebar. La
+   * diferencia es que acá se dice QUÉ es: un número al lado de "Personas" no
+   * alcanza para saber si hay que aprobar a alguien o si falta cargar un dato.
+   */
+  //
+  // Solo admin: los dos contadores (aprobar voluntarios, revisar avisos de
+  // pago) son de cosas que únicamente un admin puede resolver. Pasarle la
+  // lista a un voluntario le dibujaba un "todo al día" permanente, que es
+  // decoración y no información.
+  const atencion = !isAdmin ? [] : [
+    { key: "aprobaciones", cantidad: pendingCount, que: pendingCount === 1 ? "aprobación" : "aprobaciones", grupo: "Personas", route: "/aprobaciones" },
+    { key: "pagos", cantidad: avisosPago, que: avisosPago === 1 ? "pago" : "pagos", grupo: "Plata", route: "/pagos-capacitaciones" },
+  ]
+
   const subTabTriggerClass = "flex items-center space-x-2 transition-all duration-200 active:scale-95 data-[state=inactive]:hover:bg-[#4dd0e1]/10 data-[state=inactive]:hover:text-[#00838f] data-[state=active]:bg-[#4dd0e1]/15 data-[state=active]:text-[#4dd0e1] data-[state=active]:font-semibold"
   // Tercer nivel: más liviano que el segundo a propósito. Si los tres niveles
   // pesaran igual, tres barras apiladas no dejarían ver cuál manda.
@@ -319,28 +354,92 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       {user.impersonating && <ImpersonationBanner user={user} />}
       {/* Header */}
       <header className={`bg-white shadow-sm border-b border-gray-200 sticky z-10 ${user.impersonating ? "top-9" : "top-0"}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              {/* Única forma segura de volver a Inicio: ahí no hay pestañas. */}
-              <button onClick={() => navigateTo("/inicio")} title="Ir a Inicio" className="transition-transform active:scale-95">
-                <img src="/images/flor.png" alt="Inicio" className="h-8 w-auto" />
-              </button>
-            </div>
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16 gap-4">
+            {/* Logo + marca, juntos y a la izquierda. El logo además vuelve
+                a Inicio: es el gesto que ya tenía y conviene no perderlo. */}
+            <button
+              onClick={() => navigateTo("/inicio")}
+              title="Ir a Inicio"
+              className="flex shrink-0 items-center gap-2.5 transition-transform active:scale-95"
+            >
+              <img src="/images/flor.png" alt="Inicio" className="h-8 w-auto" />
+              <MarcaAlma className="hidden text-2xl sm:inline-flex" />
+            </button>
 
-            {/* La marca, escrita con la tipografía institucional. Ver
-                components/ui/marca-alma.tsx. */}
-            <div className="flex-1 flex justify-center">
-              <MarcaAlma className="text-2xl sm:text-3xl" />
+            <div className="flex min-w-0 flex-1 justify-center">
+              {/* El buscador de secciones ocupa el lugar que dejó la marca.
+                  Es lo que reemplaza al hover de la barra de pestañas: la
+                  única forma de llegar a una pantalla sin saber de antemano
+                  en qué grupo la guardamos. */}
+              <div className="hidden w-full max-w-md md:block">
+                <BuscadorModulos
+                  user={user}
+                  grants={grants}
+                  modules={navModules}
+                  navegar={navigateTo}
+                  rutaDe={(mod) => rutaVisible(mod, mod.route)}
+                />
+              </div>
             </div>
 
             <div className="flex items-center space-x-4">
               <NotificationBell />
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-medium text-[#4dd0e1]">{user.name}</p>
-                {/* UI: always show human-readable role label */}
-                <p className="text-xs text-gray-600">{roleLabel}</p>
-              </div>
+              {/* El nombre era texto muerto y "Salir" un botón suelto al lado.
+                  Ahora el nombre abre el menú de la cuenta, que absorbe los
+                  tres módulos que no son de trabajo diario más el logout. */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="hidden items-center gap-2 rounded-md px-2 py-1 text-left transition-colors hover:bg-gray-50 sm:flex">
+                    {/* Iniciales. Es lo que distingue de un vistazo "estoy yo"
+                        de "quedó la sesión de otro" en una compu compartida,
+                        que en ALMA son casi todas. */}
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4dd0e1]/15 text-xs font-bold uppercase text-[#00838f]">
+                      {`${user.name?.[0] ?? ""}${user.last_name?.[0] ?? ""}` || "?"}
+                    </span>
+                    <span>
+                      <span className="block text-sm font-medium text-[#4dd0e1]">{user.name}</span>
+                      <span className="block text-xs text-gray-600">{roleLabel}</span>
+                    </span>
+                    <ChevronDown className="h-4 w-4 shrink-0 text-gray-400" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  {menuModules.map((mod) => {
+                    const Icono = mod.icon
+                    return (
+                      <DropdownMenuItem
+                        key={mod.key}
+                        onClick={() => {
+                          if (mod.key === "mis-datos") setSeccionPerfil("perfil")
+                          navigateTo(mod.route)
+                        }}
+                        className="cursor-pointer gap-2"
+                      >
+                        <Icono className="h-4 w-4 text-gray-500" />
+                        {mod.label}
+                      </DropdownMenuItem>
+                    )
+                  })}
+
+                  {/* Notificaciones no es un módulo: es una pestaña adentro de
+                      Mi perfil, donde se prende y apaga el aviso al celular.
+                      Entrar a buscarla ahí adentro no se le ocurre a nadie, así
+                      que el menú lleva directo. */}
+                  <DropdownMenuItem
+                    onClick={() => { setSeccionPerfil("notificaciones"); navigateTo("/mis-datos") }}
+                    className="cursor-pointer gap-2"
+                  >
+                    <Bell className="h-4 w-4 text-gray-500" />
+                    Notificaciones
+                  </DropdownMenuItem>
+                  {menuModules.length > 0 && <DropdownMenuSeparator />}
+                  <DropdownMenuItem onClick={onLogout} className="cursor-pointer gap-2 text-red-600 focus:text-red-600">
+                    <LogOut className="h-4 w-4" />
+                    Salir
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               {GAMES_URL && (
                 <a
                   href={GAMES_URL}
@@ -352,15 +451,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                   Juegos
                 </a>
               )}
-              <Button
-                onClick={onLogout}
-                variant="outline"
-                size="sm"
-                className="border-[#4dd0e1] text-[#4dd0e1] hover:bg-[#4dd0e1] hover:text-white bg-transparent hidden sm:flex"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Salir
-              </Button>
 
               {/* Mobile menu button */}
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -492,6 +582,30 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                             </Button>
                           )
                         })}
+
+                        {/* Mi perfil, Anuncios y Actividad.
+                            En escritorio viven en el menú del avatar, pero en
+                            celular ese menú no existe: sin esto, un teléfono
+                            se quedaba sin forma de llegar a sus propios datos.
+                            Van abajo y separados, que es su jerarquía. */}
+                        {menuModules.length > 0 && (
+                          <div className="mt-2 space-y-1 border-t border-gray-100 pt-3">
+                            {menuModules.map((mod) => {
+                              const Icono = mod.icon
+                              return (
+                                <Button
+                                  key={mod.key}
+                                  variant={activeTab === mod.key ? "default" : "ghost"}
+                                  className={`w-full justify-start ${activeTab === mod.key ? "bg-[#4dd0e1] text-white" : "text-gray-600"}`}
+                                  onClick={() => { navigateTo(mod.route); setMobileMenuOpen(false) }}
+                                >
+                                  <Icono className="w-5 h-5 mr-3" />
+                                  {mod.label}
+                                </Button>
+                              )
+                            })}
+                          </div>
+                        )}
                       </nav>
                       {GAMES_URL && (
                         <a
@@ -513,8 +627,28 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         </div>
       </header>
 
+      {/* Las pestañas, en su propia fila. Fuera de <Tabs> a propósito: la
+          pestaña activa la decide la URL, no un estado de Radix. */}
+      <BarraModulos
+        user={user}
+        grants={grants}
+        modules={navModules}
+        activeTab={activeTab}
+        esInicio={esInicio}
+        navegar={navigateTo}
+        rutaDe={(mod) => rutaVisible(mod, mod.route)}
+        /* El punto en el grupo, el número en el hijo: desde afuera se ve que
+           Personas tiene algo, y al abrirla se ve que es Aprobaciones. */
+        badges={{
+          comunidad: pendingCount,
+          aprobaciones: pendingCount,
+          plata: avisosPago,
+          "pagos-capacitaciones": avisosPago,
+        }}
+      />
+
       {/* Main Content */}
-      <main className="relative flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+      <main className="relative flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 pt-4 pb-8 md:pt-6">
         {navigating && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-gray-50/70 backdrop-blur-[1px] rounded-lg min-h-[200px]">
             <div className="flex flex-col items-center gap-3">
@@ -528,113 +662,29 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
             nombre={user.name ?? ""}
             modules={navModules}
             onAbrir={(mod) => navigateTo(rutaVisible(mod, mod.route))}
+            navegar={navigateTo}
             hijos={(mod) => visibleChildren(user, mod, grants)}
+            atencion={atencion}
+            destinos={destinos}
+            /* El globito al lado del sub-módulo que lo genera: en el mapa, el
+               número tiene que estar sobre "Aprobaciones", no sobre
+               "Personas" — si no hay que entrar para saber qué era. */
+            badges={{ aprobaciones: pendingCount, "pagos-capacitaciones": avisosPago }}
           />
         ) : (
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          {/*
-            Las pestañas salen del registro de módulos (lib/modules.ts) filtrado
-            por rol + habilitaciones (lib/access.ts). Agregar un módulo nuevo es
-            una entrada en el registro y una en MODULE_CONTENT — no hay que tocar
-            el nav mobile, ni la lista, ni el breadcrumb.
-          */}
-          <TabsList
-            className={
-              GRID_COLS[navModules.length]
-                ? `hidden md:grid w-full ${GRID_COLS[navModules.length]} bg-white border border-gray-200 p-1 rounded-lg`
-                : "hidden md:flex md:flex-nowrap md:justify-center w-full bg-white border border-gray-200 p-1 rounded-lg gap-0.5 overflow-x-auto overflow-y-hidden"
-            }
-          >
-            {/*
-              Inicio no es un módulo del registro: es la pantalla de baldosas.
-              Va como botón y no como TabsTrigger porque no tiene contenido
-              propio dentro de estas pestañas — navega y listo. Sin esto, desde
-              escritorio la única forma de volver era el logo, que es un gesto
-              que hay que conocer de antes.
-            */}
-            <button
-              onClick={() => navigateTo("/inicio")}
-              className={tabTriggerClass + " text-gray-500 hover:text-[#00838f]"}
-              title="Volver al inicio"
-            >
-              <Home className="w-4 h-4 shrink-0" />
-              <span className="hidden sm:inline">Inicio</span>
-            </button>
+        /*
+          Sin `space-y-6`: el primer hijo de acá adentro es el breadcrumb, que
+          en escritorio está oculto pero sigue siendo un hijo — así que el
+          espaciado le ponía un margen de 24px a la pantalla que viene abajo
+          por un elemento que no se ve. Sumado al padding del <main>, dejaba
+          una franja vacía arriba de casi todos los módulos.
 
-            {navModules.map((mod) => {
-              const Icon = mod.icon
-              const submenu = visibleChildren(user, mod, grants)
-              const hasSubmenu = submenu.length > 1
-              return (
-                <div
-                  key={mod.key}
-                  className="relative"
-                  onMouseEnter={hasSubmenu ? (e) => openNavSubmenu(mod.key, e.currentTarget) : undefined}
-                  onMouseLeave={hasSubmenu ? scheduleCloseNavSubmenu : undefined}
-                >
-                  <TabsTrigger value={mod.key} className={tabTriggerClass + " w-full"}>
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span className="hidden sm:inline">{mod.label}</span>
-                    {mod.key === "aprobaciones" && pendingCount > 0 && (
-                      <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-red-500 text-white">
-                        {pendingCount}
-                      </span>
-                    )}
-                    {/* El desplegable solo aparece al pasar el mouse, así que un
-                        aviso que viva únicamente ahí adentro hay que adivinarlo.
-                        Este punto es el que se ve sin hacer nada. */}
-                    {mod.key === "contenido" && avisosPago > 0 && (
-                      <span className="ml-1 h-2 w-2 shrink-0 rounded-full bg-red-500" />
-                    )}
-                  </TabsTrigger>
-                </div>
-              )
-            })}
-          </TabsList>
-
-          {typeof document !== "undefined" && navSubmenu && createPortal(
-            (() => {
-              const mod = navModules.find((m) => m.key === navSubmenu.key)
-              if (!mod) return null
-              const submenu = visibleChildren(user, mod, grants)
-              return (
-                <div
-                  className="fixed z-[100] -translate-x-1/2 pt-1"
-                  style={{ left: navSubmenu.left, top: navSubmenu.top }}
-                  onMouseEnter={cancelCloseNavSubmenu}
-                  onMouseLeave={scheduleCloseNavSubmenu}
-                >
-                  <div className="flex min-w-[170px] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-                    {submenu.map((child) => {
-                      const ChildIcon = child.icon
-                      return (
-                        <button
-                          key={child.key}
-                          type="button"
-                          // Si es una sección, entra por su primera pantalla:
-                          // el atajo tiene que llevar a algo que se vea.
-                          onClick={() => { setNavSubmenu(null); navigateTo(rutaVisible(child, child.route)) }}
-                          className="flex items-center gap-2 px-3 py-2 text-left text-[13px] text-gray-700 transition-colors hover:bg-[#4dd0e1]/10 hover:text-[#00838f]"
-                        >
-                          <ChildIcon className="w-4 h-4 shrink-0" />
-                          {child.label}
-                          {child.key === "accesos" && avisosPago > 0 && (
-                            <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" />
-                          )}
-                          {child.key === "aprobaciones" && pendingCount > 0 && (
-                            <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                              {pendingCount}
-                            </span>
-                          )}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })(),
-            document.body,
-          )}
+          Lo que queda de <Tabs> es el ruteo del contenido: la barra de
+          pestañas vive afuera (components/dashboard/barra-modulos.tsx) y el
+          valor lo fija la URL, no un click. Cada TabsContent trae su propio
+          `space-y-6` para lo de adentro.
+        */
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
 
           {/* Breadcrumb mobile */}
           <div className="md:hidden bg-white p-3 rounded-lg shadow-sm mb-4">
@@ -657,8 +707,13 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
           </div>
 
           {/* Los módulos del menú del avatar no están en la barra, pero SÍ
-              necesitan su TabsContent: si no, /mis-datos quedaría en blanco. */}
-          {navModules.map((mod) => {
+              necesitan su TabsContent: si no, /mis-datos quedaría en blanco.
+
+              Por eso el recorrido es sobre navModules + menuModules y NO sobre
+              navModules solo. Pasó exactamente lo que este comentario avisaba:
+              al mover Mi perfil al menú del avatar salió de `navModules`, se
+              quedó sin su TabsContent y la pantalla apareció en blanco. */}
+          {[...navModules, ...menuModules].map((mod) => {
             const children = visibleChildren(user, mod, grants)
 
             // Sin hijos visibles: el grupo es el módulo.

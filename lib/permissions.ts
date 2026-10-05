@@ -37,6 +37,7 @@ export type Action =
   | "stand:sell"
   | "stand:manage"
   | "ingresos:view"
+  | "ingresos:detalle"
   | "emails:view"
   | "emails:send"
 
@@ -170,10 +171,21 @@ export function can(user: { role: string } | null, action: Action): boolean {
     case "stand:manage":
       return true
 
-    // Ingresos: el total de lo que entra por todos lados. Un voluntario cobra
-    // en el puesto y ve SU caja, pero la recaudación completa de ALMA es otra
-    // cosa y la mira quien administra.
+    // Plata. "¿Cuánta plata tiene ALMA?" es una pregunta razonable de
+    // cualquiera que trabaje acá, así que los TOTALES los ve un voluntario:
+    // cuánto entró, por origen, por mes. Ninguno de esos números menciona a
+    // una persona.
     case "ingresos:view":
+      // `true` y no un chequeo de rol: participante ya salió arriba con su
+      // return temprano, y un rol desconocido también. Acá solo quedan
+      // voluntario y admin.
+      return true
+
+    // El DETALLE es otra cosa: quién pagó qué, con nombre y monto, la cola de
+    // avisos y el informe descargable. Eso es información personal de gente
+    // que está pasando por un diagnóstico en la familia, y no hace falta para
+    // contestar la pregunta de arriba.
+    case "ingresos:detalle":
       return isAdmin
 
     // Emails: mandar sale con el remitente de ALMA, y el registro de envíos es

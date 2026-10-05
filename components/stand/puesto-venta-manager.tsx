@@ -9,6 +9,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
+import BotonesInforme from "@/components/ui/botones-informe"
 import {
   Loader2, ShoppingCart, Package, Wallet, Minus, Trash2,
   Banknote, ArrowLeftRight, Ban, PackagePlus, ListOrdered, UserPlus, AlertTriangle,
@@ -57,6 +58,23 @@ type Vista = "vender" | "stock" | "caja" | "historial"
 
 const pesos = (n: number) =>
   `$${Number(n || 0).toLocaleString("es-AR", { maximumFractionDigits: 0 })}`
+
+/**
+ * Lo que llega del backend, como número.
+ *
+ * Los importes son `Decimal` en Python y Pydantic los serializa como STRING
+ * ("1500.00") para no perder centavos en el camino a JSON. Eso está bien, pero
+ * en JavaScript `0 + "1500.00"` no suma: concatena. Sumar una lista de ventas
+ * así daba "01500.00800.00", un string con dos puntos decimales que termina en
+ * NaN — y encima el NaN quedaba escondido, porque `pesos()` lo pasa por
+ * `n || 0` y NaN es falsy, así que se leía "$0".
+ *
+ * Toda cuenta que se haga acá con plata que vino del servidor pasa por acá.
+ */
+const num = (v: unknown): number => {
+  const n = Number(v)
+  return Number.isFinite(n) ? n : 0
+}
 
 /**
  * Fecha y hora en el huso del teléfono, con red por si el navegador no sabe
@@ -117,13 +135,83 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
   const [porQuitar, setPorQuitar] = useState<StandProduct | null>(null)
   const [guardandoProducto, setGuardandoProducto] = useState(false)
 
+
+  /**
+   * Los números del período que está mirando el historial.
+   *
+   * Se calculan acá y no se le piden al backend: `ventas` YA es exactamente el
+   * conjunto filtrado por el rango —es lo que se está mostrando— así que un
+   * endpoint nuevo devolvería los mismos totales con un viaje de más y, peor,
+   * con la posibilidad de no coincidir con la tabla de abajo si alguno de los
+   * dos filtra distinto. Son decenas de filas, no millones.
+   *
+   * Las anuladas quedan afuera de todos los totales: una venta anulada no
+   * recaudó nada. Siguen apareciendo en la tabla porque sí importa saber que
+   * existió y que alguien la dio de baja.
+   */
+  const resumen = useMemo(() => {
+    const validas = ventas.filter(v => !v.is_void)
+    const total = validas.reduce((a, v) => a + num(v.total), 0)
+    const efectivo = validas
+      .filter(v => v.payment_method === "efectivo")
+      .reduce((a, v) => a + num(v.total), 0)
+
+    const porProducto = new Map<string, { nombre: string; unidades: number; importe: number }>()
+    const porDia = new Map<string, number>()
+
+    for (const v of validas) {
+      for (const i of v.items) {
+        const nombre = i.product_name ?? "?"
+        const fila = porProducto.get(nombre) ?? { nombre, unidades: 0, importe: 0 }
+        fila.unidades += num(i.quantity)
+        fila.importe += num(i.quantity) * num(i.unit_price)
+        porProducto.set(nombre, fila)
+      }
+      // La fecha se corta del ISO en vez de pasar por Date: `new Date` lo
+      // mueve a la zona del navegador y una venta de las 22 h caía al día
+      // siguiente.
+      if (v.created_at) {
+        const dia = v.created_at.slice(0, 10)
+        porDia.set(dia, (porDia.get(dia) ?? 0) + num(v.total))
+      }
+    }
+
+    const productos = [...porProducto.values()].sort((a, b) => b.importe - a.importe)
+    const dias = [...porDia.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+
+    return {
+      total,
+      efectivo,
+      transferencia: total - efectivo,
+      cantidad: validas.length,
+      promedio: validas.length ? total / validas.length : 0,
+      anuladas: ventas.length - validas.length,
+      productos,
+      topProducto: Math.max(1, ...productos.map(f => f.importe)),
+      dias,
+      topDia: Math.max(1, ...dias.map(([, v]) => v)),
+    }
+  }, [ventas])
+
+  /** Rango del historial. Filtra la lista Y alimenta el informe: un solo
+   *  selector para las dos cosas, para que nadie se baje un período distinto
+   *  del que está mirando. Vacío = las últimas 50, como venía. */
+  const [rango, setRango] = useState({ desde: "", hasta: "" })
+
   useEffect(() => { cargar() }, [])
 
-  const cargar = async () => {
+  const cargar = async (conRango = rango) => {
     try {
+      // Con fechas el backend ignora el límite: el período es el recorte.
+      // Sin esto el historial mostraba SIEMPRE las últimas 50 y, pasadas
+      // esas, escondía las viejas sin avisarle a nadie.
+      const qs = new URLSearchParams({ limit: "50" })
+      if (conRango.desde) qs.set("desde", conRango.desde)
+      if (conRango.hasta) qs.set("hasta", conRango.hasta)
+
       const [p, v, c] = await Promise.all([
         fetch("/api/stand/productos").then(r => (r.ok ? r.json() : [])),
-        fetch("/api/stand/ventas?limit=50").then(r => (r.ok ? r.json() : [])),
+        fetch(`/api/stand/ventas?${qs.toString()}`).then(r => (r.ok ? r.json() : [])),
         fetch("/api/stand/caja").then(r => (r.ok ? r.json() : null)),
       ])
       setProductos(Array.isArray(p) ? p : [])
@@ -612,47 +700,208 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
       {/* ── HISTORIAL ──────────────────────────────────────────────── */}
       {vista === "historial" && (
         <div className="space-y-1.5">
-          {ventas.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center text-gray-500">Todavía no hay ventas.</CardContent>
-            </Card>
-          ) : ventas.map(v => (
-            <div
-              key={v.id}
-              className={`rounded-lg border px-3 py-2 ${
-                v.is_void ? "border-gray-100 bg-gray-50 opacity-60" : "border-gray-200 bg-white"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className={`text-sm ${v.is_void ? "line-through" : ""}`}>
-                    {v.items.map(i => `${i.quantity}× ${i.product_name ?? "?"}`).join(", ")}
-                  </p>
-                  <p className="mt-0.5 text-xs text-gray-400">
-                    {v.created_at
-                      ? `${fechaHora(v.created_at).fecha} ${fechaHora(v.created_at).hora}`
-                      : ""}
-                    {" · "}
-                    {v.payment_method === "efectivo" ? "Efectivo" : "Transferencia"}
-                    {v.is_void ? " · anulada" : ""}
-                  </p>
-                  {(v.customer_name || v.customer_email) && (
-                    <p className="mt-1 truncate text-xs font-medium text-[#00838f]">
-                      {[v.customer_name, v.customer_email].filter(Boolean).join(" · ")}
-                    </p>
-                  )}
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <span className="font-semibold tabular-nums">{pesos(v.total)}</span>
-                  {!v.is_void && (
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => anular(v.id)}>
-                      <Ban className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
+          {/* Sin tarjeta y en una sola fila, como la barra de Inventario: esto
+              es un filtro, no una sección. En celular las dos fechas se
+              reparten el ancho y los botones caen abajo; en escritorio entra
+              todo en un renglón. */}
+          <div className="mb-3 flex flex-wrap items-end gap-2">
+            <div className="flex min-w-0 flex-1 items-end gap-2 sm:flex-initial">
+              <div className="min-w-0 flex-1 space-y-1 sm:w-36 sm:flex-initial">
+                <Label className="text-xs text-gray-500">Desde</Label>
+                <Input
+                  type="date"
+                  className="h-9 w-full"
+                  value={rango.desde}
+                  onChange={e => { const r = { ...rango, desde: e.target.value }; setRango(r); cargar(r) }}
+                />
+              </div>
+              <div className="min-w-0 flex-1 space-y-1 sm:w-36 sm:flex-initial">
+                <Label className="text-xs text-gray-500">Hasta</Label>
+                <Input
+                  type="date"
+                  className="h-9 w-full"
+                  value={rango.hasta}
+                  onChange={e => { const r = { ...rango, hasta: e.target.value }; setRango(r); cargar(r) }}
+                />
               </div>
             </div>
-          ))}
+
+            <BotonesInforme endpoint="/api/stand/informe" rango={rango} className="sm:ml-auto" />
+
+            {(rango.desde || rango.hasta) && (
+              <button
+                onClick={() => { const r = { desde: "", hasta: "" }; setRango(r); cargar(r) }}
+                className="pb-2 text-xs text-gray-400 underline hover:text-gray-600"
+              >
+                Limpiar
+              </button>
+            )}
+          </div>
+
+          {/* Sin rango se ven las últimas 50. Se dice, en vez de dejar creer
+              que eso es todo lo que hay. */}
+          {!rango.desde && !rango.hasta && ventas.length >= 50 && (
+            <p className="pb-1 text-xs text-gray-400">
+              Últimas 50 ventas. Para ver más atrás, elegí un rango de fechas.
+            </p>
+          )}
+
+          {ventas.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-gray-500">
+                {rango.desde || rango.hasta
+                  ? "No hay ventas en el período elegido."
+                  : "Todavía no hay ventas."}
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {/* Los números primero. La pregunta que trae a alguien al
+                  historial casi nunca es "¿qué vendí a las 14:32?" sino
+                  "¿cómo nos fue?"; la lista contesta la primera y antes era
+                  lo único que había. */}
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+                <Kpi label="Recaudado" value={pesos(resumen.total)} destacado />
+                <Kpi label="Ventas" value={String(resumen.cantidad)} />
+                <Kpi label="Ticket promedio" value={pesos(resumen.promedio)} />
+                <Kpi label="Efectivo" value={pesos(resumen.efectivo)} />
+                <Kpi label="Transferencia" value={pesos(resumen.transferencia)} />
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                {/* Qué se vendió. Las barras son contra el producto más
+                    vendido del período, no contra el total: lo que importa
+                    acá es el orden entre ellos. */}
+                <div className="rounded-xl border border-gray-200 bg-white p-4">
+                  <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                    Lo más vendido
+                  </p>
+                  <div className="space-y-2">
+                    {resumen.productos.slice(0, 6).map(f => (
+                      <div key={f.nombre} className="space-y-1">
+                        <div className="flex items-baseline justify-between gap-3 text-sm">
+                          <span className="truncate font-medium text-gray-800">{f.nombre}</span>
+                          <span className="shrink-0 text-xs text-gray-400">
+                            {f.unidades} u · <span className="font-semibold text-[#00838f]">{pesos(f.importe)}</span>
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                          <div
+                            className="h-full rounded-full bg-[#4dd0e1]"
+                            style={{ width: `${(f.importe / resumen.topProducto) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    {resumen.productos.length > 6 && (
+                      <p className="pt-1 text-xs text-gray-400">
+                        y {resumen.productos.length - 6} producto{resumen.productos.length - 6 === 1 ? "" : "s"} más
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Por día. Solo con más de una jornada adentro del rango: con
+                    un día solo sería una barra sola al 100%, que no compara
+                    nada y repite el número de arriba. */}
+                {resumen.dias.length > 1 && (
+                  <div className="rounded-xl border border-gray-200 bg-white p-4">
+                    <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                      Por jornada
+                    </p>
+                    <div className="space-y-2">
+                      {resumen.dias.slice(-8).map(([dia, importe]) => (
+                        <div key={dia} className="flex items-center gap-2.5 text-sm">
+                          <span className="w-16 shrink-0 text-xs text-gray-500">{diaCorto(dia)}</span>
+                          <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100">
+                            <span
+                              className="block h-full rounded-full bg-[#9A8BC2]"
+                              style={{ width: `${(importe / resumen.topDia) * 100}%` }}
+                            />
+                          </span>
+                          <span className="w-24 shrink-0 text-right text-xs font-semibold tabular-nums text-gray-700">
+                            {pesos(importe)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* El detalle, ahora como tabla. Las tarjetas apiladas obligaban
+                  a leer cada venta entera para comparar dos: en columnas, los
+                  montos se alinean y el ojo las compara solo. */}
+              <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+                <table className="w-full min-w-[640px] text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 bg-gray-50/80 text-gray-600">
+                      <th className="w-32 px-3 py-2 text-left font-semibold">Cuándo</th>
+                      <th className="px-3 py-2 text-left font-semibold">Qué se vendió</th>
+                      <th className="w-44 px-3 py-2 text-left font-semibold">Cliente</th>
+                      <th className="w-28 px-3 py-2 text-left font-semibold">Pago</th>
+                      <th className="w-28 px-3 py-2 text-right font-semibold">Total</th>
+                      <th className="w-10 px-2 py-2" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ventas.map(v => (
+                      <tr
+                        key={v.id}
+                        className={`border-b border-gray-100 last:border-0 ${
+                          v.is_void ? "bg-gray-50/60 text-gray-400" : ""
+                        }`}
+                      >
+                        <td className="px-3 py-2 align-top text-xs text-gray-500">
+                          {v.created_at && (
+                            <>
+                              {fechaHora(v.created_at).fecha}
+                              <span className="block text-gray-400">{fechaHora(v.created_at).hora}</span>
+                            </>
+                          )}
+                        </td>
+                        <td className={`px-3 py-2 align-top ${v.is_void ? "line-through" : "text-gray-800"}`}>
+                          {v.items.map(i => `${i.quantity}× ${i.product_name ?? "?"}`).join(", ")}
+                          {v.is_void && (
+                            <span className="ml-1.5 rounded-full bg-gray-200 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500 no-underline">
+                              anulada
+                            </span>
+                          )}
+                        </td>
+                        <td className="truncate px-3 py-2 align-top text-xs text-[#00838f]">
+                          {[v.customer_name, v.customer_email].filter(Boolean).join(" · ") || "—"}
+                        </td>
+                        <td className="px-3 py-2 align-top text-xs text-gray-500">
+                          {v.payment_method === "efectivo" ? "Efectivo" : "Transferencia"}
+                        </td>
+                        <td className="px-3 py-2 align-top text-right font-semibold tabular-nums">
+                          {pesos(v.total)}
+                        </td>
+                        <td className="px-2 py-2 align-top text-right">
+                          {!v.is_void && (
+                            <button
+                              onClick={() => anular(v.id)}
+                              title="Anular venta"
+                              className="text-red-400 transition-colors hover:text-red-600"
+                            >
+                              <Ban className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {resumen.anuladas > 0 && (
+                <p className="text-xs text-gray-400">
+                  {resumen.anuladas} venta{resumen.anuladas === 1 ? "" : "s"} anulada
+                  {resumen.anuladas === 1 ? "" : "s"} en el período. No suman a los totales de arriba.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -739,6 +988,18 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
       </Dialog>
     </div>
   )
+}
+
+/** "lun 14/10" a partir de un "2026-10-05" suelto.
+ *
+ *  Se parte el string a mano en vez de `new Date(iso)`: con la fecha pelada,
+ *  el navegador la interpreta como UTC y en Argentina la retrasa un día. */
+function diaCorto(iso: string): string {
+  const [a, m, d] = iso.split("-").map(Number)
+  if (!a || !m || !d) return iso
+  const f = new Date(a, m - 1, d)
+  const dia = f.toLocaleDateString("es-AR", { weekday: "short" }).replace(".", "")
+  return `${dia} ${d}/${m}`
 }
 
 function Kpi({ label, value, destacado }: { label: string; value: string; destacado?: boolean }) {

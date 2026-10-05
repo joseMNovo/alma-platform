@@ -13,8 +13,16 @@ import type { Certificate } from "@/lib/data-manager"
  * "Mi cuenta" — paraguas de datos personales + preferencias del usuario.
  * Sub-pestañas sutiles para ir sumando secciones (perfil, notificaciones, …).
  */
-export default function MiCuenta({ user }: { user: any }) {
-  const [tab, setTab] = useState("perfil")
+export default function MiCuenta({
+  user,
+  seccionInicial = "perfil",
+}: {
+  user: any
+  /** En qué pestaña abrir. El menú del avatar entra directo a
+   *  "notificaciones"; sin esto había que entrar a Perfil y buscarla. */
+  seccionInicial?: string
+}) {
+  const [tab, setTab] = useState(seccionInicial)
   const isParticipant = user?.role === "participante"
 
   /**

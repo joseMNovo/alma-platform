@@ -1,4 +1,5 @@
 import { api } from '@/lib/api-client'
+import type { ArchivoDescargable } from '@/lib/descargar'
 
 // ============================================================
 // TypeScript Interfaces (sin cambios — compatibilidad total)
@@ -1029,9 +1030,11 @@ export async function getActivityTimeline(
   userType: string,
   userId: number,
   limit = 200,
+  eventType?: ActivityEvent['event_type'],
 ): Promise<ActivityEvent[]> {
+  const tipo = eventType ? `&event_type=${encodeURIComponent(eventType)}` : ''
   return api.get<ActivityEvent[]>(
-    `/activity/?user_type=${encodeURIComponent(userType)}&user_id=${userId}&limit=${limit}`,
+    `/activity/?user_type=${encodeURIComponent(userType)}&user_id=${userId}&limit=${limit}${tipo}`,
   )
 }
 
@@ -2098,8 +2101,38 @@ export async function createStandSale(data: {
   return api.post<StandSale>('/stand/sales', data)
 }
 
-export async function getStandSales(limit = 50): Promise<StandSale[]> {
-  return api.get<StandSale[]>(`/stand/sales?limit=${limit}`)
+export async function getStandSales(
+  limit = 50,
+  rango?: { desde?: string; hasta?: string },
+): Promise<StandSale[]> {
+  const qs = new URLSearchParams({ limit: String(limit) })
+  // Con fechas el backend ignora el `limit`: el periodo es el recorte. Sin
+  // esto el historial mostraba siempre las ultimas 50 y escondia las viejas.
+  if (rango?.desde) qs.set('desde', rango.desde)
+  if (rango?.hasta) qs.set('hasta', rango.hasta)
+  return api.get<StandSale[]>(`/stand/sales?${qs.toString()}`)
+}
+
+/** Informe de ventas del puesto: el backend arma el archivo y lo manda en
+ *  base64 adentro de un JSON. Ver lib/descargar.ts. */
+export async function getStandInforme(
+  formato: 'pdf' | 'xlsx',
+  rango?: { desde?: string; hasta?: string },
+): Promise<ArchivoDescargable> {
+  const qs = new URLSearchParams({ formato })
+  if (rango?.desde) qs.set('desde', rango.desde)
+  if (rango?.hasta) qs.set('hasta', rango.hasta)
+  return api.get<ArchivoDescargable>(`/stand/informe?${qs.toString()}`)
+}
+
+export async function getIngresosInforme(
+  formato: 'pdf' | 'xlsx',
+  rango?: { desde?: string; hasta?: string },
+): Promise<ArchivoDescargable> {
+  const qs = new URLSearchParams({ formato })
+  if (rango?.desde) qs.set('desde', rango.desde)
+  if (rango?.hasta) qs.set('hasta', rango.hasta)
+  return api.get<ArchivoDescargable>(`/ingresos/informe?${qs.toString()}`)
 }
 
 export async function voidStandSale(id: number): Promise<StandSale> {

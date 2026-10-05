@@ -51,6 +51,18 @@ export interface ModuleDef {
   hidden?: boolean
   /** Va en el menú del avatar en vez de la barra de módulos */
   inUserMenu?: boolean
+  /**
+   * Cómo le dice la gente a esta pantalla cuando no se acuerda del nombre.
+   *
+   * El buscador (Ctrl K) matchea contra esto además del label. Sin sinónimos,
+   * el índice solo le sirve a quien YA sabe cómo se llama cada cosa, que es
+   * justamente quien no lo necesita: "cobrar" no encontraba "Link de pago" y
+   * "stock" no encontraba "Inventario".
+   *
+   * Van sin tilde y en minúscula por costumbre, aunque la comparación
+   * normaliza las dos puntas.
+   */
+  sinonimos?: string[]
 }
 
 /**
@@ -83,7 +95,7 @@ export const MODULES: ModuleDef[] = [
     defaultRoles: ["admin", "voluntario", "participante"],
     grantable: false,
     children: [
-      { key: "calendarios", label: "Calendarios", route: "/calendarios", icon: CalendarDays, defaultRoles: ["admin", "voluntario", "participante"], grantable: false },
+      { key: "calendarios", label: "Calendarios", route: "/calendarios", icon: CalendarDays, defaultRoles: ["admin", "voluntario", "participante"], grantable: false , sinonimos: ["agenda", "eventos", "encuentros", "fechas", "reuniones"] },
     ],
   },
   {
@@ -94,11 +106,11 @@ export const MODULES: ModuleDef[] = [
     defaultRoles: ["admin", "voluntario", "participante"],
     grantable: false,
     children: [
-      { key: "talleres", label: "Talleres", route: "/talleres", icon: Calendar, defaultRoles: ["admin", "voluntario", "participante"], grantable: false },
-      { key: "grupos", label: "Grupos", route: "/grupos", icon: Users, defaultRoles: ["admin", "voluntario", "participante"], grantable: false },
-      { key: "actividades", label: "Actividades", route: "/actividades", icon: Sparkles, defaultRoles: ["admin", "voluntario", "participante"], grantable: false },
+      { key: "talleres", label: "Talleres", route: "/talleres", icon: Calendar, defaultRoles: ["admin", "voluntario", "participante"], grantable: false , sinonimos: ["cursos", "clases"] },
+      { key: "grupos", label: "Grupos", route: "/grupos", icon: Users, defaultRoles: ["admin", "voluntario", "participante"], grantable: false , sinonimos: ["grupo de apoyo", "familiares", "cuidadores"] },
+      { key: "actividades", label: "Actividades", route: "/actividades", icon: Sparkles, defaultRoles: ["admin", "voluntario", "participante"], grantable: false , sinonimos: ["eventos", "salidas", "paseos"] },
       // Inscripciones: solo staff. El participante se anota desde el Calendario.
-      { key: "inscripciones", label: "Inscripciones", route: "/inscripciones", icon: ClipboardCheck, defaultRoles: ["admin", "voluntario"], grantable: false },
+      { key: "inscripciones", label: "Inscripciones", route: "/inscripciones", icon: ClipboardCheck, defaultRoles: ["admin", "voluntario"], grantable: false , sinonimos: ["anotar", "anotados", "cupos", "inscribir"] },
     ],
   },
   {
@@ -109,10 +121,10 @@ export const MODULES: ModuleDef[] = [
     defaultRoles: ["admin", "voluntario"],
     grantable: false,
     children: [
-      { key: "personas", label: "Base de datos", route: "/personas", icon: Database, defaultRoles: ["admin", "voluntario"], grantable: false },
-      { key: "voluntarios", label: "Voluntarios", route: "/voluntarios", icon: Heart, defaultRoles: ["admin", "voluntario"], grantable: false },
-      { key: "participantes", label: "Participantes", route: "/participantes", icon: UserCircle, defaultRoles: ["admin", "voluntario"], grantable: false },
-      { key: "aprobaciones", label: "Aprobaciones", route: "/aprobaciones", icon: ClipboardCheck, defaultRoles: ["admin"], grantable: false },
+      { key: "personas", label: "Base de datos", route: "/personas", icon: Database, defaultRoles: ["admin", "voluntario"], grantable: false , sinonimos: ["base de datos", "contactos", "gente", "socios", "miembros", "fichas"] },
+      { key: "voluntarios", label: "Voluntarios", route: "/voluntarios", icon: Heart, defaultRoles: ["admin", "voluntario"], grantable: false , sinonimos: ["equipo", "staff", "colaboradores"] },
+      { key: "participantes", label: "Participantes", route: "/participantes", icon: UserCircle, defaultRoles: ["admin", "voluntario"], grantable: false , sinonimos: ["usuarios", "alumnos", "asistentes"] },
+      { key: "aprobaciones", label: "Aprobaciones", route: "/aprobaciones", icon: ClipboardCheck, defaultRoles: ["admin"], grantable: false , sinonimos: ["aprobar", "altas", "solicitudes", "pendientes de alta"] },
     ],
   },
   {
@@ -132,7 +144,7 @@ export const MODULES: ModuleDef[] = [
     // El participante ve una sola de estas (Capacitaciones) y por eso no le
     // aparece la barra de sub-pestañas: el resto es admin.
     children: [
-      { key: "capacitaciones", label: "Capacitaciones", route: "/academia", icon: GraduationCap, defaultRoles: ["admin", "voluntario", "participante"], grantable: true, itemGrants: true },
+      { key: "capacitaciones", label: "Capacitaciones", route: "/academia", icon: GraduationCap, defaultRoles: ["admin", "voluntario", "participante"], grantable: true, itemGrants: true , sinonimos: ["academia", "cursos", "videos", "formacion", "capacitacion"] },
       {
         key: "accesos",
         label: "Accesos",
@@ -140,16 +152,21 @@ export const MODULES: ModuleDef[] = [
         icon: KeyRound,
         defaultRoles: ["admin"],
         grantable: false,
-        // Las cuatro son vistas del mismo tablero: quién puede ver, quién
-        // pagó, quién miró y a quién hay que mirarle el uso.
+        // Tres vistas del mismo tablero: quién puede ver, quién miró y a
+        // quién hay que mirarle el uso.
+        //
+        // "Pagos" vivía acá y se mudó a Plata. La plata la mira quien lleva
+        // las cuentas y los accesos los maneja quien coordina: son dos
+        // trabajos de personas distintas. Que confirmar un pago habilite el
+        // acceso sigue pasando solo, en la misma transacción, así que
+        // separar las pantallas no parte ningún recorrido.
         children: [
-          { key: "habilitaciones", label: "Habilitaciones", route: "/accesos", icon: UserCheck, defaultRoles: ["admin"], grantable: false },
-          { key: "pagos-capacitaciones", label: "Pagos", route: "/pagos-capacitaciones", icon: Receipt, defaultRoles: ["admin"], grantable: false },
-          { key: "auditoria", label: "Auditoría", route: "/auditoria", icon: ScrollText, defaultRoles: ["admin"], grantable: false },
-          { key: "alertas", label: "Alertas", route: "/alertas", icon: ShieldAlert, defaultRoles: ["admin"], grantable: false },
+          { key: "habilitaciones", label: "Habilitaciones", route: "/accesos", icon: UserCheck, defaultRoles: ["admin"], grantable: false , sinonimos: ["accesos", "permisos", "dar acceso", "habilitar"] },
+          { key: "auditoria", label: "Auditoría", route: "/auditoria", icon: ScrollText, defaultRoles: ["admin"], grantable: false , sinonimos: ["quien miro", "registro", "historial de uso"] },
+          { key: "alertas", label: "Alertas", route: "/alertas", icon: ShieldAlert, defaultRoles: ["admin"], grantable: false , sinonimos: ["avisos", "sospechas", "compartido"] },
         ],
       },
-      { key: "encuestas", label: "Evaluaciones", route: "/encuestas", icon: ClipboardList, defaultRoles: ["admin"], grantable: false },
+      { key: "encuestas", label: "Evaluaciones", route: "/encuestas", icon: ClipboardList, defaultRoles: ["admin"], grantable: false , sinonimos: ["evaluaciones", "examenes", "preguntas", "feedback"] },
       {
         key: "certificacion",
         label: "Certificados",
@@ -159,39 +176,79 @@ export const MODULES: ModuleDef[] = [
         grantable: false,
         // En su orden natural: se redacta, se emite, queda el historial.
         children: [
-          { key: "certificados", label: "Redacción", route: "/certificados", icon: FileSignature, defaultRoles: ["admin"], grantable: false },
-          { key: "emision", label: "Emisión", route: "/emision", icon: Send, defaultRoles: ["admin"], grantable: false },
-          { key: "historial-certificados", label: "Historial", route: "/historial-certificados", icon: History, defaultRoles: ["admin"], grantable: false },
+          { key: "certificados", label: "Redacción", route: "/certificados", icon: FileSignature, defaultRoles: ["admin"], grantable: false , sinonimos: ["diplomas", "constancias", "redaccion"] },
+          { key: "emision", label: "Emisión", route: "/emision", icon: Send, defaultRoles: ["admin"], grantable: false , sinonimos: ["entregar certificados", "mandar diploma", "emitir"] },
+          { key: "historial-certificados", label: "Historial", route: "/historial-certificados", icon: History, defaultRoles: ["admin"], grantable: false , sinonimos: ["certificados emitidos", "entregados"] },
         ],
       },
-      { key: "link-pago", label: "Link de pago", route: "/link-de-pago", icon: CreditCard, defaultRoles: ["admin"], grantable: false },
+      { key: "link-pago", label: "Link de pago", route: "/link-de-pago", icon: CreditCard, defaultRoles: ["admin"], grantable: false , sinonimos: ["cobrar", "mercado pago", "link", "cobro", "precio"] },
     ],
   },
   {
-    key: "gestion",
-    label: "Gestión",
+    key: "tareas",
+    label: "Tareas",
     route: "/pendientes",
     icon: ClipboardCheck,
     defaultRoles: ["admin", "voluntario"],
     grantable: false,
+    // Lo que hay que hacer y lo que se propone hacer. Antes vivían en
+    // "Gestión", que era el cajón de lo que no entraba en ningún lado: cinco
+    // cosas de naturaleza distinta bajo un nombre que no significaba nada.
     children: [
-      { key: "pendientes", label: "Pendientes", route: "/pendientes", icon: CheckSquare, defaultRoles: ["admin", "voluntario"], grantable: false },
-      { key: "inventario", label: "Inventario", route: "/inventario", icon: Package, defaultRoles: ["admin", "voluntario"], grantable: false },
-      { key: "ideas", label: "Ideas", route: "/ideas", icon: Lightbulb, defaultRoles: ["admin", "voluntario"], grantable: false },
-      { key: "puesto-venta", label: "Puesto de venta", route: "/puesto-venta", icon: ShoppingCart, defaultRoles: ["admin", "voluntario"], grantable: false },
-      // Solo lectura: junta lo que registran Academia y el puesto. No carga
-      // nada — para eso está cada módulo, y dos formularios creando la misma
-      // fila terminan separándose.
-      { key: "ingresos", label: "Ingresos", route: "/ingresos", icon: TrendingUp, defaultRoles: ["admin"], grantable: false },
+      { key: "pendientes", label: "Pendientes", route: "/pendientes", icon: CheckSquare, defaultRoles: ["admin", "voluntario"], grantable: false , sinonimos: ["tareas", "to do", "hacer", "deberes"] },
+      { key: "ideas", label: "Ideas", route: "/ideas", icon: Lightbulb, defaultRoles: ["admin", "voluntario"], grantable: false , sinonimos: ["propuestas", "sugerencias", "mejoras"] },
+    ],
+  },
+  // Inventario queda como pantalla directa, sin hijos: una sola vista ya
+  // contesta las tres preguntas que importan —qué tiene ALMA, quién lo tiene
+  // y qué está a la venta—. Meterlo en un grupo obligaba a renombrarlo para
+  // no quedar como "Inventario › Inventario".
+  { key: "inventario", label: "Inventario", route: "/inventario", icon: Package, defaultRoles: ["admin", "voluntario"], grantable: false , sinonimos: ["stock", "cosas", "materiales", "prestamos", "elementos"] },
+  {
+    key: "plata",
+    label: "Plata",
+    route: "/ingresos",
+    icon: TrendingUp,
+    // Lo ve el voluntario: "¿cuánta plata tiene ALMA?" es una pregunta
+    // razonable de cualquiera que trabaje acá, y hasta ahora no tenía
+    // respuesta salvo para un admin. Lo que NO ve un voluntario es el detalle
+    // con nombres —quién pagó qué— que vive en Pagos y en el informe
+    // descargable; eso es información personal de participantes.
+    defaultRoles: ["admin", "voluntario"],
+    grantable: false,
+    children: [
+      { key: "ingresos", label: "Resumen", route: "/ingresos", icon: TrendingUp, defaultRoles: ["admin", "voluntario"], grantable: false , sinonimos: ["plata", "dinero", "caja", "resumen", "cuanto entro", "balance"] },
+      { key: "pagos-capacitaciones", label: "Pagos", route: "/pagos-capacitaciones", icon: Receipt, defaultRoles: ["admin"], grantable: false , sinonimos: ["cobros", "comprobantes", "transferencias", "quien pago", "recibos"] },
+      { key: "puesto-venta", label: "Puesto de venta", route: "/puesto-venta", icon: ShoppingCart, defaultRoles: ["admin", "voluntario"], grantable: false , sinonimos: ["stand", "venta", "feria", "vender", "caja", "gondola"] },
     ],
   },
 
-  // Mi perfil: pestaña propia y visible para todos. Es donde cada uno
-  // completa/edita sus datos (nombre, contacto, etc.).
-  { key: "mis-datos", label: "Mi perfil", route: "/mis-datos", icon: UserCircle, defaultRoles: ["admin", "voluntario", "participante"], grantable: false },
-  // Herramientas de sistema (admin): pestañas visibles, no menús ocultos.
-  { key: "anuncios", label: "Anuncios", route: "/anuncios", icon: Megaphone, defaultRoles: ["admin"], grantable: false },
-  { key: "actividad", label: "Actividad", route: "/actividad", icon: BarChart3, defaultRoles: ["admin"], grantable: false },
+  // ── Menú del avatar ────────────────────────────────────────────────
+  // Estas tres salieron de la barra. No son lugares donde se trabaja: son
+  // los datos propios, los avisos y las métricas de uso — cosas que se miran
+  // cada tanto. Sacarlas dejó la barra en ocho pestañas, MENOS que antes de
+  // partir Gestión en tres, y todas de trabajo diario.
+  { key: "mis-datos", label: "Mi perfil", route: "/mis-datos", icon: UserCircle, defaultRoles: ["admin", "voluntario", "participante"], grantable: false, inUserMenu: true , sinonimos: ["perfil", "mi cuenta", "pin", "contrasena", "notificaciones", "mis datos"] },
+  { key: "anuncios", label: "Anuncios", route: "/anuncios", icon: Megaphone, defaultRoles: ["admin"], grantable: false, inUserMenu: true , sinonimos: ["novedades", "avisos", "comunicados", "broadcast"] },
+  { key: "actividad", label: "Actividad", route: "/actividad", icon: BarChart3, defaultRoles: ["admin"], grantable: false, inUserMenu: true , sinonimos: ["estadisticas", "uso", "metricas", "tablero"] },
+]
+
+/**
+ * Cómo se agrupan los módulos en la pantalla de Inicio.
+ *
+ * Es OTRA cosa que el nav. La barra de pestañas ordena por frecuencia de uso
+ * —lo que tocás todos los días, a mano—; Inicio ordena por tema, que es lo
+ * que sirve cuando todavía no sabés dónde está algo. Un módulo aparece en los
+ * dos lados y no se duplica: son dos vistas del mismo registro.
+ *
+ * Son solo etiquetas: no se guardan en ningún lado, no se pueden habilitar y
+ * no afectan permisos. Un módulo que no figure acá cae igual en la última
+ * columna, así que agregar uno nuevo no lo hace desaparecer de Inicio.
+ */
+export const SECCIONES_INICIO: { titulo: string; modulos: string[] }[] = [
+  { titulo: "Comunidad", modulos: ["comunidad", "espacios", "contenido"] },
+  { titulo: "Día a día", modulos: ["agenda", "tareas"] },
+  { titulo: "Gestión", modulos: ["plata", "inventario"] },
 ]
 
 /** Todos los módulos aplanados, a cualquier profundidad (grupos + hojas). */
