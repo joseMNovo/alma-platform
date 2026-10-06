@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Clock } from "lucide-react"
+import { Clock, ChevronRight, Gamepad2 } from "lucide-react"
 import { SECCIONES_INICIO, type ModuleDef } from "@/lib/modules"
 import InstalarApp from "@/components/pwa/instalar-app"
 import QrVidriera from "@/components/capacitaciones/qr-vidriera"
@@ -73,6 +73,7 @@ export default function InicioLauncher({
   atencion = [],
   destinos,
   badges = {},
+  juegosUrl,
 }: {
   nombre: string
   modules: ModuleDef[]
@@ -89,8 +90,13 @@ export default function InicioLauncher({
   /** Cuántas cosas esperan, por `key` de módulo. Pinta el globito rojo al lado
    *  del sub-módulo que las tiene. */
   badges?: Record<string, number>
+  /** Los juegos viven fuera de la app. En el teléfono entran como una baldosa
+   *  más: es donde se los usa, y en el menú de escritorio ya están. */
+  juegosUrl?: string
 }) {
   const [recientes, setRecientes] = useState<Reciente[]>([])
+  /** Si el chip de "para revisar" del teléfono está abierto. */
+  const [revisarAbierto, setRevisarAbierto] = useState(false)
 
   useEffect(() => {
     fetch("/api/inicio/recientes")
@@ -113,6 +119,19 @@ export default function InicioLauncher({
   }, [])
 
   const pendientes = atencion.filter((a) => a.cantidad > 0)
+  const totalPendiente = pendientes.reduce((a, x) => a + x.cantidad, 0)
+
+  /**
+   * Cuántas cosas esperan en un módulo, contando las de sus hijos.
+   *
+   * En escritorio el número vive sobre el sub-módulo que lo genera
+   * ("Aprobaciones · 3"), pero una baldosa de celular no muestra los hijos:
+   * si el número se quedara abajo, Personas no avisaría nada y habría que
+   * entrar a adivinar.
+   */
+  const cuentaDe = (mod: ModuleDef) =>
+    (badges[mod.key] ?? 0) + hijos(mod).reduce((a, h) => a + (badges[h.key] ?? 0), 0)
+
 
   /**
    * Las columnas por tema, armadas sobre los módulos que esta persona ve.
@@ -147,6 +166,11 @@ export default function InicioLauncher({
     return armadas.filter((sec) => sec.mods.length > 0)
   }, [modules])
 
+  /** Las baldosas del teléfono: los módulos en el orden de las secciones.
+   *  Va DESPUÉS de `secciones` y no junto al resto de los cálculos: una `const`
+   *  que se lee antes de declararse revienta al renderizar. */
+  const baldosas = secciones.flatMap((sec) => sec.mods)
+
   return (
     <div className="space-y-7">
       {/* Saludo y avisos en el mismo renglón: lo que espera no merece una
@@ -159,8 +183,59 @@ export default function InicioLauncher({
           <p className="mt-1 text-gray-500">¿Con qué querés empezar?</p>
         </div>
 
+        {/*
+          En el teléfono, UN chip con el total.
+
+          Los chips de escritorio dicen qué y dónde ("3 aprobaciones ·
+          Personas"), y son dos o tres. En 360px de ancho eso es un párrafo
+          arriba de todo, empujando hacia abajo las baldosas, que es a lo que
+          la persona vino. Acá va el número y la palabra; el detalle se abre
+          tocándolo —y si hay una sola cosa pendiente, el toque lleva derecho
+          a resolverla en vez de abrir una lista de un ítem.
+        */}
         {pendientes.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="w-full lg:hidden">
+            <button
+              onClick={() =>
+                pendientes.length === 1
+                  ? navegar(pendientes[0].route)
+                  : setRevisarAbierto((v) => !v)
+              }
+              className="flex items-center gap-2 rounded-full border border-gray-200 bg-white py-1 pl-1 pr-2.5 text-[13px]"
+            >
+              <span className="flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
+                {totalPendiente}
+              </span>
+              <span className="font-medium text-gray-700">para revisar</span>
+              <ChevronRight
+                className={`h-3.5 w-3.5 text-gray-400 transition-transform ${
+                  revisarAbierto && pendientes.length > 1 ? "rotate-90" : ""
+                }`}
+              />
+            </button>
+
+            {revisarAbierto && pendientes.length > 1 && (
+              <div className="mt-2 flex flex-col gap-1.5">
+                {pendientes.map((a) => (
+                  <button
+                    key={a.key}
+                    onClick={() => navegar(a.route)}
+                    className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-left text-[13px]"
+                  >
+                    <span className="flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
+                      {a.cantidad}
+                    </span>
+                    <span className="font-medium text-gray-700">{a.que}</span>
+                    <span className="ml-auto text-xs text-gray-400">{a.grupo}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {pendientes.length > 0 && (
+          <div className="hidden flex-wrap items-center gap-2 lg:flex">
             <span className="text-xs text-gray-400">Para revisar</span>
             {pendientes.map((a) => (
               <button
@@ -195,13 +270,17 @@ export default function InicioLauncher({
         No aparece el primer día de alguien, y está bien: una fila vacía con un
         texto explicando por qué está vacía ocupa más de lo que vale.
       */}
+      <div className="flex flex-col gap-7">
       {recientes.length > 0 && (
-        <section className="rounded-2xl border border-[#4dd0e1]/30 bg-[#4dd0e1]/[0.07] p-4">
+        <section className="order-2 rounded-2xl border border-[#4dd0e1]/30 bg-[#4dd0e1]/[0.07] p-4 lg:order-1">
           <p className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#00838f]">
             <Clock className="h-3.5 w-3.5" />
-            Lo último que abriste
+            {/* En el teléfono el rótulo largo se parte en dos renglones para
+                decir algo que la hora de al lado ya no muestra. */}
+            <span className="lg:hidden">Lo último</span>
+            <span className="hidden lg:inline">Lo último que abriste</span>
           </p>
-          <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
             {recientes.map(({ mod, grupo, cuando }) => {
               const Icono = mod.icon
               return (
@@ -221,7 +300,12 @@ export default function InicioLauncher({
                       <span className="block truncate text-[11px] text-gray-400">{grupo}</span>
                     )}
                   </span>
-                  <span className="shrink-0 text-[11px] text-gray-400">{cuando}</span>
+                  {/* "Hoy / Ayer" solo en escritorio: en dos columnas de 160px
+                      le come la mitad del renglón al nombre del módulo, que es
+                      lo único que hace falta para decidir si tocarlo. */}
+                  <span className="hidden shrink-0 text-[11px] text-gray-400 lg:block">
+                    {cuando}
+                  </span>
                 </button>
               )
             })}
@@ -231,7 +315,7 @@ export default function InicioLauncher({
 
       {/* El mapa. El título con la línea al costado lo separa de lo de arriba
           sin meter otra caja: abajo ya hay tres. */}
-      <section className="space-y-4">
+      <section className="order-1 space-y-4 lg:order-2">
         <div className="flex items-center gap-3">
           <h3 className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
             Todas las funciones
@@ -239,9 +323,71 @@ export default function InicioLauncher({
           <span className="h-px flex-1 bg-gray-200" />
         </div>
 
-        {/* En celular las columnas se apilan y queda una sola lista larga, que
-            es exactamente lo que servía ahí. */}
-        <div className="grid items-start gap-5 lg:grid-cols-3">
+        {/*
+          En el teléfono, baldosas.
+
+          Las columnas apiladas daban una lista de siete módulos con todos sus
+          sub-módulos abiertos: cerca de mil pixeles de scroll para una
+          pantalla que existe para elegir a dónde ir. Las baldosas entran casi
+          todas de una y se tocan con el pulgar.
+
+          Lo que se pierde son los sub-módulos a la vista, y es aceptable acá y
+          no en escritorio: en el celular ese renglón de links quedaba en letra
+          de 13px, uno pegado al otro, con tres milímetros entre destinos
+          distintos — visible pero no apuntable, que es la peor versión de un
+          atajo.
+
+          Sin rótulos de sección: con siete baldosas que dicen su nombre, tres
+          encabezados agregan tres renglones para ordenar algo que ya se lee de
+          un vistazo.
+        */}
+        <div className="grid grid-cols-4 gap-x-2 gap-y-4 lg:hidden">
+          {baldosas.map((mod) => {
+            const Icono = mod.icon
+            const esperando = cuentaDe(mod)
+            return (
+              <button
+                key={mod.key}
+                onClick={() => onAbrir(mod)}
+                className="flex flex-col items-center gap-1.5"
+              >
+                <span className="relative flex h-12 w-12 items-center justify-center rounded-xl border border-gray-200 bg-white transition-colors active:bg-[#4dd0e1]/10">
+                  <Icono className="h-5 w-5 text-[#4dd0e1]" />
+                  {esperando > 0 && (
+                    <span className="absolute -right-1.5 -top-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-[#f9fafb] bg-red-500 px-1 text-[10px] font-bold text-white">
+                      {esperando}
+                    </span>
+                  )}
+                </span>
+                <span className="text-center text-[11px] font-medium leading-tight text-gray-700">
+                  {mod.label}
+                </span>
+              </button>
+            )
+          })}
+
+          {/* Juegos. Abre otra aplicación, por eso es un enlace y no un botón
+              —y por eso va último— pero en el teléfono es donde se usa, así
+              que acá tiene que estar a la vista y no escondido en un menú. */}
+          {juegosUrl && (
+            <a
+              href={juegosUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center gap-1.5 no-underline"
+            >
+              <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-gray-200 bg-white">
+                <Gamepad2 className="h-5 w-5 text-[#4dd0e1]" />
+              </span>
+              <span className="text-center text-[11px] font-medium leading-tight text-gray-700">
+                Juegos
+              </span>
+            </a>
+          )}
+        </div>
+
+        {/* Escritorio: las columnas por tema, con los sub-módulos a la vista. */}
+        <div className="hidden items-start gap-5 lg:grid lg:grid-cols-3">
           {secciones.map((sec) => (
             <div key={sec.titulo} className="space-y-2.5">
               <h4 className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
@@ -319,6 +465,7 @@ export default function InicioLauncher({
           ))}
         </div>
       </section>
+      </div>{/* fin del contenedor que ordena las dos secciones */}
 
       {/* Instalar y el QR, al final.
           Son acciones de una vez en la vida: arriba ocupaban el lugar más caro

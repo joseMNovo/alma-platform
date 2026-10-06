@@ -364,7 +364,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               className="flex shrink-0 items-center gap-2.5 transition-transform active:scale-95"
             >
               <img src="/images/flor.png" alt="Inicio" className="h-8 w-auto" />
-              <MarcaAlma className="hidden text-2xl sm:inline-flex" />
+              <MarcaAlma className="text-xl sm:text-2xl" />
             </button>
 
             <div className="flex min-w-0 flex-1 justify-center">
@@ -670,6 +670,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                número tiene que estar sobre "Aprobaciones", no sobre
                "Personas" — si no hay que entrar para saber qué era. */
             badges={{ aprobaciones: pendingCount, "pagos-capacitaciones": avisosPago }}
+            juegosUrl={GAMES_URL}
           />
         ) : (
         /*
