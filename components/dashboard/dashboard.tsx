@@ -28,7 +28,10 @@ import {
   Home,
 } from "lucide-react"
 
-const GAMES_URL = process.env.NEXT_PUBLIC_GAMES_URL ?? ""
+// Filtrado: un valor que no sea http(s) —una ruta de Windows, por ejemplo—
+// se lo come el sistema operativo y abre el cartel de "elegí una aplicación".
+// Ver lib/enlaces.ts.
+const GAMES_URL = urlWebSegura(process.env.NEXT_PUBLIC_GAMES_URL)
 import TalleresManager from "@/components/talleres/talleres-manager"
 import GruposManager from "@/components/grupos/grupos-manager"
 import ActividadesManager from "@/components/actividades/actividades-manager"
@@ -65,6 +68,7 @@ import InicioLauncher from "@/components/inicio/inicio-launcher"
 import BarraModulos from "@/components/dashboard/barra-modulos"
 import BuscadorModulos from "@/components/dashboard/buscador-modulos"
 import AlmaFooter from "@/components/ui/alma-footer"
+import { urlWebSegura } from "@/lib/enlaces"
 import MarcaAlma from "@/components/ui/marca-alma"
 import ProfileCompletionModal from "@/components/auth/profile-completion-modal"
 import ParticipanteOnboarding from "@/components/participantes/onboarding-modal"

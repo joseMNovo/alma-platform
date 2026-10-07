@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 import { cookies } from "next/headers"
 import { jwtVerify } from "jose"
 import HomePageClient from "@/components/home-page-client"
+import { urlWebSegura } from "@/lib/enlaces"
 
 /**
  * ¿La cookie de sesión es válida? Se verifica la FIRMA, no solo que exista.
@@ -28,6 +29,6 @@ async function haySesion(): Promise<boolean> {
 }
 
 export default async function HomePage() {
-  const gamesUrl = process.env.NEXT_PUBLIC_GAMES_URL ?? ""
+  const gamesUrl = urlWebSegura(process.env.NEXT_PUBLIC_GAMES_URL)
   return <HomePageClient gamesUrl={gamesUrl} sesionValida={await haySesion()} />
 }

@@ -8,7 +8,9 @@ export async function POST(request: NextRequest) {
   const response = NextResponse.json({ success: true })
   response.cookies.set("alma_token", "", {
     httpOnly: true,
-    sameSite: "strict",
+    // Espeja el `sameSite` con el que se creó: si no coinciden, el
+    // navegador no pisa la cookie y la sesión no se cierra.
+    sameSite: "lax",
     maxAge: 0,
     path: "/",
     secure: process.env.HTTPS_ENABLED === "true",

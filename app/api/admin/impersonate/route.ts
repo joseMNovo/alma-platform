@@ -20,7 +20,8 @@ function setSessionCookie(response: NextResponse, payload: object, maxAgeSeconds
   })
   response.cookies.set("alma_token", token, {
     httpOnly: true,
-    sameSite: "strict",
+    // `lax` para que sobreviva a la apertura de la PWA. Ver lib/session.ts.
+    sameSite: "lax",
     ...(maxAgeSeconds ? { maxAge: maxAgeSeconds } : {}),
     path: "/",
     secure: process.env.HTTPS_ENABLED === "true",

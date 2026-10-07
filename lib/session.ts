@@ -22,7 +22,21 @@ export function responderConSesion(user: any, remember: boolean) {
   )
   response.cookies.set("alma_token", token, {
     httpOnly: true,
-    sameSite: "strict",
+    /**
+     * `lax` y no `strict`, por la PWA.
+     *
+     * Cuando la app se abre desde el ícono del teléfono, la navegación a la
+     * pantalla inicial la dispara el launcher de Android: para el navegador
+     * eso es un origen externo. Con `strict` la cookie NO viaja en esa primera
+     * navegación, así que la app arrancaba sin sesión y mostraba "tu sesión se
+     * cerró por seguridad" cada vez que la abrías.
+     *
+     * Lo que protege `strict` por encima de `lax` es el envío de la cookie en
+     * pedidos cross-site, y de esos `lax` sigue bloqueando los que importan:
+     * POST, subrecursos e iframes. Lo único que deja pasar es la navegación de
+     * nivel superior por GET — que es exactamente el caso de arriba.
+     */
+    sameSite: "lax",
     ...(remember ? { maxAge: COOKIE_MAX_AGE_REMEMBER } : {}),
     path: "/",
     secure: process.env.HTTPS_ENABLED === "true",
