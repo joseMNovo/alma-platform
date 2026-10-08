@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,6 +10,12 @@ import {
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import BotonesInforme from "@/components/ui/botones-informe"
+import BarraSincro, { type EstadoEnvio } from "@/components/stand/barra-sincro"
+import TiraVentas, { type FilaVenta } from "@/components/stand/tira-ventas"
+import * as cola from "@/lib/venta-cola"
+import ImportarVentas from "@/components/stand/importar-ventas"
+import QrVidriera from "@/components/capacitaciones/qr-vidriera"
+import { can } from "@/lib/permissions"
 import {
   Loader2, ShoppingCart, Package, Wallet, Minus, Trash2,
   Banknote, ArrowLeftRight, Ban, PackagePlus, ListOrdered, UserPlus, AlertTriangle,
@@ -43,6 +49,9 @@ interface StandSale {
   customer_email?: string | null
   is_void: boolean
   created_at?: string | null
+  /** El identificador que puso el teléfono. Sirve para no mostrar dos veces
+   *  la misma venta: una desde la cola y otra ya confirmada. */
+  client_uuid?: string | null
   items: { product_id: number; product_name?: string | null; quantity: number; unit_price: number }[]
 }
 
@@ -121,6 +130,16 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
 
   /** Carrito: id de producto → cantidad. */
   const [carrito, setCarrito] = useState<Record<number, number>>({})
+
+  // ── La cola de ventas ───────────────────────────────────────────────
+  // Espeja lo que hay en localStorage. Se guarda en estado para que la tira
+  // se vuelva a dibujar sola; la verdad sigue estando en el almacenamiento,
+  // no acá: si la app se cierra, esto se pierde y aquello no.
+  const [enCola, setEnCola] = useState<cola.VentaEnCola[]>([])
+  const [estadoEnvio, setEstadoEnvio] = useState<EstadoEnvio>("quieto")
+  // Persistido: si el teléfono se queda sin batería en medio de la feria, al
+  // volver tiene que seguir en el modo que la persona eligió.
+  const [modoOffline, setModoOffline] = useState(false)
 
   /** Datos que la persona quiera dejar. Opcionales SIEMPRE: en el stand,
    *  pedir datos no puede frenar el cobro. No se le manda nada. */
@@ -250,47 +269,225 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
     [carrito],
   )
 
-  const cobrar = async (medio: "efectivo" | "transferencia") => {
-    const items = Object.entries(carrito).map(([id, cantidad]) => ({
-      product_id: Number(id),
-      quantity: cantidad,
+  /**
+   * Manda lo pendiente.
+   *
+   * No hay un bucle de reintentos: con el teléfono sin señal, insistir cada
+   * dos segundos quema batería y no logra nada. Se dispara por EVENTOS —una
+   * venta nueva, volver a online, que la app vuelva al frente— más un
+   * respaldo lento de un minuto que solo corre si hay algo en cola.
+   *
+   * `manual` es el botón: ese ignora el modo offline, porque si la persona lo
+   * toca es justamente para forzar el envío.
+   */
+  const sincronizar = useCallback(async (manual = false) => {
+    if (modoOffline && !manual) return
+
+    if (cola.pendientes().length === 0) {
+      // Sin nada que mandar, el botón igual sirve: recarga catálogo y stock,
+      // que es lo que uno quiere apretar cuando desconfía de lo que ve.
+      if (manual) cargar()
+      setEnCola(cola.leer())
+      return
+    }
+
+    setEstadoEnvio("enviando")
+    try {
+      await cola.enviarPendientes()
+      setEstadoEnvio("ok")
+      setEnCola(cola.leer())
+      cargar()
+    } catch {
+      // Se cayó la red. No se toca nada: lo pendiente sigue pendiente.
+      setEstadoEnvio("falló")
+      setEnCola(cola.leer())
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modoOffline])
+
+  useEffect(() => {
+    setModoOffline(localStorage.getItem("alma_venta_offline") === "1")
+    setEnCola(cola.leer())
+    sincronizar()
+
+    const alVolver = () => sincronizar()
+    const alMostrarse = () => { if (document.visibilityState === "visible") sincronizar() }
+    window.addEventListener("online", alVolver)
+    document.addEventListener("visibilitychange", alMostrarse)
+
+    // El respaldo lento. Solo hace algo si quedó algo sin mandar.
+    const reloj = setInterval(() => { if (cola.pendientes().length > 0) sincronizar() }, 60_000)
+
+    return () => {
+      window.removeEventListener("online", alVolver)
+      document.removeEventListener("visibilitychange", alMostrarse)
+      clearInterval(reloj)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sincronizar])
+
+  const alternarModo = () => {
+    const nuevo = !modoOffline
+    setModoOffline(nuevo)
+    localStorage.setItem("alma_venta_offline", nuevo ? "1" : "0")
+    // Volver a "online" manda lo que haya Y refresca los números, que
+    // quedaron viejos mientras no había señal.
+    if (!nuevo) sincronizar(true)
+  }
+
+  const exportar = async () => {
+    const { nombre, json } = cola.armarExportacion()
+    const archivo = new File([json], nombre, { type: "application/json" })
+
+    // El compartir del sistema y no "mandar por WhatsApp": que cada uno
+    // elija el camino que le sirva. Si el teléfono no lo soporta, baja el
+    // archivo, que termina en el mismo lugar.
+    const nav = navigator as any
+    if (nav.canShare?.({ files: [archivo] })) {
+      try {
+        await nav.share({ files: [archivo], title: "Ventas del puesto" })
+        return
+      } catch {
+        // Canceló el compartir: no es un error, se sigue a la descarga.
+      }
+    }
+    const url = URL.createObjectURL(archivo)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = nombre
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  /**
+   * Lo que ve la tira: primero lo que todavía está en el teléfono, después lo
+   * confirmado por el servidor.
+   *
+   * Las confirmadas se filtran por `client_uuid` para que una venta recién
+   * sincronizada no aparezca dos veces —una desde la cola y otra desde la
+   * base— en el momento exacto en que está en los dos lados.
+   */
+  const filasTira = useMemo<FilaVenta[]>(() => {
+    const hora = (iso: string) =>
+      new Date(iso).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })
+
+    const deCola: FilaVenta[] = enCola.map(v => ({
+      clave: v.client_uuid,
+      hora: hora(v.occurred_at),
+      detalle: v.items.map(i => `${i.quantity}× ${i.product_name ?? "?"}`).join(", ") || "—",
+      total: pesos(v.total),
+      estado: v.estado,
+      motivo: v.motivo,
     }))
+
+    const enElTelefono = new Set(enCola.map(v => v.client_uuid))
+    const delServidor: FilaVenta[] = ventas
+      .filter(v => !v.client_uuid || !enElTelefono.has(v.client_uuid))
+      .slice(0, 5)
+      .map(v => ({
+        clave: `s${v.id}`,
+        hora: v.created_at ? fechaHora(v.created_at).hora : "",
+        detalle: v.items.map(i => `${i.quantity}× ${i.product_name ?? "?"}`).join(", ") || "—",
+        total: pesos(v.total),
+        estado: v.is_void ? "anulada" : "enviada",
+      }))
+
+    return [...deCola, ...delServidor].slice(0, 6)
+  }, [enCola, ventas])
+
+  const cobrar = async (medio: "efectivo" | "transferencia") => {
+    const items = Object.entries(carrito).map(([id, cantidad]) => {
+      const p = productos.find(x => x.id === Number(id))
+      return {
+        product_id: Number(id),
+        quantity: cantidad,
+        // Solo para poder mostrarla en la tira sin el catálogo a mano. El
+        // precio que vale es el de la base: el backend lo recalcula siempre.
+        product_name: p?.name,
+        unit_price: num(p?.unit_price),
+      }
+    })
     if (!items.length) return
 
-    setCobrando(true)
-    try {
-      const res = await fetch("/api/stand/ventas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          payment_method: medio,
-          items,
-          customer_name: cliente.nombre.trim() || null,
-          customer_email: cliente.mail.trim() || null,
-        }),
-      })
-      if (!res.ok) {
-        // Sin stock no es un error del sistema: es el mostrador diciendo que
-        // no queda. Se muestra el motivo y se recargan los productos, porque
-        // lo más probable es que otro haya vendido lo que faltaba.
-        const detalle = (await res.json().catch(() => ({})))?.error
-        throw new Error(res.status === 409 ? detalle : "")
-      }
-      const venta: StandSale = await res.json()
-      toast({ title: `Venta registrada · ${pesos(venta.total)}` })
-      vaciar()
-      setCliente({ nombre: "", mail: "" })
-      setPidiendoDatos(false)
-      cargar()
-    } catch (error: any) {
-      toast({
-        title: error?.message || "No se pudo registrar la venta",
-        variant: "destructive",
-      })
-      if (error?.message) cargar()
-    } finally {
-      setCobrando(false)
+    /**
+     * La venta se guarda en el TELÉFONO y recién después se intenta mandar.
+     *
+     * Antes era al revés, y en una feria eso significaba perder ventas: sin
+     * señal el POST fallaba, pero la plata ya se había cobrado en la mano.
+     * Escribiendo primero local, el envío pasa a ser un detalle posterior y
+     * no hay ningún momento en el que una venta cobrada no exista.
+     *
+     * Es síncrono a propósito: pasa dentro del mismo toque que cobra, sin un
+     * await en el medio donde la app pueda cerrarse.
+     */
+    cola.encolar({
+      payment_method: medio,
+      items,
+      customer_name: cliente.nombre.trim() || null,
+      customer_email: cliente.mail.trim() || null,
+      total,
+    })
+    setEnCola(cola.leer())
+
+    // El stock de la pantalla baja ya mismo. Sin esto, vendiendo sin señal
+    // la góndola seguiría diciendo que quedan 16 después de vender 4.
+    setProductos(prev => prev.map(p => {
+      const vendido = carrito[p.id] || 0
+      return vendido ? { ...p, stock: p.stock - vendido, sold: p.sold + vendido } : p
+    }))
+
+    toast({ title: `Venta registrada · ${pesos(total)}` })
+    vaciar()
+    setCliente({ nombre: "", mail: "" })
+    setPidiendoDatos(false)
+
+    // En segundo plano: que el envío no haga esperar al que está cobrando.
+    sincronizar()
+  }
+
+  /** La clave con la que la tira identifica cada fila: el uuid del teléfono
+   *  si todavía no está confirmada, o `s` + el id del servidor si ya entró. */
+  const buscarEnCola = (clave: string) => enCola.find(v => v.client_uuid === clave)
+
+  /**
+   * Anula y devuelve los productos al carrito.
+   *
+   * Es la acción que de verdad se usa: casi nunca la venta entera está mal,
+   * falta o sobra una cosa. Sin esto hay que anular y volver a tocar los
+   * cuatro productos que sí llevaba, con alguien esperando enfrente.
+   */
+  const corregir = async (clave: string) => {
+    const enLaCola = buscarEnCola(clave)
+    const items = enLaCola
+      ? enLaCola.items
+      : ventas.find(v => `s${v.id}` === clave)?.items ?? []
+
+    await anularFila(clave)
+    const devuelto: Record<number, number> = {}
+    for (const it of items) devuelto[it.product_id] = (devuelto[it.product_id] || 0) + it.quantity
+    setCarrito(devuelto)
+  }
+
+  const anularFila = async (clave: string) => {
+    const enLaCola = buscarEnCola(clave)
+
+    // Si nunca se mandó, se borra y listo. Crear una venta anulada en el
+    // servidor por algo que allá nunca existió sería inventar historia.
+    if (enLaCola) {
+      cola.quitar(clave)
+      setEnCola(cola.leer())
+      setProductos(prev => prev.map(p => {
+        const dev = enLaCola.items.filter(i => i.product_id === p.id).reduce((a, i) => a + i.quantity, 0)
+        return dev ? { ...p, stock: p.stock + dev, sold: Math.max(0, p.sold - dev) } : p
+      }))
+      toast({ title: "Venta anulada" })
+      return
     }
+
+    const id = Number(clave.replace(/^s/, ""))
+    if (Number.isFinite(id)) await anular(id)
   }
 
   const anular = async (id: number) => {
@@ -363,6 +560,12 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
         <div className="flex items-center gap-2">
           <ShoppingCart className="h-6 w-6 text-[#4dd0e1]" />
           <h2 className="text-xl font-bold text-gray-900">Puesto de venta</h2>
+          {/* El QR y el link a /venta, la caja suelta.
+              Acá y no en un menú: el momento en que hace falta es cuando
+              estás con otro voluntario al lado y le tenés que pasar la caja a
+              su teléfono. Un QR se escanea en dos segundos; dictar una
+              dirección y un PIN, no. */}
+          <QrVidriera ruta="/venta" titulo="Puesto de venta" soloIcono />
         </div>
         <div className="inline-flex w-full overflow-x-auto rounded-lg border border-gray-200 bg-white p-1 sm:w-auto">
           {([
@@ -388,6 +591,21 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
       {/* ── VENDER ─────────────────────────────────────────────────── */}
       {vista === "vender" && (
         <>
+          <BarraSincro
+            pendientes={enCola.filter(v => v.estado === "pendiente").length}
+            rechazadas={enCola.filter(v => v.estado === "rechazada").length}
+            estado={estadoEnvio}
+            modoOffline={modoOffline}
+            onEnviar={() => sincronizar(true)}
+            onExportar={exportar}
+            onAlternarModo={alternarModo}
+            onReintentarRechazadas={() => {
+              cola.reintentarRechazadas()
+              setEnCola(cola.leer())
+              sincronizar(true)
+            }}
+          />
+
           {productos.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center text-gray-500">
@@ -456,6 +674,15 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
               })}
             </div>
           )}
+
+          {/* Las últimas ventas, abajo de la góndola: lo justo para poder
+              arreglar la que se acaba de cobrar sin salir de acá. */}
+          <TiraVentas
+            filas={filasTira}
+            onCorregir={corregir}
+            onAnular={anularFila}
+            onVerTodas={() => setVista("historial")}
+          />
 
           {/* Barra de cobro: pegada abajo y siempre visible mientras haya
               algo en el carrito. Es la única acción que importa acá. */}
@@ -726,7 +953,13 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
               </div>
             </div>
 
-            <BotonesInforme endpoint="/api/stand/informe" rango={rango} className="sm:ml-auto" />
+            <div className="flex items-end gap-2 sm:ml-auto">
+              <BotonesInforme endpoint="/api/stand/informe" rango={rango} />
+              {/* Solo admin: importar es cargar plata a nombre de otro —el que
+                  cobró fue el voluntario del teléfono— y eso es administrar la
+                  caja, no atender el puesto. */}
+              {can(user, "stand:importar") && <ImportarVentas onImportado={() => cargar(rango)} />}
+            </div>
 
             {(rango.desde || rango.hasta) && (
               <button

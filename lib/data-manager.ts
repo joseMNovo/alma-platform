@@ -2101,6 +2101,31 @@ export async function createStandSale(data: {
   return api.post<StandSale>('/stand/sales', data)
 }
 
+/** Resultado de cargar un lote de ventas que YA ocurrieron. */
+export interface StandSyncResult {
+  creadas: number
+  repetidas: number
+  rechazadas: { client_uuid: string | null; motivo: string }[]
+}
+
+/**
+ * Carga ventas que ya se cobraron: la cola de un teléfono sin señal, o un
+ * archivo exportado que alguien importa.
+ *
+ * Es otro endpoint que `createStandSale` por una diferencia de significado:
+ * `/sales` dice "cobrá esto" y puede decir que no; `/sales/sync` dice "esto se
+ * cobró" y solo puede acusar recibo. Por eso no valida stock.
+ *
+ * Idempotente por `client_uuid`: el mismo lote se puede mandar las veces que
+ * haga falta sin duplicar la caja.
+ */
+export async function syncStandSales(
+  lote: unknown[],
+  origen: 'cola' | 'importada' = 'cola',
+): Promise<StandSyncResult> {
+  return api.post<StandSyncResult>(`/stand/sales/sync?origen=${origen}`, lote)
+}
+
 export async function getStandSales(
   limit = 50,
   rango?: { desde?: string; hasta?: string },

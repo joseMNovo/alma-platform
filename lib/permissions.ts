@@ -36,6 +36,7 @@ export type Action =
   | "accesos:manage"
   | "stand:sell"
   | "stand:manage"
+  | "stand:importar"
   | "ingresos:view"
   | "ingresos:detalle"
   | "emails:view"
@@ -170,6 +171,12 @@ export function can(user: { role: string } | null, action: Action): boolean {
     case "stand:sell":
     case "stand:manage":
       return true
+
+    // Importar un archivo de ventas es cargar plata a nombre de otro: el que
+    // cobró fue el voluntario del teléfono, y el que sube el archivo es quien
+    // lo recibió. Eso es administrar la caja, no atender el puesto.
+    case "stand:importar":
+      return isAdmin
 
     // Plata. "¿Cuánta plata tiene ALMA?" es una pregunta razonable de
     // cualquiera que trabaje acá, así que los TOTALES los ve un voluntario:
