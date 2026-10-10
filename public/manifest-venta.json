@@ -9,8 +9,8 @@
   "scope": "/venta",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#00838f",
-  "theme_color": "#00838f",
+  "background_color": "#4dd0e1",
+  "theme_color": "#4dd0e1",
   "icons": [
     {
       "src": "/images/puesto-192.png",

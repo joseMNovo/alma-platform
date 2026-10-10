@@ -55,6 +55,37 @@ export default function VentaExpress() {
   const [pin, setPin] = useState("")
   const [error, setError] = useState("")
   const [entrando, setEntrando] = useState(false)
+  const [enSafariSuelto, setEnSafariSuelto] = useState(false)
+
+  /**
+   * ¿Esto es un iPhone, en el navegador, con la app quizá ya instalada?
+   *
+   * En Android, escanear el QR abre la app instalada: Chrome registra la PWA
+   * como dueña de las URLs de su `scope` y el sistema la elige sola. En iOS
+   * eso NO existe — una app agregada a la pantalla de inicio no puede
+   * reclamar ninguna dirección, así que el QR siempre cae en Safari. No hay
+   * API, ni etiqueta, ni vuelta: es una decisión de Apple.
+   *
+   * Lo único que se puede hacer es decirlo. Sin este aviso, la persona
+   * instala el Puesto, escanea el QR, aparece en Safari y concluye que la
+   * instalación no sirvió para nada.
+   */
+  useEffect(() => {
+    const ua = navigator.userAgent
+    const esIOS = /iphone|ipad|ipod/i.test(ua) || (/macintosh/i.test(ua) && navigator.maxTouchPoints > 1)
+    const yaEnApp =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (navigator as any).standalone === true
+    setEnSafariSuelto(esIOS && !yaEnApp)
+  }, [])
+
+  const AvisoSafari = () =>
+    enSafariSuelto ? (
+      <p className="bg-amber-50 px-4 py-2 text-center text-xs text-amber-900">
+        Estás en el navegador. Si ya instalaste el Puesto, abrilo desde su ícono:
+        en iPhone el código QR siempre abre Safari.
+      </p>
+    ) : null
 
   const leerUsuarioGuardado = (): Usuario | null => {
     try {
@@ -121,7 +152,7 @@ export default function VentaExpress() {
 
   if (estado === "probando") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#00838f]">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#4dd0e1] to-[#9a8bc2]">
         <Loader2 className="h-10 w-10 animate-spin text-white/80" />
       </div>
     )
@@ -129,12 +160,21 @@ export default function VentaExpress() {
 
   if (estado === "entrar") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#00838f] px-6 py-10">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-[#4dd0e1] to-[#9a8bc2] px-6 py-10">
         <img src="/images/flor-blanco.png" alt="" className="mb-4 h-20 w-auto" />
-        <h1 className="text-2xl font-bold text-white">Puesto de venta</h1>
-        <p className="mt-1 text-center text-sm text-white/70">
+        <h1 className="text-2xl font-bold text-white" style={{ textShadow: "0 1px 8px rgba(0,0,0,0.18)" }}>
+          Puesto de venta
+        </h1>
+        <p className="mt-1 text-center text-sm text-white/90" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.15)" }}>
           Entrá con tu mail y tu PIN
         </p>
+
+        {enSafariSuelto && (
+          <p className="mt-5 w-full max-w-sm rounded-lg bg-white/20 px-3 py-2 text-center text-xs text-white">
+            Si ya instalaste el Puesto en este teléfono, abrilo desde su ícono:
+            en iPhone el QR siempre abre Safari.
+          </p>
+        )}
 
         <form onSubmit={entrar} className="mt-8 w-full max-w-sm space-y-3">
           <input
@@ -167,7 +207,7 @@ export default function VentaExpress() {
           <button
             type="submit"
             disabled={entrando || pin.length < 4}
-            className={`w-full rounded-xl bg-white text-base font-bold text-[#00838f] transition-opacity disabled:opacity-50 ${TOCABLE}`}
+            className={`w-full rounded-xl bg-white text-base font-bold text-[#00838f] shadow-lg transition-opacity disabled:opacity-50 ${TOCABLE}`}
           >
             {entrando ? "Entrando…" : "Entrar"}
           </button>
@@ -184,7 +224,7 @@ export default function VentaExpress() {
 
   if (estado === "sin-permiso") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#00838f] px-8 text-center">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gradient-to-br from-[#4dd0e1] to-[#9a8bc2] px-8 text-center">
         <ShieldAlert className="h-12 w-12 text-white/80" />
         <p className="text-lg font-semibold text-white">
           Tu cuenta no puede cobrar en el puesto
@@ -204,7 +244,7 @@ export default function VentaExpress() {
     <div className="min-h-screen bg-gray-50">
       {/* Una barra mínima: quién está cobrando y cómo salir. Nada más, porque
           todo lo que ocupe lugar acá se lo saca a la góndola. */}
-      <header className="sticky top-0 z-20 flex items-center gap-3 bg-[#00838f] px-4 py-2.5 text-white">
+      <header className="sticky top-0 z-20 flex items-center gap-3 bg-[#4dd0e1] px-4 py-2.5 text-white">
         <img src="/images/flor-blanco.png" alt="" className="h-7 w-auto shrink-0" />
         <span className="text-sm font-semibold">Puesto</span>
         <span className="ml-auto truncate text-sm text-white/80">{usuario?.name}</span>
@@ -216,6 +256,8 @@ export default function VentaExpress() {
           <LogOut className="h-5 w-5" />
         </button>
       </header>
+
+      <AvisoSafari />
 
       <main className="px-3 py-3 sm:px-4">
         <PuestoVentaManager user={usuario as any} />

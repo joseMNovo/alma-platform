@@ -66,26 +66,46 @@ export default function InstalarApp({ className }: { className?: string }) {
     }
 
     /**
-     * Android: el navegador avisa cuándo se puede instalar. Se le pide que no
-     * muestre su propia barra para ofrecerlo donde tenga sentido.
+     * Android: el navegador avisa cuándo se puede instalar.
      *
-     * Ojo: el evento puede dispararse antes de que este componente se monte y
-     * ahí se pierde. No es grave —el navegador lo vuelve a ofrecer por su
-     * cuenta— pero explica que a veces el botón no aparezca de entrada.
+     * El evento se dispara UNA sola vez y apenas carga la página, casi
+     * siempre antes de que React hidrate. Por eso no alcanza con escucharlo
+     * desde acá: para cuando este efecto corre, ya pasó. Lo atrapa un script
+     * en el `<head>` (ver app/layout.tsx) y lo deja en `window.__almaInstalar`.
+     *
+     * Acá se miran las dos puntas: lo que ya haya guardado, y lo que llegue
+     * después por si el navegador decide ofrecerlo más tarde.
      */
+    const guardado = (window as any).__almaInstalar
+    if (guardado) {
+      setPromptDiferido(guardado)
+      setPlataforma("android")
+    }
+
     const alPoderInstalar = (e: Event) => {
       e.preventDefault()
+      ;(window as any).__almaInstalar = e
       setPromptDiferido(e)
       setPlataforma("android")
     }
+    const alAvisarElScript = () => {
+      const g = (window as any).__almaInstalar
+      if (g) { setPromptDiferido(g); setPlataforma("android") }
+    }
     window.addEventListener("beforeinstallprompt", alPoderInstalar)
+    window.addEventListener("alma:instalable", alAvisarElScript)
 
     // Cuando se instala, el botón desaparece sin necesidad de recargar.
-    const alInstalar = () => { setPromptDiferido(null); setPlataforma("ninguna") }
+    const alInstalar = () => {
+      delete (window as any).__almaInstalar
+      setPromptDiferido(null)
+      setPlataforma("ninguna")
+    }
     window.addEventListener("appinstalled", alInstalar)
 
     return () => {
       window.removeEventListener("beforeinstallprompt", alPoderInstalar)
+      window.removeEventListener("alma:instalable", alAvisarElScript)
       window.removeEventListener("appinstalled", alInstalar)
     }
   }, [])
@@ -96,6 +116,7 @@ export default function InstalarApp({ className }: { className?: string }) {
     if (!promptDiferido) return
     promptDiferido.prompt()
     await promptDiferido.userChoice
+    delete (window as any).__almaInstalar
     // El evento es de un solo uso: si se descarta, hay que esperar a que el
     // navegador lo vuelva a ofrecer.
     setPromptDiferido(null)
