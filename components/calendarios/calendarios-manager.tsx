@@ -75,6 +75,8 @@ interface PreviewEntry {
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
+import CalendarioMobile, { type EventoMobile } from "@/components/calendarios/calendario-mobile"
+
 const MONTH_NAMES = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
@@ -494,7 +496,14 @@ export default function CalendariosManager({ user }: { user: any }) {
   })
   const [saving, setSaving] = useState(false)
   /** Día abierto en la hoja de celular. null = cerrada. */
-  const [diaAbierto, setDiaAbierto] = useState<number | null>(null)
+  /**
+   * El día que muestra la agenda del teléfono.
+   *
+   * Antes esto era `diaAbierto` y levantaba una ventana encima del mes. Ahora
+   * la lista de abajo cambia y el mes queda a la vista: saltar del 27 al 28
+   * no obliga a cerrar nada. Se acomoda solo al cambiar de mes (ver abajo).
+   */
+  const [diaSel, setDiaSel] = useState<number | null>(null)
 
   // Bulk delete dialog
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
@@ -1063,6 +1072,46 @@ export default function CalendariosManager({ user }: { user: any }) {
 
   // ── Summary counts ─────────────────────────────────────────────
 
+  /**
+   * Qué día queda elegido al abrir o al cambiar de mes.
+   *
+   * Hoy si el mes es el de hoy; si no, el primer día que tenga algo; y si el
+   * mes está vacío, el 1. Nunca `null`: una agenda sin día elegido es media
+   * pantalla en blanco sin explicación.
+   */
+  useEffect(() => {
+    const hoy = new Date()
+    if (currentMonth === hoy.getMonth() + 1 && currentYear === hoy.getFullYear()) {
+      setDiaSel(hoy.getDate())
+      return
+    }
+    const conAlgo = instances
+      .map(i => Number(i.date.slice(8, 10)))
+      .filter(n => Number.isFinite(n))
+      .sort((a, b) => a - b)[0]
+    setDiaSel(conAlgo ?? 1)
+  }, [currentYear, currentMonth, instances])
+
+  /** Los eventos de un día, ya masticados para la pantalla del teléfono. */
+  const eventosMobileDe = (dia: number): EventoMobile[] =>
+    instancesForDay(dia).map(inst => {
+      const equipo = [inst.coordinator, ...(inst.co_coordinators ?? []), ...(inst.volunteers ?? [])]
+        .filter(Boolean) as { name: string }[]
+      return {
+        id: inst.id,
+        hora: formatTime(inst.start_time),
+        titulo: inst.title || getSourceName(inst),
+        tipo: inst.type,
+        cancelado: inst.status === "cancelado",
+        mio: isUserAssigned(inst),
+        // Solo el primero y cuántos más: en 360px de ancho, tres nombres
+        // completos tapan la hora y el lugar.
+        voluntarios: equipo.length
+          ? equipo[0].name + (equipo.length > 1 ? ` +${equipo.length - 1}` : "")
+          : null,
+      }
+    })
+
   const grupoCount = instances.filter(i => i.type === "grupo").length
   const tallerCount = instances.filter(i => i.type === "taller").length
   const actividadCount = instances.filter(i => i.type === "actividad").length
@@ -1072,8 +1121,50 @@ export default function CalendariosManager({ user }: { user: any }) {
 
   return (
     <div className="space-y-4">
-      {/* ── Top bar ─────────────────────────────────────────────── */}
-      <div className="bg-white rounded-lg shadow-sm border p-4 space-y-4">
+      {/*
+        El calendario del teléfono es OTRO componente, no la misma grilla
+        encogida. Lo de abajo —barra, filtros, celdas con los eventos
+        escritos— está pensado para un mouse y para 1400px de ancho, y
+        apretarlo en 360 daba renglones de catorce pixeles.
+      */}
+      <CalendarioMobile
+        titulo={`${MONTH_NAMES[currentMonth - 1]} ${currentYear}`}
+        celdas={calendarCells}
+        eventosDe={eventosMobileDe}
+        esHoy={isToday}
+        diaSel={diaSel}
+        onDia={setDiaSel}
+        onMes={navigateMonth}
+        onHoy={goToToday}
+        conteos={{ grupo: grupoCount, taller: tallerCount, actividad: actividadCount }}
+        filtroTipo={filterType}
+        onFiltroTipo={(t) => setFilterType(t as any)}
+        esParticipante={isParticipant}
+        soloMios={filterMine}
+        onSoloMios={() => setFilterMine(!filterMine)}
+        soloAnotados={soloAnotados}
+        onSoloAnotados={() => setSoloAnotados(!soloAnotados)}
+        voluntarios={volunteers}
+        filtroVoluntario={filterVolunteer}
+        onFiltroVoluntario={setFilterVolunteer}
+        puedeCrear={can(user, "calendar:create")}
+        onNuevo={(dia) => openNewInstance(dia ? dateStr(currentYear, currentMonth, dia) : undefined)}
+        puedeGenerar={can(user, "calendar:generate")}
+        onGenerar={openGenerateDialog}
+        puedeBorrar={can(user, "calendar:delete")}
+        onBorrar={openBulkDelete}
+        onAbrirEvento={(id) => {
+          const inst = instances.find(i => i.id === id)
+          if (inst) openDetail(inst)
+        }}
+        nombreDia={(dia) => {
+          const d = new Date(currentYear, currentMonth - 1, dia)
+          return `${DAY_NAMES_FULL[d.getDay()]} ${dia}`
+        }}
+      />
+
+      {/* ── Top bar (escritorio) ────────────────────────────────── */}
+      <div className="hidden sm:block bg-white rounded-lg shadow-sm border p-4 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" onClick={() => navigateMonth(-1)}>
@@ -1197,8 +1288,8 @@ export default function CalendariosManager({ user }: { user: any }) {
         </div>
       </div>
 
-      {/* ── Calendar grid ───────────────────────────────────────── */}
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+      {/* ── Calendar grid (escritorio) ──────────────────────────── */}
+      <div className="hidden sm:block bg-white rounded-lg shadow-sm border overflow-hidden">
         <div className="grid grid-cols-7 border-b bg-gray-50">
           {DAY_NAMES.map(d => (
             <div key={d} className="text-center text-xs font-semibold text-gray-500 py-2 border-r last:border-r-0">
@@ -1225,50 +1316,6 @@ export default function CalendariosManager({ user }: { user: any }) {
                 >
                   {day && (
                     <>
-                      {/* CELULAR: la celda entera es un solo botón que abre la
-                          hoja del dia.
-
-                          Antes esta misma grilla servía para las dos pantallas:
-                          en un teléfono cada celda mide ~55px y cada evento era
-                          un botón de 14px de alto con el texto cortado. Elegir
-                          entre dos era casi imposible, y lo peor es que errarle
-                          no hacía nada inofensivo: el toque caía en la celda y
-                          abría "Nuevo evento".
-
-                          Ahora el día muestra puntitos —cuántos eventos hay y
-                          de qué tipo— y elegir se hace en la hoja, con
-                          tarjetas grandes. */}
-                      <button
-                        type="button"
-                        onClick={() => setDiaAbierto(day)}
-                        className="flex h-full w-full flex-col items-center gap-1 py-1 sm:hidden"
-                      >
-                        <span
-                          className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
-                            today_ ? "bg-[#4dd0e1] text-white" : "text-gray-700"
-                          }`}
-                        >
-                          {day}
-                        </span>
-                        <span className="flex flex-wrap items-center justify-center gap-0.5">
-                          {dayInsts.slice(0, 4).map(inst => (
-                            <span
-                              key={inst.id}
-                              className={`h-1.5 w-1.5 rounded-full ${
-                                inst.type === "grupo"
-                                  ? "bg-[#4dd0e1]"
-                                  : inst.type === "taller"
-                                  ? "bg-purple-500"
-                                  : "bg-orange-400"
-                              } ${inst.status === "cancelado" ? "opacity-40" : ""}`}
-                            />
-                          ))}
-                          {dayInsts.length > 4 && (
-                            <span className="text-[9px] leading-none text-gray-400">+{dayInsts.length - 4}</span>
-                          )}
-                        </span>
-                      </button>
-
                       {/* ESCRITORIO: como siempre. Con mouse, los renglones
                           finitos se aciertan sin problema y muestran más datos
                           que un puntito. El click para crear vive acá adentro y
@@ -1320,8 +1367,9 @@ export default function CalendariosManager({ user }: { user: any }) {
         )}
       </div>
 
-      {/* Legend */}
-      <div className="flex gap-4 text-xs text-gray-500 px-1 flex-wrap">
+      {/* Legend (escritorio: en el teléfono los chips de arriba ya dicen de
+          qué color es cada tipo, y repetirlo abajo era un renglón más) */}
+      <div className="hidden sm:flex gap-4 text-xs text-gray-500 px-1 flex-wrap">
         <span className="flex items-center gap-1">
           <span className="inline-block w-3 h-3 rounded bg-[#4dd0e1]" /> Grupo
         </span>
@@ -1335,82 +1383,6 @@ export default function CalendariosManager({ user }: { user: any }) {
           <span className="inline-block w-3 h-3 rounded bg-blue-100 border border-blue-300" /> Hoy
         </span>
       </div>
-
-      {/* ── Hoja del día (solo celular) ──────────────────────────── */}
-      <Dialog open={diaAbierto !== null} onOpenChange={abierto => !abierto && setDiaAbierto(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-base">
-              {diaAbierto !== null && (() => {
-                const d = new Date(currentYear, currentMonth, diaAbierto)
-                return `${DAY_NAMES_FULL[d.getDay()]} ${diaAbierto} de ${MONTH_NAMES[currentMonth].toLowerCase()}`
-              })()}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-2">
-            {diaAbierto !== null && instancesForDay(diaAbierto).length === 0 ? (
-              <p className="py-6 text-center text-sm text-gray-400">No hay eventos este día.</p>
-            ) : (
-              diaAbierto !== null && instancesForDay(diaAbierto).map(inst => {
-                const mine = isUserAssigned(inst)
-                const color =
-                  inst.type === "grupo" ? "bg-[#4dd0e1]"
-                  : inst.type === "taller" ? "bg-purple-500"
-                  : "bg-orange-400"
-                return (
-                  <button
-                    key={inst.id}
-                    type="button"
-                    // Tarjeta, no renglón: el objetivo del dedo pasa de 14px a
-                    // más de 56, que es lo que hace que elegir deje de ser
-                    // puntería.
-                    onClick={() => { setDiaAbierto(null); openDetail(inst) }}
-                    className={`flex w-full items-stretch gap-3 overflow-hidden rounded-lg border bg-white text-left transition-colors active:bg-gray-50 ${
-                      inst.status === "cancelado" ? "opacity-50" : ""
-                    }`}
-                  >
-                    <span className={`w-1.5 shrink-0 ${color}`} />
-                    <span className="min-w-0 flex-1 py-2.5 pr-3">
-                      <span className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-gray-900">
-                          {formatTime(inst.start_time)}
-                        </span>
-                        {mine && (
-                          <span className="rounded-full bg-[#4dd0e1]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[#0097a7]">
-                            Voy
-                          </span>
-                        )}
-                        {inst.status === "cancelado" && (
-                          <span className="text-[10px] font-semibold uppercase text-red-500">Cancelado</span>
-                        )}
-                      </span>
-                      <span className={`block truncate text-sm text-gray-700 ${inst.status === "cancelado" ? "line-through" : ""}`}>
-                        {inst.title || getSourceName(inst)}
-                      </span>
-                    </span>
-                  </button>
-                )
-              })
-            )}
-          </div>
-
-          {/* Crear desde acá. En el teléfono la celda ya no crea al tocarla:
-              con eventos encima, ese toque se lo llevaba el evento equivocado. */}
-          {can(user, "calendar:create") && diaAbierto !== null && (
-            <Button
-              className="w-full bg-[#4dd0e1] text-white hover:bg-[#26c6da]"
-              onClick={() => {
-                const fecha = dateStr(currentYear, currentMonth, diaAbierto)
-                setDiaAbierto(null)
-                openNewInstance(fecha)
-              }}
-            >
-              <Plus className="mr-2 h-4 w-4" /> Nuevo evento
-            </Button>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* ── Detail Dialog ────────────────────────────────────────── */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
