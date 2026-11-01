@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import BotonFlotante from "@/components/ui/boton-flotante"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -19,6 +20,7 @@ import {
 import { Plus, Edit, Trash2, Package, AlertTriangle, Search, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, X, SlidersHorizontal } from "lucide-react"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 import FilterChip from "@/components/ui/filter-chip"
+import { HojaFiltros, ChipsActivos } from "@/components/ui/filtros-mobile"
 import SelectorBuscable from "@/components/ui/selector-buscable"
 import { toast } from "@/hooks/use-toast"
 
@@ -50,8 +52,22 @@ export default function InventarioManager({ user }: { user: any }) {
     // concluís que no está cargado.
     forSale: "todos",
   })
-  const [sortField, setSortField] = useState("")
+  /**
+   * Con qué orden abre la pantalla.
+   *
+   * Antes abría sin ordenar, o sea en el orden en que la base devolvía las
+   * filas: por id, que es el orden en que se fueron cargando. Para quien
+   * mira la lista eso es ningún orden —buscar "Mesas plegables" entre veinte
+   * tarjetas es leerlas todas—. Alfabético se puede recorrer.
+   *
+   * No cuenta como filtro puesto: es el estado de reposo, así que ni enciende
+   * "Limpiar" ni aparece como chip.
+   */
+  const ORDEN_INICIAL = "name"
+  const [sortField, setSortField] = useState(ORDEN_INICIAL)
   const [sortDirection, setSortDirection] = useState("asc")
+  /** true cuando el orden NO es el de reposo. */
+  const ordenCambiado = sortField !== ORDEN_INICIAL || sortDirection !== "asc"
   const [showFilters, setShowFilters] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
@@ -312,9 +328,15 @@ export default function InventarioManager({ user }: { user: any }) {
           bVal = (b.quantity || 0) * (b.price || 0)
         }
 
+        // Comparar textos con `<` ordena por número de carácter: deja la Ñ
+        // después de la Z y "Útiles" al final de todo. `localeCompare` con
+        // es-AR acomoda acentos y Ñ donde los busca quien lee.
         if (typeof aVal !== "number" || typeof bVal !== "number") {
-          aVal = String(aVal || "").toLowerCase()
-          bVal = String(bVal || "").toLowerCase()
+          const cmp = String(aVal ?? "").localeCompare(String(bVal ?? ""), "es-AR", {
+            sensitivity: "base",
+            numeric: true,
+          })
+          return sortDirection === "asc" ? cmp : -cmp
         }
 
         if (aVal < bVal) return sortDirection === "asc" ? -1 : 1
@@ -342,9 +364,51 @@ export default function InventarioManager({ user }: { user: any }) {
 
   const clearFilters = () => {
     setFilters({ searchTerm: "", category: "todas", volunteer: "todos", stockStatus: "todos", priceMin: "", priceMax: "", forSale: "todos" })
-    setSortField("")
+    setSortField(ORDEN_INICIAL)
     setSortDirection("asc")
   }
+
+  /**
+   * Los filtros puestos, con nombre y con cruz.
+   *
+   * En el teléfono los controles viven adentro de la hoja, así que desde la
+   * lista no se ve ninguno. Sin esta línea, "faltan cosas en el inventario"
+   * casi siempre es un corte que quedó prendido y nadie puede ver.
+   */
+  const ETIQUETA_INV: Record<string, string> = {
+    "stockStatus:bajo-stock": "Bajo stock",
+    "forSale:en-venta": "En venta",
+    "forSale:no-en-venta": "Sin vender",
+    "volunteer:sin-asignar": "Sin asignar",
+  }
+  const filtrosPuestos = [
+    ...(filters.category !== "todas"
+      ? [{ id: "cat", texto: filters.category, quitar: () => setFilters((f) => ({ ...f, category: "todas" })) }]
+      : []),
+    ...(["stockStatus", "forSale", "volunteer"] as const)
+      .filter((c) => filters[c] !== "todos")
+      .map((c) => ({
+        id: c,
+        texto: ETIQUETA_INV[`${c}:${filters[c]}`]
+          ?? volunteers.find((v) => String(v.id) === filters[c])?.name
+          ?? String(filters[c]),
+        quitar: () => setFilters((f) => ({ ...f, [c]: "todos" })),
+      })),
+    ...(filters.priceMin || filters.priceMax
+      ? [{
+          id: "precio",
+          texto: `$${filters.priceMin || "0"} – ${filters.priceMax || "∞"}`,
+          quitar: () => setFilters((f) => ({ ...f, priceMin: "", priceMax: "" })),
+        }]
+      : []),
+    ...(ordenCambiado
+      ? [{
+          id: "orden",
+          texto: "Otro orden",
+          quitar: () => { setSortField(ORDEN_INICIAL); setSortDirection("asc") },
+        }]
+      : []),
+  ]
 
   const lowStockItems = inventory.filter(isLowStock)
   const enVentaItems = inventory.filter((item) => item.for_sale)
@@ -358,7 +422,7 @@ export default function InventarioManager({ user }: { user: any }) {
     filters.priceMin !== "" ||
     filters.priceMax !== "" ||
     filters.forSale !== "todos" ||
-    sortField !== ""
+    ordenCambiado
 
   /** Lo que vive detrás de "Más filtros". Se mira aparte para poder marcar el
    *  botón cuando hay algo activo que no se está viendo. */
@@ -366,7 +430,7 @@ export default function InventarioManager({ user }: { user: any }) {
     (filters.volunteer !== "todos" && filters.volunteer !== "sin-asignar") ||
     filters.priceMin !== "" ||
     filters.priceMax !== "" ||
-    sortField !== ""
+    ordenCambiado
 
   if (loading) {
     return <div className="text-center py-8">Cargando inventario...</div>
@@ -385,11 +449,17 @@ export default function InventarioManager({ user }: { user: any }) {
         <div className="flex flex-col sm:flex-row items-center gap-2">
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={resetForm} className="w-full sm:w-auto bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+              <Button onClick={resetForm} className="hidden sm:inline-flex w-full sm:w-auto bg-alma-fuerte hover:bg-alma-oscuro text-white">
                 <Plus className="w-4 h-4 mr-2" />
                 Nuevo Item
               </Button>
             </DialogTrigger>
+            {/* En el teléfono el botón de crear flota abajo a la derecha: el
+                de arriba dejaba de existir apenas bajabas tres filas de la
+                lista, que es justo cuando se te ocurre agregar algo. */}
+            <BotonFlotante onClick={() => { resetForm(); setDialogOpen(true) }} className="sm:hidden">
+              Nuevo ítem
+            </BotonFlotante>
             {/* Dos columnas.
                 Antes era una columna de siete campos que no entraba en la
                 pantalla: había que scrollear adentro del modal para llegar al
@@ -420,7 +490,7 @@ export default function InventarioManager({ user }: { user: any }) {
                   <Label htmlFor="inv-name" className="text-xs">Nombre *</Label>
                   <Input
                     id="inv-name"
-                    className="h-9"
+                    className="h-11 sm:h-9"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     onBlur={() => touch("name")}
@@ -430,11 +500,11 @@ export default function InventarioManager({ user }: { user: any }) {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 [&>*]:min-w-0">
                   <div className="space-y-1.5">
                     <Label htmlFor="inv-category" className="text-xs">Categoría *</Label>
                     <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                      <SelectTrigger id="inv-category" className="h-9">
+                      <SelectTrigger id="inv-category" className="h-11 sm:h-9">
                         <SelectValue placeholder="Elegir…" />
                       </SelectTrigger>
                       <SelectContent>
@@ -465,13 +535,13 @@ export default function InventarioManager({ user }: { user: any }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
                   <div className="space-y-1.5">
                     <Label htmlFor="inv-quantity" className="text-xs">Cantidad *</Label>
                     <Input
                       id="inv-quantity"
                       type="number"
-                      className="h-9"
+                      className="h-11 sm:h-9"
                       value={formData.quantity}
                       onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                       onBlur={() => touch("quantity")}
@@ -485,7 +555,7 @@ export default function InventarioManager({ user }: { user: any }) {
                     <Input
                       id="inv-minimum_stock"
                       type="number"
-                      className="h-9"
+                      className="h-11 sm:h-9"
                       value={formData.minimum_stock}
                       onChange={(e) => setFormData({ ...formData, minimum_stock: e.target.value })}
                       onBlur={() => touch("minimum_stock")}
@@ -499,7 +569,7 @@ export default function InventarioManager({ user }: { user: any }) {
                 {/* Los dos precios juntos, que es justo donde se confunden: el
                     de la izquierda es cuanto vale, el de la derecha a cuanto se
                     vende. Uno al lado del otro la diferencia se ve sola. */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
                   <div className="space-y-1.5">
                     <Label htmlFor="price" className="text-xs">
                       Valor unitario ($) <span className="text-gray-400">(opcional)</span>
@@ -508,7 +578,7 @@ export default function InventarioManager({ user }: { user: any }) {
                       id="price"
                       type="number"
                       step="0.01"
-                      className="h-9"
+                      className="h-11 sm:h-9"
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                       placeholder="0"
@@ -521,7 +591,7 @@ export default function InventarioManager({ user }: { user: any }) {
                         id="inv-sale_price"
                         type="number"
                         step="0.01"
-                        className="h-9"
+                        className="h-11 sm:h-9"
                         value={formData.sale_price}
                         onChange={(e) => setFormData({ ...formData, sale_price: e.target.value })}
                         onBlur={() => touch("sale_price")}
@@ -537,7 +607,7 @@ export default function InventarioManager({ user }: { user: any }) {
                 <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2">
                   <input
                     type="checkbox"
-                    className="h-4 w-4 shrink-0 accent-[#4dd0e1]"
+                    className="h-4 w-4 shrink-0 accent-[#5ec0cf]"
                     checked={formData.for_sale}
                     onChange={(e) => setFormData({ ...formData, for_sale: e.target.checked })}
                   />
@@ -547,7 +617,7 @@ export default function InventarioManager({ user }: { user: any }) {
 
                 <DialogFooter className="gap-2 sm:gap-0">
                   <p className="mr-auto self-center text-xs text-gray-400">* Obligatorios</p>
-                  <Button type="submit" className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+                  <Button type="submit" className="bg-alma-fuerte hover:bg-alma-oscuro text-white">
                     {editingItem ? "Guardar" : "Agregar"}
                   </Button>
                 </DialogFooter>
@@ -570,11 +640,12 @@ export default function InventarioManager({ user }: { user: any }) {
           Lo único que se sacó es la opción "stock normal": nadie filtra por
           lo que está bien. Todo el resto sigue estando. */}
       <div className="space-y-2">
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <div className="relative flex-1">
+        <div className="flex gap-2 sm:flex-col sm:gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row">
+          <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input
-              placeholder="Buscar por nombre, categoría o voluntario…"
+              placeholder="Buscar ítem…"
               value={filters.searchTerm}
               onChange={(e) => setFilters({ ...filters, searchTerm: e.target.value })}
               className="pl-9"
@@ -593,7 +664,7 @@ export default function InventarioManager({ user }: { user: any }) {
           {/* Categoría queda como desplegable y no como chips: son siete, y
               siete chips ocupan más que la lista que vienen a filtrar. */}
           <Select value={filters.category} onValueChange={(value) => setFilters({ ...filters, category: value })}>
-            <SelectTrigger className="sm:w-52"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="hidden sm:flex sm:w-52"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas las categorías</SelectItem>
               {categories.map((cat) => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
@@ -601,7 +672,7 @@ export default function InventarioManager({ user }: { user: any }) {
           </Select>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="hidden sm:flex flex-wrap items-center gap-1.5">
           <FilterChip active={filters.stockStatus === "bajo-stock"} onClick={() => alternar("stockStatus", "bajo-stock")}>
             Bajo stock
           </FilterChip>
@@ -619,8 +690,8 @@ export default function InventarioManager({ user }: { user: any }) {
             onClick={() => setShowFilters(!showFilters)}
             className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition ${
               showFilters || hayFiltrosAvanzados
-                ? "border-[#4dd0e1] text-[#00838f]"
-                : "border-gray-300 text-gray-500 hover:border-[#4dd0e1] hover:text-[#00838f]"
+                ? "border-[#5ec0cf] text-alma-fuerte"
+                : "border-gray-300 text-gray-500 hover:border-[#5ec0cf] hover:text-alma-fuerte"
             }`}
           >
             <SlidersHorizontal className="h-3 w-3" />
@@ -628,7 +699,7 @@ export default function InventarioManager({ user }: { user: any }) {
             {/* Sin este punto, un filtro avanzado activo quedaba escondido y
                 la lista parecía estar mintiendo. */}
             {hayFiltrosAvanzados && !showFilters && (
-              <span className="h-1.5 w-1.5 rounded-full bg-[#4dd0e1]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#5ec0cf]" />
             )}
           </button>
 
@@ -638,6 +709,88 @@ export default function InventarioManager({ user }: { user: any }) {
             </button>
           )}
         </div>
+
+        {/*
+          Teléfono: todo lo de arriba, adentro de una hoja.
+
+          Suelto eran cinco renglones de controles —buscador, categoría,
+          cuatro chips, "Más filtros"— antes del primer ítem. Y "Más filtros"
+          era un desplegable adentro de la pantalla: abrirlo empujaba la lista
+          todavía más abajo. Adentro de la hoja entra todo junto y la lista
+          empieza arriba.
+        */}
+        <HojaFiltros
+          className="sm:hidden"
+          cantidad={filtrosPuestos.length}
+          resultados={filteredInventory.length}
+          onLimpiar={clearFilters}
+          sustantivo="ítems"
+        >
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Categoría</p>
+            <Select value={filters.category} onValueChange={(v) => setFilters({ ...filters, category: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas las categorías</SelectItem>
+                {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Cortes rápidos</p>
+            <div className="flex flex-wrap gap-2">
+              <FilterChip active={filters.stockStatus === "bajo-stock"} onClick={() => alternar("stockStatus", "bajo-stock")}>Bajo stock</FilterChip>
+              <FilterChip active={filters.forSale === "en-venta"} onClick={() => alternar("forSale", "en-venta")}>En venta</FilterChip>
+              <FilterChip active={filters.forSale === "no-en-venta"} onClick={() => alternar("forSale", "no-en-venta")}>Sin vender</FilterChip>
+              <FilterChip active={filters.volunteer === "sin-asignar"} onClick={() => alternar("volunteer", "sin-asignar")}>Sin asignar</FilterChip>
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Voluntario</p>
+            <Select value={filters.volunteer} onValueChange={(v) => setFilters({ ...filters, volunteer: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los voluntarios</SelectItem>
+                <SelectItem value="sin-asignar">Sin asignar</SelectItem>
+                {volunteers.map((v) => <SelectItem key={v.id} value={v.id.toString()}>{v.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Precio</p>
+            <div className="grid grid-cols-2 gap-2 [&>*]:min-w-0">
+              <Input type="number" placeholder="Desde" value={filters.priceMin} onChange={(e) => setFilters({ ...filters, priceMin: e.target.value })} />
+              <Input type="number" placeholder="Hasta" value={filters.priceMax} onChange={(e) => setFilters({ ...filters, priceMax: e.target.value })} />
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Ordenar por</p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { field: "name", label: "Nombre" },
+                { field: "category", label: "Categoría" },
+                { field: "quantity", label: "Cantidad" },
+                { field: "price", label: "Precio" },
+              ].map(({ field, label }) => (
+                <FilterChip key={field} active={sortField === field} onClick={() => handleSort(field)}>
+                  {label}
+                </FilterChip>
+              ))}
+            </div>
+          </div>
+        </HojaFiltros>
+        </div>
+
+        <ChipsActivos
+          className="sm:hidden"
+          total={filteredInventory.length}
+          sustantivo="ítems"
+          filtros={filtrosPuestos}
+        />
 
         {showFilters && (
           <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
@@ -682,8 +835,8 @@ export default function InventarioManager({ user }: { user: any }) {
                     onClick={() => handleSort(field)}
                     className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition ${
                       sortField === field
-                        ? "border-[#4dd0e1] bg-[#4dd0e1] text-white"
-                        : "border-gray-300 text-gray-500 hover:border-[#4dd0e1] hover:text-[#00838f]"
+                        ? "border-alma-fuerte bg-alma-fuerte text-white"
+                        : "border-gray-300 text-gray-500 hover:border-alma-fuerte hover:text-alma-fuerte"
                     }`}
                   >
                     {label}
@@ -699,7 +852,10 @@ export default function InventarioManager({ user }: { user: any }) {
           </div>
         )}
 
-        <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
+        {/* En el teléfono este contador lo dice `ChipsActivos`, unas líneas
+            más arriba: dejarlo visible mostraba "20 ítems" dos veces seguidas,
+            y una tercera en la tarjeta de resumen. */}
+        <span className="hidden sm:inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
           {filteredInventory.length} {filteredInventory.length === 1 ? "ítem" : "ítems"}
           {hasActiveFilters && (
             <span className="text-xs font-normal text-gray-400">de {inventory.length}</span>
@@ -711,10 +867,14 @@ export default function InventarioManager({ user }: { user: any }) {
       <div className="grid gap-3 grid-cols-3 sm:gap-4 px-4 sm:px-0">
         <Card>
           <CardHeader className="pb-1 pt-3 px-3 sm:px-4 sm:pt-4 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">Items</CardTitle>
+            {/* "Total" y no "Items": el número es `inventory.length`, el
+                inventario entero, mientras que el de arriba es el que quedó
+                después de filtrar. Con la lista sin filtrar coinciden, y con
+                el mismo rótulo parecían el mismo dato repetido. */}
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">Total</CardTitle>
           </CardHeader>
           <CardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
-            <div className="text-xl sm:text-2xl font-bold text-[#4dd0e1]">{inventory.length}</div>
+            <div className="text-xl sm:text-2xl font-bold text-[#5ec0cf]">{inventory.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -739,15 +899,15 @@ export default function InventarioManager({ user }: { user: any }) {
               setFilters({ ...filters, forSale: filters.forSale === "en-venta" ? "todos" : "en-venta" })
             }
           }}
-          className={`cursor-pointer transition-colors hover:border-[#4dd0e1] ${
-            filters.forSale === "en-venta" ? "border-[#4dd0e1] bg-[#4dd0e1]/5" : ""
+          className={`cursor-pointer transition-colors hover:border-[#5ec0cf] ${
+            filters.forSale === "en-venta" ? "border-[#5ec0cf] bg-[#5ec0cf]/5" : ""
           }`}
         >
           <CardHeader className="pb-1 pt-3 px-3 sm:px-4 sm:pt-4 sm:pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">En venta</CardTitle>
           </CardHeader>
           <CardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
-            <div className="text-xl sm:text-2xl font-bold text-[#00838f]">{enVentaItems.length}</div>
+            <div className="text-xl sm:text-2xl font-bold text-alma-fuerte">{enVentaItems.length}</div>
           </CardContent>
         </Card>
       </div>
@@ -833,7 +993,7 @@ export default function InventarioManager({ user }: { user: any }) {
                       Cant: {item.quantity}
                     </span>
                     {item.for_sale && (
-                      <span className="rounded bg-[#4dd0e1]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[#00838f]">
+                      <span className="rounded bg-[#5ec0cf]/15 px-1.5 py-0.5 text-[10px] font-semibold text-alma-fuerte">
                         En venta{item.sale_price ? ` · $${Number(item.sale_price).toLocaleString("es-AR")}` : ""}
                       </span>
                     )}
@@ -894,7 +1054,7 @@ export default function InventarioManager({ user }: { user: any }) {
                           </div>
                           <div className="flex justify-between text-xs">
                             <span className="text-gray-400">Valor total</span>
-                            <span className="font-semibold text-[#4dd0e1]">
+                            <span className="font-semibold text-[#5ec0cf]">
                               ${(item.quantity * item.price).toLocaleString()}
                             </span>
                           </div>
@@ -906,7 +1066,7 @@ export default function InventarioManager({ user }: { user: any }) {
 
                       <div className="flex justify-between text-xs">
                         <span className="text-gray-400">Voluntario</span>
-                        <span className={`font-medium text-right ${item.assigned_volunteer_id ? "text-[#4dd0e1]" : "text-gray-400"}`}>
+                        <span className={`font-medium text-right ${item.assigned_volunteer_id ? "text-[#5ec0cf]" : "text-gray-400"}`}>
                           {volunteerName}
                         </span>
                       </div>
@@ -964,7 +1124,7 @@ export default function InventarioManager({ user }: { user: any }) {
                 <tr
                   key={item.id}
                   onClick={() => openEditDialog(item)}
-                  className={`cursor-pointer border-b border-gray-100 transition-colors last:border-0 hover:bg-[#4dd0e1]/[0.06] ${
+                  className={`cursor-pointer border-b border-gray-100 transition-colors last:border-0 hover:bg-[#5ec0cf]/[0.06] ${
                     lowStock ? "bg-red-50/40" : ""
                   }`}
                 >
@@ -988,7 +1148,7 @@ export default function InventarioManager({ user }: { user: any }) {
                           {/* Se ve sin filtrar: para saber qué se vende no
                               hace falta ir a buscarlo. */}
                           {item.for_sale && (
-                            <span className="shrink-0 rounded-full bg-[#4dd0e1]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[#00838f]">
+                            <span className="shrink-0 rounded-full bg-[#5ec0cf]/15 px-1.5 py-0.5 text-[10px] font-semibold text-alma-fuerte">
                               En venta{item.sale_price ? ` · $${Number(item.sale_price).toLocaleString("es-AR")}` : ""}
                             </span>
                           )}
@@ -1021,7 +1181,7 @@ export default function InventarioManager({ user }: { user: any }) {
                       existiendo y sigue decidiendo quién está en rojo y quién
                       sale en las alertas: lo que se fue es la columna, no el
                       dato. El detalle de cada ítem se ve al editarlo. */}
-                  <td className={`px-4 py-2 ${item.assigned_volunteer_id ? "text-[#00838f]" : "text-gray-400"}`}>
+                  <td className={`px-4 py-2 ${item.assigned_volunteer_id ? "text-alma-fuerte" : "text-gray-400"}`}>
                     {getVolunteerName(item.assigned_volunteer_id)}
                   </td>
                   <td className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>

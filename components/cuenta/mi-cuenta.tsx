@@ -44,8 +44,8 @@ export default function MiCuenta({
 
   const subTabClass =
     "flex items-center gap-2 transition-all duration-200 active:scale-95 " +
-    "data-[state=inactive]:hover:bg-[#4dd0e1]/10 data-[state=inactive]:hover:text-[#00838f] " +
-    "data-[state=active]:bg-[#4dd0e1]/15 data-[state=active]:text-[#4dd0e1] data-[state=active]:font-semibold"
+    "data-[state=inactive]:hover:bg-[#5ec0cf]/10 data-[state=inactive]:hover:text-alma-fuerte " +
+    "data-[state=active]:bg-[#5ec0cf]/15 data-[state=active]:text-[#5ec0cf] data-[state=active]:font-semibold"
 
   return (
     <Tabs value={tab} onValueChange={setTab} className="space-y-4">

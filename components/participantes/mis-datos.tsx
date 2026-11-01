@@ -79,7 +79,7 @@ export default function MisDatos({ user }: { user: any }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16 text-[#4dd0e1]">
+      <div className="flex items-center justify-center py-16 text-[#5ec0cf]">
         Cargando tus datos...
       </div>
     )
@@ -87,7 +87,8 @@ export default function MisDatos({ user }: { user: any }) {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div>
+      {/* Oculto en el teléfono: el encabezado de sección, arriba, ya dice esto mismo. */}
+      <div className="hidden sm:block">
         <h2 className="text-2xl font-bold text-gray-800">Mis datos</h2>
         <p className="text-gray-500 text-sm mt-1">
           Todos los campos son opcionales. Completá solo lo que quieras compartir.
@@ -97,7 +98,7 @@ export default function MisDatos({ user }: { user: any }) {
       {/* Aviso suave si todavía no cargó su nombre: es lo que el equipo usa
           para reconocerlo. Guiado por datos, no molesta si ya lo tiene. */}
       {!profile.name?.trim() && (
-        <div className="flex items-start gap-2 rounded-lg border border-[#4dd0e1]/40 bg-[#e0f7fa]/50 p-3 text-sm text-[#00838f]">
+        <div className="flex items-start gap-2 rounded-lg border border-[#5ec0cf]/40 bg-[#dff2f5]/50 p-3 text-sm text-alma-fuerte">
           <User className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
             Cargá al menos tu <strong>nombre y apellido</strong> para que el equipo de ALMA te reconozca.
@@ -106,9 +107,9 @@ export default function MisDatos({ user }: { user: any }) {
       )}
 
       {/* Datos personales */}
-      <Card className="border-[#b2ebf2]">
+      <Card className="border-[#bbe5eb]">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-[#0099b0] text-base">
+          <CardTitle className="flex items-center gap-2 text-[#04799a] text-base">
             <User className="w-4 h-4" />
             Datos personales
           </CardTitle>
@@ -123,7 +124,7 @@ export default function MisDatos({ user }: { user: any }) {
                 value={profile.name ?? ""}
                 onChange={e => handleChange("name", e.target.value)}
                 placeholder="Tu nombre"
-                className="border-[#b2ebf2] focus:border-[#0099b0]"
+                className="border-[#bbe5eb] focus:border-[#04799a]"
               />
             </div>
             <div className="space-y-1.5">
@@ -133,7 +134,7 @@ export default function MisDatos({ user }: { user: any }) {
                 value={profile.last_name ?? ""}
                 onChange={e => handleChange("last_name", e.target.value)}
                 placeholder="Tu apellido"
-                className="border-[#b2ebf2] focus:border-[#0099b0]"
+                className="border-[#bbe5eb] focus:border-[#04799a]"
               />
             </div>
           </div>
@@ -145,7 +146,7 @@ export default function MisDatos({ user }: { user: any }) {
                 type="date"
                 value={profile.birth_date ?? ""}
                 onChange={e => handleChange("birth_date", e.target.value)}
-                className="border-[#b2ebf2] focus:border-[#0099b0]"
+                className="border-[#bbe5eb] focus:border-[#04799a]"
               />
             </div>
             <div className="space-y-1.5">
@@ -156,7 +157,7 @@ export default function MisDatos({ user }: { user: any }) {
                 value={profile.phone ?? ""}
                 onChange={e => handleChange("phone", e.target.value)}
                 placeholder="Ej: 341-555-0100"
-                className="border-[#b2ebf2] focus:border-[#0099b0]"
+                className="border-[#bbe5eb] focus:border-[#04799a]"
               />
             </div>
           </div>
@@ -164,9 +165,9 @@ export default function MisDatos({ user }: { user: any }) {
       </Card>
 
       {/* Ubicación */}
-      <Card className="border-[#b2ebf2]">
+      <Card className="border-[#bbe5eb]">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-[#0099b0] text-base">
+          <CardTitle className="flex items-center gap-2 text-[#04799a] text-base">
             <MapPin className="w-4 h-4" />
             Ubicación
           </CardTitle>
@@ -180,7 +181,7 @@ export default function MisDatos({ user }: { user: any }) {
                 value={profile.city ?? ""}
                 onChange={e => handleChange("city", e.target.value)}
                 placeholder="Rosario"
-                className="border-[#b2ebf2] focus:border-[#0099b0]"
+                className="border-[#bbe5eb] focus:border-[#04799a]"
               />
             </div>
             <div className="space-y-1.5">
@@ -190,7 +191,7 @@ export default function MisDatos({ user }: { user: any }) {
                 value={profile.province ?? ""}
                 onChange={e => handleChange("province", e.target.value)}
                 placeholder="Santa Fe"
-                className="border-[#b2ebf2] focus:border-[#0099b0]"
+                className="border-[#bbe5eb] focus:border-[#04799a]"
               />
             </div>
           </div>
@@ -201,16 +202,16 @@ export default function MisDatos({ user }: { user: any }) {
               value={profile.address ?? ""}
               onChange={e => handleChange("address", e.target.value)}
               placeholder="Calle, número, piso/depto (opcional)"
-              className="border-[#b2ebf2] focus:border-[#0099b0]"
+              className="border-[#bbe5eb] focus:border-[#04799a]"
             />
           </div>
         </CardContent>
       </Card>
 
       {/* Contacto de emergencia */}
-      <Card className="border-[#b2ebf2]">
+      <Card className="border-[#bbe5eb]">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-[#0099b0] text-base">
+          <CardTitle className="flex items-center gap-2 text-[#04799a] text-base">
             <Phone className="w-4 h-4" />
             Contacto de emergencia
           </CardTitle>
@@ -225,7 +226,7 @@ export default function MisDatos({ user }: { user: any }) {
                 value={profile.emergency_contact_name ?? ""}
                 onChange={e => handleChange("emergency_contact_name", e.target.value)}
                 placeholder="Nombre del contacto"
-                className="border-[#b2ebf2] focus:border-[#0099b0]"
+                className="border-[#bbe5eb] focus:border-[#04799a]"
               />
             </div>
             <div className="space-y-1.5">
@@ -236,7 +237,7 @@ export default function MisDatos({ user }: { user: any }) {
                 value={profile.emergency_contact_phone ?? ""}
                 onChange={e => handleChange("emergency_contact_phone", e.target.value)}
                 placeholder="341-555-0100"
-                className="border-[#b2ebf2] focus:border-[#0099b0]"
+                className="border-[#bbe5eb] focus:border-[#04799a]"
               />
             </div>
           </div>
@@ -244,9 +245,9 @@ export default function MisDatos({ user }: { user: any }) {
       </Card>
 
       {/* Observaciones y notificaciones */}
-      <Card className="border-[#b2ebf2]">
+      <Card className="border-[#bbe5eb]">
         <CardHeader className="pb-3">
-          <CardTitle className="text-[#0099b0] text-base">Preferencias y notas</CardTitle>
+          <CardTitle className="text-[#04799a] text-base">Preferencias y notas</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
@@ -256,7 +257,7 @@ export default function MisDatos({ user }: { user: any }) {
               value={profile.notes ?? ""}
               onChange={e => handleChange("notes", e.target.value)}
               placeholder="Alergias, condiciones de salud relevantes u otras notas..."
-              className="border-[#b2ebf2] focus:border-[#0099b0] min-h-[80px]"
+              className="border-[#bbe5eb] focus:border-[#04799a] min-h-[80px]"
             />
           </div>
           {/*
@@ -286,7 +287,7 @@ export default function MisDatos({ user }: { user: any }) {
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="bg-[#0099b0] hover:bg-[#007a8e] text-white px-8 py-2.5 rounded-lg shadow-md"
+          className="bg-[#04799a] hover:bg-[#03617b] text-white px-8 py-2.5 rounded-lg shadow-md"
         >
           <Save className="w-4 h-4 mr-2" />
           {saving ? "Guardando..." : "Guardar mis datos"}

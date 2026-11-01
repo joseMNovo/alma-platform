@@ -5,8 +5,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import FilterChip from "@/components/ui/filter-chip"
+import { HojaFiltros, ChipsActivos } from "@/components/ui/filtros-mobile"
 import Ayuda from "@/components/ui/ayuda"
 import { toast } from "@/hooks/use-toast"
 import type { ParticipanteGestion } from "@/lib/data-manager"
@@ -92,20 +93,47 @@ export default function ParticipantesManager({ user }: { user: any }) {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <UserCircle className="h-6 w-6 text-[#4dd0e1]" />
+        {/* Oculto en el teléfono: el encabezado de sección, arriba, ya dice
+            "Participantes". Al irse, el buscador se queda con toda la fila. */}
+        <div className="hidden sm:flex items-center gap-2">
+          <UserCircle className="h-6 w-6 text-[#5ec0cf]" />
           <h2 className="text-xl font-bold text-gray-900">Participantes</h2>
         </div>
-        <div className="relative min-w-[220px] flex-1 sm:max-w-xs">
+        <div className="relative min-w-0 flex-1 sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input className="pl-9" placeholder="Buscar por nombre o email…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input className="h-11 pl-9 sm:h-10" placeholder="Buscar participante…" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
+
+        <HojaFiltros
+          className="sm:hidden"
+          cantidad={[verifiedOnly, enrolledOnly, trainingOnly].filter(Boolean).length}
+          resultados={filtered.length}
+          onLimpiar={() => { setVerifiedOnly(false); setEnrolledOnly(false); setTrainingOnly(false) }}
+          sustantivo="participantes"
+        >
+          <div className="flex flex-wrap gap-2">
+            <FilterChip active={verifiedOnly} onClick={() => setVerifiedOnly((v) => !v)}>Verificado</FilterChip>
+            <FilterChip active={enrolledOnly} onClick={() => setEnrolledOnly((v) => !v)}>Con inscripción</FilterChip>
+            <FilterChip active={trainingOnly} onClick={() => setTrainingOnly((v) => !v)}>Capacitación</FilterChip>
+          </div>
+        </HojaFiltros>
       </div>
 
-      {/* Filtros rápidos, a la vista. Eran tres pastillas escondidas atrás de
-          un acordeón: el click de más no ahorraba nada. */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
+      {/* Teléfono: el conteo y los filtros puestos, en una línea. */}
+      <ChipsActivos
+        className="sm:hidden"
+        total={filtered.length}
+        sustantivo="participantes"
+        filtros={[
+          ...(verifiedOnly ? [{ id: "ver", texto: "Verificado", quitar: () => setVerifiedOnly(false) }] : []),
+          ...(enrolledOnly ? [{ id: "ins", texto: "Con inscripción", quitar: () => setEnrolledOnly(false) }] : []),
+          ...(trainingOnly ? [{ id: "cap", texto: "Capacitación", quitar: () => setTrainingOnly(false) }] : []),
+        ]}
+      />
+
+      {/* Escritorio: las tres pastillas a la vista, que hay lugar. */}
+      <div className="hidden flex-wrap items-center gap-1.5 sm:flex">
+        <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
           {filtered.length} {filtered.length === 1 ? "participante" : "participantes"}
           {hayFiltros && <span className="text-xs font-normal text-gray-400">de {rows.length}</span>}
         </span>
@@ -126,7 +154,7 @@ export default function ParticipantesManager({ user }: { user: any }) {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-[#4dd0e1]" /></div>
+        <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-[#5ec0cf]" /></div>
       ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-2 py-14 text-center text-gray-500">
@@ -190,7 +218,7 @@ export default function ParticipantesManager({ user }: { user: any }) {
                 </thead>
                 <tbody>
                   {filtered.map((r) => (
-                    <tr key={r.person_id} className="border-b border-gray-100 last:border-0 even:bg-gray-50/50 hover:bg-[#4dd0e1]/5 transition-colors">
+                    <tr key={r.person_id} className="border-b border-gray-100 last:border-0 even:bg-gray-50/50 hover:bg-[#5ec0cf]/5 transition-colors">
                       <td className="px-3 py-1.5 font-medium text-gray-800">
                         {`${r.name ?? ""} ${r.last_name ?? ""}`.trim() || "Sin nombre"}
                       </td>
@@ -199,7 +227,7 @@ export default function ParticipantesManager({ user }: { user: any }) {
                       <td className="px-3 py-1.5 text-center text-gray-600">{r.enrollments_count || "—"}</td>
                       <td className="px-3 py-1.5 text-center">
                         {r.has_training_access
-                          ? <GraduationCap className="mx-auto h-4 w-4 text-[#4dd0e1]" aria-label="Con capacitación" />
+                          ? <GraduationCap className="mx-auto h-4 w-4 text-[#5ec0cf]" aria-label="Con capacitación" />
                           : <span className="text-gray-300">—</span>}
                       </td>
                       <td className="px-3 py-1.5 text-gray-500">{fmtDate(r.created_at)}</td>
@@ -250,7 +278,7 @@ function VerifiedBadge({ verified }: { verified: boolean }) {
 function MetaChip({ icon: Icon, label, highlight }: { icon?: any; label: string; highlight?: boolean }) {
   return (
     <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${
-      highlight ? "border-[#4dd0e1]/40 bg-[#4dd0e1]/10 text-[#00838f]" : "border-gray-200 text-gray-500"
+      highlight ? "border-[#5ec0cf]/40 bg-[#5ec0cf]/10 text-alma-fuerte" : "border-gray-200 text-gray-500"
     }`}>
       {Icon && <Icon className="h-3 w-3" />}
       {label}
@@ -289,7 +317,7 @@ function PinDialog({ participante, onClose }: { participante: ParticipanteGestio
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <KeyRound className="h-5 w-5 text-[#4dd0e1]" /> Fijar PIN
+            <KeyRound className="h-5 w-5 text-[#5ec0cf]" /> Fijar PIN
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
@@ -317,13 +345,13 @@ function PinDialog({ participante, onClose }: { participante: ParticipanteGestio
             />
           </div>
         </div>
-        <div className="flex justify-end gap-2 pt-2">
+        <DialogFooter className="pt-2">
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={save} disabled={saving} className="bg-[#4dd0e1] hover:bg-[#3bb8c9]">
+          <Button onClick={save} disabled={saving} className="bg-alma-fuerte hover:bg-alma-oscuro">
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Guardar
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

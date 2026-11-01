@@ -93,8 +93,8 @@ export default function BarraModulos({
           onClick={() => { setAbierto(null); navegar("/inicio") }}
           className={`${itemBase} ${
             esInicio
-              ? "border-[#4dd0e1] font-semibold text-[#00838f]"
-              : "border-transparent text-gray-600 hover:text-[#00838f]"
+              ? "border-[#5ec0cf] font-semibold text-alma-fuerte"
+              : "border-transparent text-gray-600 hover:text-alma-fuerte"
           }`}
         >
           <Home className="h-4 w-4 shrink-0" />
@@ -122,8 +122,8 @@ export default function BarraModulos({
                 aria-expanded={desplegable ? estaAbierto : undefined}
                 className={`${itemBase} ${
                   activo
-                    ? "border-[#4dd0e1] font-semibold text-[#00838f]"
-                    : "border-transparent text-gray-600 hover:text-[#00838f]"
+                    ? "border-[#5ec0cf] font-semibold text-alma-fuerte"
+                    : "border-transparent text-gray-600 hover:text-alma-fuerte"
                 }`}
               >
                 <Icono className="h-4 w-4 shrink-0" />
@@ -156,7 +156,7 @@ export default function BarraModulos({
                         // primera pantalla: el atajo tiene que llevar a algo
                         // que se pueda ver.
                         onClick={() => { setAbierto(null); navegar(rutaDe(hijo)) }}
-                        className="flex items-center gap-2 px-3 py-2 text-left text-[13px] text-gray-700 transition-colors hover:bg-[#4dd0e1]/10 hover:text-[#00838f]"
+                        className="flex items-center gap-2 px-3 py-2 text-left text-[13px] text-gray-700 transition-colors hover:bg-[#5ec0cf]/10 hover:text-alma-fuerte"
                       >
                         <HijoIcono className="h-4 w-4 shrink-0 text-gray-400" />
                         <span className="truncate">{hijo.label}</span>

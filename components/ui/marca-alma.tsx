@@ -44,7 +44,7 @@ export default function MarcaAlma({
       <span className={`text-[0.68em] ${invertida ? "text-white" : "text-gray-900"}`}>
         Comunidad
       </span>
-      <span className="text-[#4dd0e1]">alma</span>
+      <span className="text-[#5ec0cf]">alma</span>
     </span>
   )
 }

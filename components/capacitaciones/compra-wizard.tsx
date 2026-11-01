@@ -141,7 +141,7 @@ export default function CompraWizard({
                   i < indiceActual
                     ? "bg-green-100 text-green-700"
                     : i === indiceActual
-                      ? "bg-[#4dd0e1] text-white"
+                      ? "bg-alma-fuerte text-white"
                       : "bg-gray-100 text-gray-400"
                 }`}
               >
@@ -160,7 +160,7 @@ export default function CompraWizard({
         <div className="space-y-3">
           <Button
             onClick={() => setPaso("datos")}
-            className="w-full bg-[#4dd0e1] py-6 text-base hover:bg-[#3bb8c9]"
+            className="w-full bg-alma-fuerte py-6 text-base hover:bg-alma-oscuro"
           >
             Crear mi cuenta y comprar
           </Button>
@@ -218,7 +218,7 @@ export default function CompraWizard({
             <Button
               onClick={crearCuenta}
               disabled={enviando}
-              className="flex-1 bg-[#4dd0e1] hover:bg-[#3bb8c9]"
+              className="flex-1 bg-alma-fuerte hover:bg-alma-oscuro"
             >
               {enviando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Continuar
@@ -232,14 +232,14 @@ export default function CompraWizard({
           {/* El mail queda como pendiente, no como traba. Se avisa acá para
               que la persona sepa que tiene que confirmarlo en algún momento. */}
           {!verificado && email && (
-            <div className="flex items-start gap-2 rounded-lg border border-[#4dd0e1]/40 bg-[#4dd0e1]/5 p-3 text-sm">
-              <Mail className="mt-0.5 h-4 w-4 shrink-0 text-[#00838f]" />
+            <div className="flex items-start gap-2 rounded-lg border border-[#5ec0cf]/40 bg-[#5ec0cf]/5 p-3 text-sm">
+              <Mail className="mt-0.5 h-4 w-4 shrink-0 text-alma-fuerte" />
               <div className="min-w-0">
                 <p className="text-gray-800">
                   Te mandamos un correo a <strong className="break-all">{email}</strong> para
                   confirmar tu dirección. Podés hacerlo cuando quieras: no hace falta para pagar.
                 </p>
-                <button onClick={reenviar} className="mt-1 font-medium text-[#00838f] hover:underline">
+                <button onClick={reenviar} className="mt-1 font-medium text-alma-fuerte hover:underline">
                   No me llegó, reenviar
                 </button>
               </div>
@@ -256,7 +256,7 @@ export default function CompraWizard({
                 href={paymentUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#4dd0e1] px-4 py-4 text-base font-semibold text-white transition hover:bg-[#3bb8c9]"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-alma-fuerte px-4 py-4 text-base font-semibold text-white transition hover:bg-alma-oscuro"
               >
                 <CreditCard className="h-5 w-5" />
                 Pagar {Number(precio) > 0 ? `$${Number(precio).toLocaleString("es-AR")}` : ""}{" "}
@@ -273,7 +273,7 @@ export default function CompraWizard({
               Escribinos a{" "}
               <a
                 href={`mailto:${config.contact.email}`}
-                className="font-medium text-[#00838f] underline-offset-2 hover:underline"
+                className="font-medium text-alma-fuerte underline-offset-2 hover:underline"
               >
                 {config.contact.email}
               </a>{" "}
@@ -283,7 +283,7 @@ export default function CompraWizard({
 
           <Link
             href="/"
-            className="block text-center text-sm font-medium text-[#00838f] underline-offset-2 hover:underline"
+            className="block text-center text-sm font-medium text-alma-fuerte underline-offset-2 hover:underline"
           >
             Ingresar a la plataforma
           </Link>

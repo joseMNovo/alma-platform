@@ -77,7 +77,7 @@ export default async function CapacitacionPublicaPage({ params }: { params: Prom
             </Link>
             <Link
               href="/"
-              className="text-sm font-medium text-[#4dd0e1] underline-offset-2 hover:underline"
+              className="text-sm font-medium text-[#5ec0cf] underline-offset-2 hover:underline"
             >
               Ingresar
             </Link>
@@ -135,7 +135,7 @@ export default async function CapacitacionPublicaPage({ params }: { params: Prom
                       key={item.id}
                       className="flex items-start gap-3 rounded-lg border border-gray-200 bg-white p-3"
                     >
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#4dd0e1]/10 text-xs font-bold text-[#4dd0e1]">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#5ec0cf]/10 text-xs font-bold text-[#5ec0cf]">
                         {index + 1}
                       </span>
                       <span className="min-w-0 flex-1">
@@ -189,7 +189,7 @@ export default async function CapacitacionPublicaPage({ params }: { params: Prom
                   paga sin cuenta, esa transferencia no tiene dueño. */}
               <Link
                 href={`/academia/${slug}/comprar`}
-                className="mt-5 block rounded-lg bg-[#4dd0e1] px-4 py-3 text-center font-semibold text-white transition hover:bg-[#3bb8c9]"
+                className="mt-5 block rounded-lg bg-alma-fuerte px-4 py-3 text-center font-semibold text-white transition hover:bg-alma-oscuro"
               >
                 {training.payment_url ? "Quiero comprarla" : "Quiero inscribirme"}
               </Link>
@@ -213,7 +213,7 @@ export default async function CapacitacionPublicaPage({ params }: { params: Prom
               ¿Dudas?{" "}
               <a
                 href={`mailto:${config.contact.email}`}
-                className="font-medium text-[#00838f] underline-offset-2 hover:underline"
+                className="font-medium text-alma-fuerte underline-offset-2 hover:underline"
               >
                 {config.contact.email}
               </a>

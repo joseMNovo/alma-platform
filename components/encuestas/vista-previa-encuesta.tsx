@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import type { SurveyQuestion } from "@/lib/data-manager"
 import { ClipboardList, Eye } from "lucide-react"
@@ -37,7 +37,7 @@ export default function VistaPreviaEncuesta({
       <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Eye className="h-5 w-5 text-[#4dd0e1]" />
+            <Eye className="h-5 w-5 text-[#5ec0cf]" />
             Así la ve la persona
           </DialogTitle>
         </DialogHeader>
@@ -57,7 +57,7 @@ export default function VistaPreviaEncuesta({
           {preguntas.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-10 text-center text-gray-400">
               <ClipboardList className="h-8 w-8 text-gray-300" />
-              <p className="text-sm">Todavía no tiene preguntas.</p>
+              <p className="text-sm">Sin preguntas.</p>
             </div>
           ) : (
             preguntas.map((pregunta, index) => {
@@ -85,7 +85,7 @@ export default function VistaPreviaEncuesta({
                               type={varias ? "checkbox" : "radio"}
                               checked={false}
                               readOnly
-                              className="h-4 w-4 shrink-0 accent-[#4dd0e1]"
+                              className="h-4 w-4 shrink-0 accent-[#5ec0cf]"
                             />
                             {opcion.text}
                           </label>
@@ -98,9 +98,9 @@ export default function VistaPreviaEncuesta({
           )}
         </div>
 
-        <div className="flex justify-end pt-3">
+        <DialogFooter className="pt-3">
           <Button variant="outline" onClick={onClose}>Cerrar</Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

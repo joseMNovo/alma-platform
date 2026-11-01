@@ -76,7 +76,7 @@ export default async function AcademiaPage() {
           </div>
           <Link
             href="/"
-            className="text-sm font-medium text-[#4dd0e1] underline-offset-2 hover:underline"
+            className="text-sm font-medium text-[#5ec0cf] underline-offset-2 hover:underline"
           >
             Ingresar
           </Link>
@@ -88,7 +88,7 @@ export default async function AcademiaPage() {
           {/* Mismo encabezado que el módulo de adentro (ícono + título), para
               que quien entra desde afuera reconozca la pantalla al loguearse. */}
           <h1 className="flex items-center gap-2 text-3xl font-bold text-gray-900 sm:text-4xl">
-            <GraduationCap className="h-8 w-8 shrink-0 text-[#4dd0e1]" />
+            <GraduationCap className="h-8 w-8 shrink-0 text-[#5ec0cf]" />
             Academia ALMA
           </h1>
           <p className="mt-3 text-gray-600">
@@ -113,10 +113,10 @@ export default async function AcademiaPage() {
           <CatalogoCapacitaciones trainings={trainings} hrefBase="/academia" />
         )}
 
-        <div className="mt-12 rounded-xl bg-[#4dd0e1]/5 p-6 text-center">
+        <div className="mt-12 rounded-xl bg-[#5ec0cf]/5 p-6 text-center">
           <p className="font-medium text-gray-800">¿Ya te inscribiste?</p>
           <p className="mt-1 text-sm text-gray-600">
-            <Link href="/" className="text-[#4dd0e1] underline-offset-2 hover:underline">
+            <Link href="/" className="text-[#5ec0cf] underline-offset-2 hover:underline">
               Ingresá a la plataforma
             </Link>{" "}
             y vas a encontrar tus capacitaciones en la pestaña Academia.

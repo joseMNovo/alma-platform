@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { SegmentadoSimple } from "@/components/ui/pestanas-mobile"
 import { Input } from "@/components/ui/input"
 import { ClipboardList, Loader2, Search, Calendar, Users, Activity } from "lucide-react"
 import type { EventEnrollment } from "@/lib/data-manager"
@@ -23,7 +24,7 @@ const TYPE_META: Record<string, { label: string; icon: any; cls: string }> = {
 
 // Receta de tabla fina + zebra (solo desktop). Minimalista.
 const TH = "px-3 py-2 font-medium text-[11px] uppercase tracking-wide text-gray-500"
-const TR = "border-b border-gray-100 last:border-0 even:bg-gray-50/50 hover:bg-[#4dd0e1]/5 transition-colors"
+const TR = "border-b border-gray-100 last:border-0 even:bg-gray-50/50 hover:bg-[#5ec0cf]/5 transition-colors"
 const TD = "px-3 py-1.5"
 
 export default function InscripcionesManager() {
@@ -56,33 +57,28 @@ export default function InscripcionesManager() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <ClipboardList className="h-5 w-5 text-[#4dd0e1]" />
+          <ClipboardList className="h-5 w-5 text-[#5ec0cf]" />
           <h3 className="text-lg font-semibold text-gray-900">Inscripciones por encuentro</h3>
           <Badge variant="secondary">{filtered.length}</Badge>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex rounded-lg border border-gray-200 p-0.5">
-            {(["all", "taller", "grupo", "actividad"] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setType(t)}
-                className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-                  type === t ? "bg-[#4dd0e1] text-white" : "text-gray-500 hover:text-gray-800"
-                }`}
-              >
-                {t === "all" ? "Todos" : TYPE_META[t].label}
-              </button>
-            ))}
-          </div>
+          <SegmentadoSimple
+            valor={type}
+            onCambio={setType}
+            opciones={(["all", "taller", "grupo", "actividad"] as const).map((t) => ({
+              valor: t,
+              etiqueta: t === "all" ? "Todos" : TYPE_META[t].label,
+            }))}
+          />
           <div className="relative min-w-[180px]">
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input className="h-9 pl-8" placeholder="Persona o evento…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input className="h-11 sm:h-9 pl-8" placeholder="Persona o evento…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-14"><Loader2 className="h-7 w-7 animate-spin text-[#4dd0e1]" /></div>
+        <div className="flex justify-center py-14"><Loader2 className="h-7 w-7 animate-spin text-[#5ec0cf]" /></div>
       ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-2 py-12 text-center text-gray-500">

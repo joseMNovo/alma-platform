@@ -81,7 +81,7 @@ export default function RecordatoriosEvento({ eventId }: { eventId: number }) {
   return (
     <div className="space-y-2 rounded-lg border border-gray-200 bg-white p-3">
       <p className="flex items-center gap-2 text-sm font-medium text-gray-800">
-        <Bell className="h-4 w-4 text-[#4dd0e1]" />
+        <Bell className="h-4 w-4 text-[#5ec0cf]" />
         Avisame de este evento
         {guardando && <Loader2 className="h-3 w-3 animate-spin text-gray-400" />}
         {!guardando && offsets.length > 0 && (
@@ -99,7 +99,7 @@ export default function RecordatoriosEvento({ eventId }: { eventId: number }) {
               type="checkbox"
               checked={offsets.includes(opcion.offset)}
               onChange={() => alternar(opcion.offset)}
-              className="h-4 w-4 rounded border-gray-300 accent-[#4dd0e1]"
+              className="h-4 w-4 rounded border-gray-300 accent-[#5ec0cf]"
             />
             {opcion.label}
           </label>

@@ -293,7 +293,7 @@ export default function CertificadosAdmin() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-8 w-8 animate-spin text-[#4dd0e1]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#5ec0cf]" />
       </div>
     )
   }
@@ -310,7 +310,8 @@ export default function CertificadosAdmin() {
 
   return (
     <div className="space-y-4">
-      <div>
+      {/* Oculto en el teléfono: el encabezado de sección, arriba, ya dice esto mismo. */}
+      <div className="hidden sm:block">
         <h3 className="font-semibold text-gray-900">Redacción</h3>
         <p className="text-sm text-gray-500">
           El texto del PDF que reciben quienes terminan una capacitación.
@@ -382,7 +383,7 @@ export default function CertificadosAdmin() {
               <Button
                 onClick={save}
                 disabled={saving || !hayCambios || raros.length > 0}
-                className="bg-[#4dd0e1] hover:bg-[#3bb8c9]"
+                className="bg-alma-fuerte hover:bg-alma-oscuro"
               >
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Guardar
@@ -402,7 +403,7 @@ export default function CertificadosAdmin() {
                   type="checkbox"
                   checked={sinDni}
                   onChange={(e) => setSinDni(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 accent-[#4dd0e1]"
+                  className="h-4 w-4 rounded border-gray-300 accent-[#5ec0cf]"
                 />
                 Probar con alguien que no tiene el DNI cargado
               </label>
@@ -446,7 +447,7 @@ export default function CertificadosAdmin() {
                 <a
                   href={previewUrl}
                   download="certificado-muestra.pdf"
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-[#00838f] underline-offset-2 hover:underline"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-alma-fuerte underline-offset-2 hover:underline"
                 >
                   <Download className="h-4 w-4" />
                   Descargar este ejemplo

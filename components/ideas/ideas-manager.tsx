@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import BotonFlotante from "@/components/ui/boton-flotante"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 import {
   Plus, Edit, Trash2, Lightbulb, Tag, Calendar, MessageSquare,
@@ -314,29 +315,43 @@ export default function IdeasManager({ user }: { user: any }) {
   return (
     <div className="space-y-6">
 
-      {/* Bloque institucional */}
-      <div className="rounded-2xl bg-gradient-to-br from-[#e0f7fa] to-[#b2ebf2] border border-[#4dd0e1]/40 px-6 py-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 shadow-sm">
+      {/* Banner institucional — solo escritorio.
+
+          En el teléfono repetía, palabra por palabra, el título que ya está
+          arriba en el encabezado de sección, y le sumaba dos renglones de
+          explicación. Entre eso y el botón, el primer dato real aparecía
+          recién al segundo scroll. */}
+      <div className="hidden sm:flex rounded-2xl bg-gradient-to-br from-[#dff2f5] to-[#bbe5eb] border border-[#5ec0cf]/40 px-6 py-5 flex-col sm:flex-row items-start sm:items-center gap-4 shadow-sm">
         <div className="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-xl bg-white/70 shadow-sm">
-          <Lightbulb className="w-6 h-6 text-[#4dd0e1]" />
+          <Lightbulb className="w-6 h-6 text-[#5ec0cf]" />
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-semibold text-[#00838f] leading-tight">
+          <h2 className="text-lg font-semibold text-alma-fuerte leading-tight">
             Compartí tus ideas y sugerencias para ALMA
           </h2>
-          <p className="text-sm text-[#00838f]/80 mt-0.5">
+          <p className="text-sm text-alma-fuerte/80 mt-0.5">
             Cada idea suma. Contanos qué pensás para mejorar nuestra comunidad, la plataforma y el trabajo del equipo.
           </p>
         </div>
         {can(user, "ideas:create") && (
           <Button
             onClick={handleOpenCreate}
-            className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white flex-shrink-0 w-full sm:w-auto"
+            className="hidden sm:inline-flex bg-alma-fuerte hover:bg-alma-oscuro text-white flex-shrink-0 w-full sm:w-auto"
           >
             <Plus className="w-4 h-4 mr-2" />
             Nueva idea
           </Button>
         )}
       </div>
+
+      {/* En el teléfono el botón de crear flota abajo a la derecha: el de
+          arriba dejaba de existir apenas bajabas tres ideas, que es justo
+          cuando se te ocurre una propia. */}
+      {can(user, "ideas:create") && (
+        <BotonFlotante onClick={handleOpenCreate} className="sm:hidden">
+          Nueva idea
+        </BotonFlotante>
+      )}
 
       {/* Filtro por categoría */}
       {existingCategories.length > 0 && (
@@ -346,8 +361,8 @@ export default function IdeasManager({ user }: { user: any }) {
             onClick={() => setCategoryFilter("all")}
             className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${
               categoryFilter === "all"
-                ? "bg-[#4dd0e1] text-white border-[#4dd0e1]"
-                : "bg-white text-gray-600 border-gray-200 hover:border-[#4dd0e1] hover:text-[#4dd0e1]"
+                ? "bg-alma-fuerte text-white border-alma-fuerte"
+                : "bg-white text-gray-600 border-gray-200 hover:border-alma-fuerte hover:text-[#5ec0cf]"
             }`}
           >
             Todas
@@ -358,8 +373,8 @@ export default function IdeasManager({ user }: { user: any }) {
               onClick={() => setCategoryFilter(cat)}
               className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${
                 categoryFilter === cat
-                  ? "bg-[#4dd0e1] text-white border-[#4dd0e1]"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-[#4dd0e1] hover:text-[#4dd0e1]"
+                  ? "bg-alma-fuerte text-white border-alma-fuerte"
+                  : "bg-white text-gray-600 border-gray-200 hover:border-alma-fuerte hover:text-[#5ec0cf]"
               }`}
             >
               {cat}
@@ -378,7 +393,7 @@ export default function IdeasManager({ user }: { user: any }) {
             <p className="text-gray-500">
               {categoryFilter !== "all"
                 ? `No hay ideas en la categoría "${categoryFilter}"`
-                : "Todavía no hay ideas. ¡Sé el primero en compartir una!"}
+                : "Todavía no hay ideas registradas."}
             </p>
           </CardContent>
         </Card>
@@ -388,11 +403,11 @@ export default function IdeasManager({ user }: { user: any }) {
             <Card
               key={idea.id}
               onClick={() => handleOpenViewModal(idea)}
-              className="flex flex-col h-full border border-gray-200 hover:shadow-md hover:border-[#4dd0e1]/50 transition-all duration-200 cursor-pointer group"
+              className="flex flex-col h-full border border-gray-200 hover:shadow-md hover:border-[#5ec0cf]/50 transition-all duration-200 cursor-pointer group"
             >
               <CardHeader className="pb-2 pt-4 px-4">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-gray-900 leading-tight text-base flex-1 min-w-0 break-words group-hover:text-[#00838f] transition-colors">
+                  <h3 className="font-semibold text-gray-900 leading-tight text-base flex-1 min-w-0 break-words group-hover:text-alma-fuerte transition-colors">
                     {idea.title}
                   </h3>
                   {/* Acciones en hover — stopPropagation para no abrir el modal */}
@@ -402,7 +417,7 @@ export default function IdeasManager({ user }: { user: any }) {
                         variant="ghost"
                         size="sm"
                         onClick={e => handleOpenEdit(idea, e)}
-                        className="h-7 w-7 p-0 text-gray-400 hover:text-[#4dd0e1] hover:bg-[#4dd0e1]/10"
+                        className="h-7 w-7 p-0 text-gray-400 hover:text-[#5ec0cf] hover:bg-[#5ec0cf]/10"
                         title="Editar idea"
                       >
                         <Edit className="w-3.5 h-3.5" />
@@ -459,7 +474,7 @@ export default function IdeasManager({ user }: { user: any }) {
                     </div>
                   </div>
                   {/* "Ver idea" hint */}
-                  <div className="flex items-center gap-1 text-xs text-[#4dd0e1] font-medium mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1 text-xs text-[#5ec0cf] font-medium mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     <ChevronRight className="w-3 h-3" />
                     <span>Ver idea completa</span>
                   </div>
@@ -513,7 +528,7 @@ export default function IdeasManager({ user }: { user: any }) {
                 {/* Sección de comentarios */}
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-[#4dd0e1]" />
+                    <MessageSquare className="w-4 h-4 text-[#5ec0cf]" />
                     Comentarios
                     {comments.length > 0 && (
                       <span className="ml-1 text-xs font-normal text-gray-400">({comments.length})</span>
@@ -524,7 +539,7 @@ export default function IdeasManager({ user }: { user: any }) {
                     <p className="text-sm text-gray-400 py-2">Cargando comentarios...</p>
                   ) : comments.length === 0 ? (
                     <p className="text-sm text-gray-400 py-2">
-                      Todavía no hay comentarios. ¡Sé el primero en comentar!
+                      Sin comentarios.
                     </p>
                   ) : (
                     <div className="space-y-3">
@@ -534,8 +549,8 @@ export default function IdeasManager({ user }: { user: any }) {
                           className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100"
                         >
                           {/* Avatar inicial */}
-                          <div className="flex-shrink-0 w-7 h-7 rounded-full bg-[#4dd0e1]/20 flex items-center justify-center">
-                            <span className="text-xs font-semibold text-[#00838f]">
+                          <div className="flex-shrink-0 w-7 h-7 rounded-full bg-[#5ec0cf]/20 flex items-center justify-center">
+                            <span className="text-xs font-semibold text-alma-fuerte">
                               {(comment.volunteer_name || "?").charAt(0).toUpperCase()}
                             </span>
                           </div>
@@ -582,7 +597,7 @@ export default function IdeasManager({ user }: { user: any }) {
                           variant="outline"
                           size="sm"
                           onClick={e => { handleOpenEdit(viewingIdea, e); setViewModalOpen(false) }}
-                          className="gap-1.5 text-gray-600 hover:text-[#4dd0e1] hover:border-[#4dd0e1]"
+                          className="gap-1.5 text-gray-600 hover:text-[#5ec0cf] hover:border-[#5ec0cf]"
                         >
                           <Edit className="w-3.5 h-3.5" />
                           Editar
@@ -626,7 +641,7 @@ export default function IdeasManager({ user }: { user: any }) {
                         <Button
                           onClick={handleSendComment}
                           disabled={!commentText.trim() || sendingComment}
-                          className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white h-[60px] px-3 flex-shrink-0"
+                          className="bg-alma-fuerte hover:bg-alma-oscuro text-white h-[60px] px-3 flex-shrink-0"
                           title="Enviar comentario"
                         >
                           <Send className="w-4 h-4" />
@@ -683,7 +698,7 @@ export default function IdeasManager({ user }: { user: any }) {
               {formData.category ? (
                 /* Chip activo — solo se puede tener una */
                 <div className="mt-1 flex flex-wrap gap-1.5">
-                  <span className="inline-flex items-center gap-1 bg-[#e0f7fa] text-[#00838f] text-xs font-medium px-2.5 py-1 rounded-full">
+                  <span className="inline-flex items-center gap-1 bg-[#dff2f5] text-alma-fuerte text-xs font-medium px-2.5 py-1 rounded-full">
                     {formData.category}
                     <button
                       type="button"
@@ -722,7 +737,7 @@ export default function IdeasManager({ user }: { user: any }) {
                           key={cat}
                           type="button"
                           onClick={() => setFormData(prev => ({ ...prev, category: cat }))}
-                          className="text-xs px-2 py-0.5 rounded-full border border-gray-200 text-gray-500 hover:border-[#4dd0e1] hover:text-[#4dd0e1] transition-colors"
+                          className="text-xs px-2 py-0.5 rounded-full border border-gray-200 text-gray-500 hover:border-[#5ec0cf] hover:text-[#5ec0cf] transition-colors"
                         >
                           {cat}
                         </button>
@@ -733,18 +748,18 @@ export default function IdeasManager({ user }: { user: any }) {
               )}
             </div>
             <p className="text-xs text-gray-400 pt-1">* Campos obligatorios</p>
-            <div className="flex justify-end gap-2 pt-2">
+            <DialogFooter className="pt-2">
               <Button variant="outline" onClick={resetForm} disabled={submitting}>
                 Cancelar
               </Button>
               <Button
                 onClick={handleSubmitIdea}
                 disabled={submitting}
-                className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white"
+                className="bg-alma-fuerte hover:bg-alma-oscuro text-white"
               >
                 {submitting ? "Guardando..." : editingIdea ? "Guardar cambios" : "Crear idea"}
               </Button>
-            </div>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>

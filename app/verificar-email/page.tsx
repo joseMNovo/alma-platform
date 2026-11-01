@@ -85,7 +85,7 @@ function VerificarEmailContent() {
 
   return (
     <div
-      className="min-h-screen flex flex-col bg-gradient-to-br from-[#4dd0e1] to-[#9a8bc2] relative overflow-hidden"
+      className="min-h-screen flex flex-col bg-gradient-to-br from-[#5ec0cf] to-[#9a8bc2] relative overflow-hidden"
       style={{ fontFamily: "'Gotham Rounded', system-ui, sans-serif" }}
     >
       <div className="flex-1 flex items-center justify-center px-6 py-12">
@@ -94,10 +94,10 @@ function VerificarEmailContent() {
             <img src="/images/alma_blanco.png" alt="ALMA" className="h-16 object-contain mx-auto" />
           </div>
 
-          <div className="bg-white rounded-2xl shadow-2xl p-8 text-center border border-[#b2ebf2] space-y-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 text-center border border-[#bbe5eb] space-y-4">
             {status === "loading" && (
               <>
-                <Loader2 className="w-12 h-12 text-[#4dd0e1] mx-auto animate-spin" />
+                <Loader2 className="w-12 h-12 text-[#5ec0cf] mx-auto animate-spin" />
                 <h2 className="text-xl font-bold text-gray-800">Verificando tu email...</h2>
               </>
             )}
@@ -111,7 +111,7 @@ function VerificarEmailContent() {
                 </p>
                 <a
                   href="/registro"
-                  className="block w-full bg-[#0099b0] hover:bg-[#007a8e] text-white font-semibold py-2.5 px-4 rounded-lg transition-all text-center shadow-md"
+                  className="block w-full bg-[#04799a] hover:bg-[#03617b] text-white font-semibold py-2.5 px-4 rounded-lg transition-all text-center shadow-md"
                 >
                   Volver al registro
                 </a>
@@ -125,7 +125,7 @@ function VerificarEmailContent() {
                 <p className="text-gray-600 text-sm">
                   Tu cuenta está pendiente de aprobación por el equipo de ALMA. Cuando sea aprobada, vas a recibir un email de confirmación para poder ingresar.
                 </p>
-                <div className="bg-[#f5f3ff] rounded-xl p-4 text-[#7c3aed] text-sm">
+                <div className="bg-[#e8e6fb] rounded-xl p-4 text-[#5f5088] text-sm">
                   Mientras tanto, podés cerrar esta pestaña.
                 </div>
               </>
@@ -133,7 +133,7 @@ function VerificarEmailContent() {
 
             {status === "success" && type === "participant" && (
               <>
-                <CheckCircle2 className="w-12 h-12 text-[#0099b0] mx-auto" />
+                <CheckCircle2 className="w-12 h-12 text-[#04799a] mx-auto" />
                 <h2 className="text-xl font-bold text-gray-800">¡Email verificado!</h2>
                 <p className="text-gray-600 text-sm">
                   {destino
@@ -143,11 +143,11 @@ function VerificarEmailContent() {
                 {!destino && (
                   <>
                     <p className="text-gray-400 text-sm">
-                      Redirigiendo en <span className="font-bold text-[#0099b0]">{countdown}</span> segundos...
+                      Redirigiendo en <span className="font-bold text-[#04799a]">{countdown}</span> segundos...
                     </p>
                     <a
                       href="/academia"
-                      className="block w-full bg-[#0099b0] hover:bg-[#007a8e] text-white font-semibold py-2.5 px-4 rounded-lg transition-all text-center shadow-md"
+                      className="block w-full bg-[#04799a] hover:bg-[#03617b] text-white font-semibold py-2.5 px-4 rounded-lg transition-all text-center shadow-md"
                     >
                       Ver las capacitaciones
                     </a>

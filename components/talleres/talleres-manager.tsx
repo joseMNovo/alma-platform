@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import BotonFlotante from "@/components/ui/boton-flotante"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -175,7 +176,8 @@ export default function TalleresManager({ user }: { user: any }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-        <div>
+        {/* Oculto en el teléfono: el encabezado de sección, arriba, ya dice esto mismo. */}
+        <div className="hidden sm:block">
           <h2 className="text-xl md:text-2xl font-bold text-gray-900">Talleres</h2>
           <p className="text-gray-600">Gestiona los tipos de talleres de estimulación cognitiva</p>
         </div>
@@ -183,12 +185,20 @@ export default function TalleresManager({ user }: { user: any }) {
         <div className="flex flex-col sm:flex-row gap-2">
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             {can(user, "talleres:create") && (
+              <>
               <DialogTrigger asChild>
-                <Button onClick={resetForm} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+                <Button onClick={resetForm} className="hidden sm:inline-flex bg-alma-fuerte hover:bg-alma-oscuro text-white">
                   <Plus className="w-4 h-4 mr-2" />
                   Nuevo Taller
                 </Button>
               </DialogTrigger>
+            {/* En el teléfono el botón de crear flota abajo a la derecha: el
+                de arriba dejaba de existir apenas bajabas tres filas de la
+                lista, que es justo cuando se te ocurre agregar algo. */}
+              <BotonFlotante onClick={() => { resetForm(); setDialogOpen(true) }} className="sm:hidden">
+                Nuevo taller
+              </BotonFlotante>
+              </>
             )}
             <DialogContent className="max-w-md">
               <DialogHeader>
@@ -236,7 +246,7 @@ export default function TalleresManager({ user }: { user: any }) {
                   <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                     Cancelar
                   </Button>
-                  <Button type="submit" className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+                  <Button type="submit" className="bg-alma-fuerte hover:bg-alma-oscuro text-white">
                     {editingWorkshop ? "Actualizar" : "Crear"} Taller
                   </Button>
                 </DialogFooter>
@@ -258,7 +268,7 @@ export default function TalleresManager({ user }: { user: any }) {
         </div>
         <Button
           variant="outline"
-          className={`flex items-center gap-2 ${filterActive ? "bg-[#4dd0e1] text-white" : ""}`}
+          className={`flex items-center gap-2 ${filterActive ? "bg-alma-fuerte text-white" : ""}`}
           onClick={() => setFilterActive(!filterActive)}
         >
           <Filter size={18} />
@@ -275,12 +285,12 @@ export default function TalleresManager({ user }: { user: any }) {
             >
               <div className="flex justify-between items-start">
                 <div>
-                  <CardTitle className="text-lg hover:text-[#4dd0e1] transition-colors">{workshop.name}</CardTitle>
+                  <CardTitle className="text-lg hover:text-[#5ec0cf] transition-colors">{workshop.name}</CardTitle>
                   <CardDescription className="mt-2 line-clamp-2">{workshop.description}</CardDescription>
                 </div>
                 <Badge
                   variant={workshop.status === "activo" ? "default" : "secondary"}
-                  className={workshop.status === "activo" ? "bg-[#4dd0e1]" : ""}
+                  className={workshop.status === "activo" ? "bg-alma-fuerte" : ""}
                 >
                   {workshop.status}
                 </Badge>
@@ -337,7 +347,7 @@ export default function TalleresManager({ user }: { user: any }) {
               {viewingWorkshop?.name}
               <Badge
                 variant={viewingWorkshop?.status === "activo" ? "default" : "secondary"}
-                className={viewingWorkshop?.status === "activo" ? "bg-[#4dd0e1]" : ""}
+                className={viewingWorkshop?.status === "activo" ? "bg-alma-fuerte" : ""}
               >
                 {viewingWorkshop?.status}
               </Badge>
@@ -349,7 +359,7 @@ export default function TalleresManager({ user }: { user: any }) {
                 {viewingWorkshop.description || <span className="italic text-gray-400">Sin descripción.</span>}
               </p>
               {isParticipant && (
-                <p className="rounded-lg bg-[#e0f7fa]/50 p-3 text-sm text-gray-600">
+                <p className="rounded-lg bg-[#dff2f5]/50 p-3 text-sm text-gray-600">
                   Para anotarte, entrá a la <strong>Agenda</strong> y elegí el encuentro al que querés ir.
                 </p>
               )}

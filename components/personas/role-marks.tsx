@@ -24,7 +24,7 @@ export function VolunteerFlower({ active, size = "w-4 h-4" }: { active?: boolean
 export function ParticipantMark({ active, size = "w-4 h-4" }: { active?: boolean; size?: string }) {
   return (
     <UserCircle
-      className={`${size} ${active ? "text-[#0097a7]" : "text-gray-300"}`}
+      className={`${size} ${active ? "text-[#04799a]" : "text-gray-300"}`}
       aria-label={active ? "Participante" : "No participante"}
     />
   )

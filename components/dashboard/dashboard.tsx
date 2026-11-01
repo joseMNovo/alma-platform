@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, type ReactNode } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { PestanasFila, clasePestana, Segmentado, claseSegmento } from "@/components/ui/pestanas-mobile"
 import {
   LogOut,
   Users,
@@ -58,10 +59,11 @@ import { getModule, resolveRoute, MODULES, type ModuleDef } from "@/lib/modules"
 import NotificationBell from "@/components/notifications/notification-bell"
 import BroadcastManager from "@/components/notifications/broadcast-manager"
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import MenuLateral from "@/components/dashboard/menu-lateral"
 import PuestoVentaManager from "@/components/stand/puesto-venta-manager"
 import IngresosTablero from "@/components/ingresos/ingresos-tablero"
 import InicioLauncher from "@/components/inicio/inicio-launcher"
@@ -74,7 +76,7 @@ import ProfileCompletionModal from "@/components/auth/profile-completion-modal"
 import ParticipanteOnboarding from "@/components/participantes/onboarding-modal"
 import AnnouncementModal from "@/components/announcements/announcement-modal"
 import ImpersonationBanner from "@/components/admin/impersonation-banner"
-import { Menu, Bell } from "lucide-react"
+import { Menu, Bell, Eye } from "lucide-react"
 
 // Human-readable role labels (UI)
 const ROLE_LABELS: Record<string, string> = {
@@ -89,8 +91,64 @@ const ROLE_LABELS: Record<string, string> = {
 const SESSION_GAP_MS = 30 * 60 * 1000
 
 
-export default function Dashboard({ user, onLogout }: { user: any, onLogout: () => void }) {
+export default function Dashboard({ user: usuarioReal, onLogout }: { user: any, onLogout: () => void }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  /**
+   * ── Mirar la app como la ve otro rol ────────────────────────────────
+   *
+   * Un admin ve veintisiete módulos; un voluntario ve doce y un participante
+   * cuatro. Hasta ahora, la única forma de saber qué ve el otro era crearse
+   * una cuenta falsa, o preguntarle por teléfono. Eso hacía que los cambios
+   * de permisos se probaran poco y mal.
+   *
+   * ── OJO: esto es una vista previa, no una prueba de seguridad ───────
+   *
+   * Lo único que cambia es qué DIBUJA la pantalla. La sesión sigue siendo la
+   * de admin, y la API autoriza por la sesión, no por esto. O sea: sirve para
+   * ver cómo se ve, y NO sirve para verificar que un voluntario no pueda
+   * hacer algo. Para eso hay que entrar con una cuenta de voluntario.
+   *
+   * Vive en `sessionStorage` y no en el estado: cada navegación desmonta este
+   * componente, así que en memoria se perdería al primer click. Al cerrar la
+   * pestaña se borra solo, que es el comportamiento que se quiere: nadie se
+   * queda atrapado mirando media app sin saber por qué.
+   */
+  const [vistaComo, setVistaComo] = useState<"voluntario" | "participante" | null>(null)
+
+  useEffect(() => {
+    try {
+      const v = sessionStorage.getItem("alma_vista_como")
+      if (v === "voluntario" || v === "participante") setVistaComo(v)
+    } catch {
+      // Navegación privada. Arrancar en admin es el estado correcto.
+    }
+  }, [])
+
+  const cambiarVista = (v: "voluntario" | "participante" | null) => {
+    setVistaComo(v)
+    try {
+      if (v) sessionStorage.setItem("alma_vista_como", v)
+      else sessionStorage.removeItem("alma_vista_como")
+    } catch {
+      // Ver arriba.
+    }
+  }
+
+  const esAdminReal = usuarioReal?.role === "admin"
+
+  /**
+   * El usuario que ve el resto de la app. Es el real, salvo que un admin haya
+   * pedido mirar con otros ojos. Se llama `user` para que las doscientas
+   * referencias de abajo no tengan que enterarse de que esto existe.
+   */
+  const user = useMemo(
+    () =>
+      esAdminReal && vistaComo
+        ? { ...usuarioReal, role: vistaComo, is_admin: false }
+        : usuarioReal,
+    [usuarioReal, esAdminReal, vistaComo]
+  )
   /** Con qué pestaña abrir Mi perfil. El menú del avatar entra directo a
    *  Notificaciones, que si no queda escondida adentro del módulo. */
   const [seccionPerfil, setSeccionPerfil] = useState("perfil")
@@ -254,7 +312,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
     activeGrandchild?.key ?? (activeChild ? visibleChildren(user, activeChild, grants)[0]?.key : undefined)
 
   const activeModule = activeGrandchild ?? activeChild ?? activeGroup
-  const ActiveIcon = activeModule.icon
   const activeTabLabel = activeModule.label
 
   /**
@@ -320,10 +377,22 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
     { key: "pagos", cantidad: avisosPago, que: avisosPago === 1 ? "pago" : "pagos", grupo: "Plata", route: "/pagos-capacitaciones" },
   ]
 
-  const subTabTriggerClass = "flex items-center space-x-2 transition-all duration-200 active:scale-95 data-[state=inactive]:hover:bg-[#4dd0e1]/10 data-[state=inactive]:hover:text-[#00838f] data-[state=active]:bg-[#4dd0e1]/15 data-[state=active]:text-[#4dd0e1] data-[state=active]:font-semibold"
-  // Tercer nivel: más liviano que el segundo a propósito. Si los tres niveles
-  // pesaran igual, tres barras apiladas no dejarían ver cuál manda.
-  const subSubTabTriggerClass = "flex items-center gap-1.5 rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-[13px] text-gray-500 transition-colors data-[state=inactive]:hover:text-[#00838f] data-[state=active]:border-[#4dd0e1] data-[state=active]:font-semibold data-[state=active]:text-[#00838f]"
+  /**
+   * ¿El módulo abierto tiene sub-pestañas?
+   *
+   * Lo usa el encabezado del teléfono para saber si le toca a ÉL cerrar el
+   * bloque blanco con una línea, o si abajo viene la fila de pestañas y la
+   * línea la pone ella. Sin esto quedaban dos líneas pegadas, o ninguna.
+   */
+  const hayPestanas = useMemo(() => {
+    const mod = [...navModules, ...menuModules].find((m) => m.key === activeTab)
+    return mod ? visibleChildren(user, mod, grants).length > 1 : false
+  }, [activeTab, navModules, menuModules, user, grants])
+
+  /** A qué altura se clava la fila de pestañas: debajo del encabezado (64px),
+   *  más la franja de suplantación si está puesta (36px). */
+  const altoDeArriba = user.impersonating ? "top-[100px]" : "top-16"
+
 
   // Tabs que muestran la flor arriba a la derecha; el resto la muestran abajo a la derecha
   const flowerTop = ['voluntarios', 'espacios', 'pendientes', 'ideas'].includes(activeTab)
@@ -342,7 +411,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       {/* Progress bar de navegación */}
       <div className={`fixed top-0 left-0 right-0 z-50 h-[2px] overflow-hidden transition-opacity duration-300 ${navigating ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div
-          className="h-full bg-[#4dd0e1]"
+          className="h-full bg-[#5ec0cf]"
           style={{ animation: navigating ? 'alma-nav-bar 1.4s ease-in-out infinite' : 'none', width: '45%' }}
         />
       </div>
@@ -356,6 +425,23 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       {/* Todo el contenido por encima de la flor */}
       <div className={`relative z-[1] flex min-h-screen flex-col ${user.impersonating ? "pt-9" : ""}`}>
       {user.impersonating && <ImpersonationBanner user={user} />}
+
+      {/* Imposible de pasar por alto, y con la salida al lado: si no, se
+          olvida puesto y después "me desapareció la mitad del menú". */}
+      {vistaComo && (
+        <div className="sticky top-0 z-40 flex items-center gap-2 bg-alma-lavanda px-4 py-2 text-white">
+          <Eye className="h-4 w-4 shrink-0" />
+          <span className="min-w-0 flex-1 truncate text-sm">
+            Estás viendo la app como <strong>{vistaComo}</strong>
+          </span>
+          <button
+            onClick={() => cambiarVista(null)}
+            className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold active:bg-white/30"
+          >
+            Volver a admin
+          </button>
+        </div>
+      )}
       {/* Header */}
       <header className={`bg-white shadow-sm border-b border-gray-200 sticky z-10 ${user.impersonating ? "top-9" : "top-0"}`}>
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -398,11 +484,11 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                     {/* Iniciales. Es lo que distingue de un vistazo "estoy yo"
                         de "quedó la sesión de otro" en una compu compartida,
                         que en ALMA son casi todas. */}
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4dd0e1]/15 text-xs font-bold uppercase text-[#00838f]">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#5ec0cf]/15 text-xs font-bold uppercase text-alma-fuerte">
                       {`${user.name?.[0] ?? ""}${user.last_name?.[0] ?? ""}` || "?"}
                     </span>
                     <span>
-                      <span className="block text-sm font-medium text-[#4dd0e1]">{user.name}</span>
+                      <span className="block text-sm font-medium text-[#5ec0cf]">{user.name}</span>
                       <span className="block text-xs text-gray-600">{roleLabel}</span>
                     </span>
                     <ChevronDown className="h-4 w-4 shrink-0 text-gray-400" />
@@ -425,6 +511,31 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                       </DropdownMenuItem>
                     )
                   })}
+
+                  {/* Solo para admin: el resto no tiene otros ojos con los
+                      que mirar. */}
+                  {esAdminReal && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                        Ver la app como
+                      </DropdownMenuLabel>
+                      {(["voluntario", "participante"] as const).map((rol) => (
+                        <DropdownMenuItem
+                          key={rol}
+                          onClick={() => cambiarVista(vistaComo === rol ? null : rol)}
+                          className="cursor-pointer gap-2 capitalize"
+                        >
+                          <Eye className={`h-4 w-4 ${vistaComo === rol ? "text-alma-fuerte" : "text-gray-500"}`} />
+                          {rol}
+                          {vistaComo === rol && (
+                            <span className="ml-auto text-xs font-semibold text-alma-fuerte">viendo</span>
+                          )}
+                        </DropdownMenuItem>
+                      ))}
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
 
                   {/* Notificaciones no es un módulo: es una pestaña adentro de
                       Mi perfil, donde se prende y apaga el aviso al celular.
@@ -449,12 +560,28 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                   href={GAMES_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hidden sm:inline-flex items-center justify-center gap-2 rounded-md border border-[#4dd0e1] text-[#4dd0e1] bg-transparent hover:bg-[#4dd0e1] hover:text-white transition-colors text-sm font-medium h-9 px-3 no-underline"
+                  className="hidden sm:inline-flex items-center justify-center gap-2 rounded-md border border-[#5ec0cf] text-[#5ec0cf] bg-transparent hover:bg-alma-fuerte hover:text-white transition-colors text-sm font-medium h-9 px-3 no-underline"
                 >
                   <Gamepad2 className="w-4 h-4 shrink-0" />
                   Juegos
                 </a>
               )}
+
+              {/* La misma búsqueda de secciones que en escritorio, de lupa.
+                  Va ANTES del menú y no adentro: el diálogo se dibuja fijo a
+                  la pantalla, y adentro de la hoja —que entra deslizándose,
+                  o sea con `transform`— quedaría clavado a la hoja en vez de
+                  a la ventana. Y además obligaría a abrir el menú para poder
+                  buscar, que es justo el camino que la búsqueda evita. */}
+              <BuscadorModulos
+                user={user}
+                grants={grants}
+                modules={navModules}
+                navegar={navigateTo}
+                rutaDe={(mod) => rutaVisible(mod, mod.route)}
+                soloIcono
+                className="md:hidden"
+              />
 
               {/* Mobile menu button */}
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -464,166 +591,31 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                     <span className="sr-only">Abrir menú</span>
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-[80%] sm:w-[350px] p-0">
+                <SheetContent
+                  side="left"
+                  className="flex w-[86%] max-w-[340px] flex-col gap-0 p-0 sm:w-[340px]"
+                >
                   <SheetTitle className="sr-only">Menú de navegación</SheetTitle>
-                  <div className="flex flex-col h-full">
-                    <div className="p-4 border-b">
-                      <div className="flex items-center space-x-3">
-                        <MarcaAlma className="text-2xl" />
-                      </div>
-                      <div className="mt-4 flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-[#4dd0e1]">{user.name}</p>
-                          <p className="text-xs text-gray-600">{roleLabel}</p>
-                        </div>
-                        <Button
-                          onClick={onLogout}
-                          variant="outline"
-                          size="sm"
-                          className="border-[#4dd0e1] text-[#4dd0e1] bg-transparent"
-                        >
-                          <LogOut className="w-4 h-4 mr-2" />
-                          Salir
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="flex-1 overflow-auto p-4">
-                      <nav className="space-y-2">
-                        {navModules.map((mod) => {
-                          const Icon = mod.icon
-                          const isActive = activeTab === mod.key
-                          // Solo los hijos que este usuario puede ver: si no,
-                          // un voluntario vería "Aprobaciones", que es de admin.
-                          const kids = visibleChildren(user, mod, grants)
-
-                          // Con varios hijos, el grupo es una sección con título.
-                          // Con uno solo (Agenda) cae abajo y se dibuja plano:
-                          // un encabezado con un único ítem debajo es ruido.
-                          if (kids.length > 1) {
-                            return (
-                              <div key={mod.key}>
-                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1">
-                                  {mod.label}
-                                </p>
-                                {kids.map((child) => {
-                                  const ChildIcon = child.icon
-                                  const childActive = activeSubTab === child.key
-                                  const nietos = visibleChildren(user, child, grants)
-
-                                  // En el cajón mobile, un tercer nivel plegable
-                                  // sería un toque más para llegar a lo mismo:
-                                  // los nietos se listan derecho, indentados.
-                                  if (nietos.length > 0) {
-                                    return (
-                                      <div key={child.key}>
-                                        <p className="flex items-center gap-2 px-3 pt-2 pb-0.5 pl-8 text-xs font-medium text-gray-400">
-                                          <ChildIcon className="h-4 w-4 shrink-0" />
-                                          {child.label}
-                                          {child.key === "accesos" && avisosPago > 0 && (
-                                            <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" />
-                                          )}
-                                        </p>
-                                        {nietos.map((nieto) => {
-                                          const NietoIcon = nieto.icon
-                                          const nietoActive = activeSubSubTab === nieto.key
-                                          return (
-                                            <Button
-                                              key={nieto.key}
-                                              variant={nietoActive ? "default" : "ghost"}
-                                              className={`w-full justify-start pl-14 ${nietoActive ? "bg-[#4dd0e1] text-white" : ""}`}
-                                              onClick={() => { navigateTo(nieto.route); setMobileMenuOpen(false) }}
-                                            >
-                                              <NietoIcon className="w-4 h-4 mr-3" />
-                                              {nieto.label}
-                                              {nieto.key === "pagos-capacitaciones" && avisosPago > 0 && (
-                                                <span className="ml-auto inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
-                                                  {avisosPago}
-                                                </span>
-                                              )}
-                                            </Button>
-                                          )
-                                        })}
-                                      </div>
-                                    )
-                                  }
-
-                                  return (
-                                    <Button
-                                      key={child.key}
-                                      variant={childActive ? "default" : "ghost"}
-                                      className={`w-full justify-start pl-8 ${childActive ? "bg-[#4dd0e1] text-white" : ""}`}
-                                      onClick={() => { navigateTo(child.route); setMobileMenuOpen(false) }}
-                                    >
-                                      <ChildIcon className="w-5 h-5 mr-3" />
-                                      {child.label}
-                                      {/* El badge va en el HIJO: el grupo ya no dibuja botón propio */}
-                                      {child.key === "aprobaciones" && pendingCount > 0 && (
-                                        <span className="ml-auto inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full bg-red-500 text-white">
-                                          {pendingCount}
-                                        </span>
-                                      )}
-                                    </Button>
-                                  )
-                                })}
-                              </div>
-                            )
-                          }
-
-                          return (
-                            <Button
-                              key={mod.key}
-                              variant={isActive ? "default" : "ghost"}
-                              className={`w-full justify-start ${isActive ? "bg-[#4dd0e1] text-white" : ""}`}
-                              onClick={() => handleTabChange(mod.key)}
-                            >
-                              <Icon className="w-5 h-5 mr-3" />
-                              {mod.label}
-                              {mod.key === "comunidad" && pendingCount > 0 && (
-                                <span className="ml-auto inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full bg-red-500 text-white">
-                                  {pendingCount}
-                                </span>
-                              )}
-                            </Button>
-                          )
-                        })}
-
-                        {/* Mi perfil, Anuncios y Actividad.
-                            En escritorio viven en el menú del avatar, pero en
-                            celular ese menú no existe: sin esto, un teléfono
-                            se quedaba sin forma de llegar a sus propios datos.
-                            Van abajo y separados, que es su jerarquía. */}
-                        {menuModules.length > 0 && (
-                          <div className="mt-2 space-y-1 border-t border-gray-100 pt-3">
-                            {menuModules.map((mod) => {
-                              const Icono = mod.icon
-                              return (
-                                <Button
-                                  key={mod.key}
-                                  variant={activeTab === mod.key ? "default" : "ghost"}
-                                  className={`w-full justify-start ${activeTab === mod.key ? "bg-[#4dd0e1] text-white" : "text-gray-600"}`}
-                                  onClick={() => { navigateTo(mod.route); setMobileMenuOpen(false) }}
-                                >
-                                  <Icono className="w-5 h-5 mr-3" />
-                                  {mod.label}
-                                </Button>
-                              )
-                            })}
-                          </div>
-                        )}
-                      </nav>
-                      {GAMES_URL && (
-                        <a
-                          href={GAMES_URL}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md border border-[#4dd0e1] text-[#4dd0e1] bg-transparent hover:bg-[#4dd0e1] hover:text-white transition-colors text-sm font-medium h-9 px-3 no-underline"
-                        >
-                          <Gamepad2 className="w-4 h-4 shrink-0" />
-                          Juegos
-                        </a>
-                      )}
-                    </div>
-                  </div>
+                  <MenuLateral
+                    user={user}
+                    grants={grants}
+                    roleLabel={roleLabel}
+                    modules={navModules}
+                    menuModules={menuModules}
+                    activeTab={activeTab}
+                    activeSubTab={activeSubTab}
+                    activeSubSubTab={activeSubSubTab}
+                    navegar={navigateTo}
+                    rutaDe={(mod) => rutaVisible(mod, mod.route)}
+                    onLogout={onLogout}
+                    /* El número en el hijo que lo genera y en el grupo que lo
+                       contiene: el grupo lo suma solo recorriendo sus hijos. */
+                    badges={{ aprobaciones: pendingCount, "pagos-capacitaciones": avisosPago }}
+                    juegosUrl={GAMES_URL}
+                    vistaComo={esAdminReal ? vistaComo : undefined}
+                    onVistaComo={esAdminReal ? cambiarVista : undefined}
+                    cerrar={() => setMobileMenuOpen(false)}
+                  />
                 </SheetContent>
               </Sheet>
             </div>
@@ -656,7 +648,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         {navigating && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-gray-50/70 backdrop-blur-[1px] rounded-lg min-h-[200px]">
             <div className="flex flex-col items-center gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-[#4dd0e1]" />
+              <Loader2 className="w-8 h-8 animate-spin text-[#5ec0cf]" />
               <span className="text-sm text-gray-500">Cargando...</span>
             </div>
           </div>
@@ -691,24 +683,38 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         */
         <Tabs value={activeTab} onValueChange={handleTabChange}>
 
-          {/* Breadcrumb mobile */}
-          <div className="md:hidden bg-white p-3 rounded-lg shadow-sm mb-4">
-            <h2 className="text-lg font-medium flex items-center">
-              {/* En el celular no hay pestañas a la vista, y el logo como botón
-                  de Inicio es un gesto invisible: lo descubre quien ya sabe que
-                  está. El chevron se lee como "salir de acá" sin ocupar alto
-                  extra, que es el lugar más caro de una pantalla chica. */}
-              <button
-                type="button"
-                onClick={() => navigateTo("/inicio")}
-                aria-label="Volver al inicio"
-                className="-ml-1 mr-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors active:bg-gray-100"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              {ActiveIcon && <ActiveIcon className="w-5 h-5 mr-2" />}
+          {/*
+            Encabezado de sección (solo teléfono).
+
+            Era una tarjeta flotante con sombra y bordes redondeados, que se
+            leía como "una cosa más adentro de la pantalla". Ahora es una
+            banda de lado a lado pegada al encabezado de la app: se lee como
+            la cabecera de donde estás parado, que es lo que es.
+
+            El chevron vuelve a Inicio. En el celular no hay barra de módulos
+            —está escondida detrás del menú—, así que este botón es la única
+            salida visible, y por eso tiene 44px y no los 36 de antes.
+
+            Sin el ícono del módulo: el título ya lo dice, y en 360px de ancho
+            cada elemento de más le come letras a un nombre como "Pagos de
+            capacitaciones".
+          */}
+          <div
+            className={`md:hidden -mx-4 flex items-center gap-1 bg-white px-2 ${
+              hayPestanas ? "" : "mb-4 border-b border-gray-200"
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => navigateTo("/inicio")}
+              aria-label="Volver al inicio"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors active:bg-gray-100"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+            <h1 className="min-w-0 flex-1 truncate py-2 text-[19px] font-bold text-gray-900">
               {activeTabLabel}
-            </h2>
+            </h1>
           </div>
 
           {/* Los módulos del menú del avatar no están en la barra, pero SÍ
@@ -747,11 +753,21 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                   onValueChange={(v) => navigateTo(getModule(v)?.route ?? `/${v}`)}
                   className="space-y-4"
                 >
-                  <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-white border border-gray-200 p-1 rounded-lg sm:w-auto">
+                  {/*
+                    Un solo renglón que se arrastra, en vez de envolverse en
+                    tres. Con cinco pestañas (Academia) el envolver dejaba la
+                    navegación ocupando un tercio de la pantalla antes del
+                    primer dato. Además queda clavada arriba: se cambia de
+                    pestaña sin volver a subir.
+                  */}
+                  <PestanasFila
+                    valor={activeSubTab}
+                    className={`sticky ${altoDeArriba} z-[9] md:static`}
+                  >
                     {children.map((child) => {
                       const ChildIcon = child.icon
                       return (
-                        <TabsTrigger key={child.key} value={child.key} className={subTabTriggerClass}>
+                        <TabsTrigger key={child.key} value={child.key} className={clasePestana}>
                           <ChildIcon className="w-4 h-4 shrink-0" />
                           <span>{child.label}</span>
                           {child.key === "aprobaciones" && pendingCount > 0 && (
@@ -768,7 +784,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                         </TabsTrigger>
                       )
                     })}
-                  </TabsList>
+                  </PestanasFila>
                   {children.map((child) => {
                     // Tercer nivel: Accesos y Certificados agrupan varias
                     // pantallas. El resto es hoja y se monta directo.
@@ -784,11 +800,19 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                             onValueChange={(v) => navigateTo(getModule(v)?.route ?? `/${v}`)}
                             className="space-y-4"
                           >
-                            <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 rounded-none border-b border-gray-200 bg-transparent p-0">
+                            {/*
+                              Control segmentado y no otra fila de pestañas.
+                              Habilitaciones / Auditoría / Alertas son tres
+                              VISTAS de lo mismo, no tres destinos: el marco
+                              gris que las encierra dice eso de un vistazo, y
+                              evita que el tercer nivel se confunda con el
+                              segundo.
+                            */}
+                            <Segmentado>
                               {nietos.map((nieto) => {
                                 const NietoIcon = nieto.icon
                                 return (
-                                  <TabsTrigger key={nieto.key} value={nieto.key} className={subSubTabTriggerClass}>
+                                  <TabsTrigger key={nieto.key} value={nieto.key} className={claseSegmento}>
                                     <NietoIcon className="h-3.5 w-3.5 shrink-0" />
                                     <span>{nieto.label}</span>
                                     {nieto.key === "pagos-capacitaciones" && avisosPago > 0 && (
@@ -799,7 +823,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                                   </TabsTrigger>
                                 )
                               })}
-                            </TabsList>
+                            </Segmentado>
                             {nietos.map((nieto) => (
                               <TabsContent key={nieto.key} value={nieto.key}>
                                 {activeSubSubTab === nieto.key && MODULE_CONTENT[nieto.key]}

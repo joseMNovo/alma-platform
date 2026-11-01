@@ -57,7 +57,7 @@ export default function HistorialCertificados() {
   if (cargando) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-8 w-8 animate-spin text-[#4dd0e1]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#5ec0cf]" />
       </div>
     )
   }
@@ -66,7 +66,8 @@ export default function HistorialCertificados() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-gray-900">Historial</h3>
+          {/* Oculto en el teléfono: el encabezado de sección, arriba, ya dice esto mismo. */}
+          <h3 className="hidden font-semibold text-gray-900 sm:block">Historial</h3>
           <span className="rounded-full bg-gray-100 px-2 py-0.5 text-sm font-medium text-gray-600">
             {filas.length} {filas.length === 1 ? "certificado" : "certificados"}
           </span>
@@ -87,12 +88,61 @@ export default function HistorialCertificados() {
           <CardContent className="flex flex-col items-center gap-3 py-14 text-center text-gray-500">
             <Award className="h-10 w-10 text-gray-300" />
             <p className="font-medium">
-              {filas.length ? "Nada con esa búsqueda" : "Todavía no se emitió ningún certificado"}
+              {filas.length ? "Sin resultados" : "No se emitió ningún certificado"}
             </p>
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <>
+        {/*
+          Teléfono: una tarjeta por certificado.
+
+          La tabla pide 640px de ancho mínimo. En un teléfono eso significa
+          que para ver el código hay que arrastrar hasta perder de vista a
+          quién pertenece, que es justo el dato que se está buscando cuando
+          alguien llama preguntando por su certificado.
+        */}
+        <div className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200 bg-white sm:hidden">
+          {visibles.map((c) => (
+            <div key={c.id} className={`px-3 py-3 ${c.revoked_at ? "bg-gray-50" : ""}`}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className={`truncate font-medium ${c.revoked_at ? "text-gray-400 line-through" : "text-gray-900"}`}>
+                    {c.holder_name}
+                  </p>
+                  <p className="truncate text-[12.5px] text-alma-tinta">{c.training_title ?? "—"}</p>
+                </div>
+                {c.revoked_at && (
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600">
+                    <Ban className="h-3 w-3" />
+                    Anulado
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                <span className="text-gray-500">Emitido {formatear(c.issued_at)}</span>
+                {c.sent_at ? (
+                  <span className="text-green-600">Enviado {formatear(c.sent_at)}</span>
+                ) : (
+                  <span className="text-amber-600">Sin enviar</span>
+                )}
+                <a
+                  href={`/certificado/${c.code}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-auto inline-flex items-center gap-1 font-mono text-alma-fuerte"
+                >
+                  {c.code}
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Escritorio: la tabla, donde las columnas se comparan de un vistazo. */}
+        <Card className="hidden sm:block">
           <CardContent className="overflow-x-auto py-4">
             <table className="w-full min-w-[640px] text-sm">
               <thead>
@@ -135,7 +185,7 @@ export default function HistorialCertificados() {
                         href={`/certificado/${c.code}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 font-mono text-xs text-[#00838f] underline-offset-2 hover:underline"
+                        className="inline-flex items-center gap-1 font-mono text-xs text-alma-fuerte underline-offset-2 hover:underline"
                       >
                         {c.code}
                         <ExternalLink className="h-3 w-3" />
@@ -147,6 +197,7 @@ export default function HistorialCertificados() {
             </table>
           </CardContent>
         </Card>
+        </>
       )}
     </div>
   )

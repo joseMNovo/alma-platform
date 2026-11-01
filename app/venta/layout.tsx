@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#4dd0e1",
+  themeColor: "#5ec0cf",
   // Sin zoom: en el medio de un cobro, un pellizco accidental que deje la
   // pantalla al 300% cuesta más de lo que vale poder agrandar.
   initialScale: 1,

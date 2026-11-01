@@ -164,7 +164,7 @@ export default function ImageCropper({
   }
 
   return (
-    <div className="space-y-3 rounded-lg border-2 border-[#4dd0e1] bg-white p-3">
+    <div className="space-y-3 rounded-lg border-2 border-[#5ec0cf] bg-white p-3">
       <p className="text-sm font-medium text-gray-800">{title}</p>
 
       <p className="text-sm text-gray-500">
@@ -208,7 +208,7 @@ export default function ImageCropper({
             step={0.01}
             value={zoom}
             onChange={(e) => cambiarZoom(Number(e.target.value))}
-            className="w-full accent-[#4dd0e1]"
+            className="w-full accent-[#5ec0cf]"
             aria-label="Acercar o alejar la imagen"
           />
         </div>
@@ -226,7 +226,7 @@ export default function ImageCropper({
           type="button"
           onClick={confirmar}
           disabled={!listo}
-          className="bg-[#4dd0e1] hover:bg-[#3bb8c9]"
+          className="bg-alma-fuerte hover:bg-alma-oscuro"
         >
           Usar este encuadre
         </Button>

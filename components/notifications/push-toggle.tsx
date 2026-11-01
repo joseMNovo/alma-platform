@@ -76,7 +76,7 @@ export default function PushToggle() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Bell className="w-5 h-5 text-[#4dd0e1]" />
+          <Bell className="w-5 h-5 text-[#5ec0cf]" />
           Notificaciones
         </CardTitle>
         <CardDescription>Recibí avisos de eventos, recordatorios y novedades de ALMA.</CardDescription>
@@ -95,7 +95,7 @@ export default function PushToggle() {
           <p className="text-sm text-gray-500">Este navegador no soporta notificaciones push.</p>
         )}
         {support === "ready" && !subscribed && (
-          <Button onClick={handleEnable} disabled={busy} className="bg-[#4dd0e1] hover:bg-[#3bbccd] text-white">
+          <Button onClick={handleEnable} disabled={busy} className="bg-alma-fuerte hover:bg-alma-oscuro text-white">
             {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bell className="w-4 h-4 mr-2" />}
             Activar notificaciones
           </Button>

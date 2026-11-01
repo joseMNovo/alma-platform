@@ -62,7 +62,7 @@ export default function Ayuda({
           e.stopPropagation()
           setAbierto((a) => !a)
         }}
-        className="text-gray-300 transition hover:text-[#4dd0e1]"
+        className="text-gray-300 transition hover:text-[#5ec0cf]"
       >
         <HelpCircle className="h-3.5 w-3.5" />
       </button>

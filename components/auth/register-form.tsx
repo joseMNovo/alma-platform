@@ -103,7 +103,7 @@ export default function RegisterForm() {
 
   return (
     <div
-      className="min-h-screen flex flex-col bg-gradient-to-br from-[#4dd0e1] to-[#9a8bc2] relative overflow-hidden"
+      className="min-h-screen flex flex-col bg-gradient-to-br from-[#5ec0cf] to-[#9a8bc2] relative overflow-hidden"
       style={{ fontFamily: "'Gotham Rounded', system-ui, sans-serif" }}
     >
       {flores.map((f, i) => (
@@ -137,7 +137,7 @@ export default function RegisterForm() {
           {/* Formulario */}
           <div className="w-full md:w-80 flex flex-col items-center gap-4">
             {success ? (
-              <div className="w-full bg-white rounded-2xl shadow-2xl p-6 space-y-4 border border-[#b2ebf2] text-center">
+              <div className="w-full bg-white rounded-2xl shadow-2xl p-6 space-y-4 border border-[#bbe5eb] text-center">
                 {role === "voluntario" ? (
                   <>
                     <Clock className="w-12 h-12 text-[#9a8bc2] mx-auto" />
@@ -148,7 +148,7 @@ export default function RegisterForm() {
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-12 h-12 text-[#0099b0] mx-auto" />
+                    <CheckCircle2 className="w-12 h-12 text-[#04799a] mx-auto" />
                     <h2 className="text-xl font-bold text-gray-800">Revisá tu email</h2>
                     <p className="text-gray-600 text-sm">
                       Te mandamos un link a <strong className="text-gray-800">{sentTo}</strong> para
@@ -172,7 +172,7 @@ export default function RegisterForm() {
                           setResending(false)
                         }
                       }}
-                      className="text-[#0099b0] text-sm font-semibold underline underline-offset-2 disabled:opacity-50"
+                      className="text-[#04799a] text-sm font-semibold underline underline-offset-2 disabled:opacity-50"
                     >
                       {resending ? "Enviando…" : "Reenviar email"}
                     </button>
@@ -180,7 +180,7 @@ export default function RegisterForm() {
                 )}
                 <a
                   href="/"
-                  className="block w-full bg-[#0099b0] hover:bg-[#007a8e] text-white font-semibold py-2.5 px-4 rounded-lg transition-all text-center shadow-md hover:shadow-lg"
+                  className="block w-full bg-[#04799a] hover:bg-[#03617b] text-white font-semibold py-2.5 px-4 rounded-lg transition-all text-center shadow-md hover:shadow-lg"
                 >
                   Ir al inicio de sesión
                 </a>
@@ -189,7 +189,7 @@ export default function RegisterForm() {
               <form
                 onSubmit={handleSubmit}
                 noValidate
-                className="w-full bg-white rounded-2xl shadow-2xl p-6 space-y-4 text-left border border-[#b2ebf2]"
+                className="w-full bg-white rounded-2xl shadow-2xl p-6 space-y-4 text-left border border-[#bbe5eb]"
               >
                 <h2 className="text-lg font-bold text-gray-800 text-center">Registro</h2>
 
@@ -222,7 +222,7 @@ export default function RegisterForm() {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Tu nombre"
-                        className="border-[#b2ebf2] focus:border-[#9a8bc2] focus:ring-2 focus:ring-[#9a8bc2]/30 focus:ring-offset-0"
+                        className="border-[#bbe5eb] focus:border-[#9a8bc2] focus:ring-2 focus:ring-[#9a8bc2]/30 focus:ring-offset-0"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -232,7 +232,7 @@ export default function RegisterForm() {
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         placeholder="Tu apellido (opcional)"
-                        className="border-[#b2ebf2] focus:border-[#9a8bc2] focus:ring-2 focus:ring-[#9a8bc2]/30 focus:ring-offset-0"
+                        className="border-[#bbe5eb] focus:border-[#9a8bc2] focus:ring-2 focus:ring-[#9a8bc2]/30 focus:ring-offset-0"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -243,7 +243,7 @@ export default function RegisterForm() {
                         value={volEmail}
                         onChange={(e) => setVolEmail(e.target.value)}
                         placeholder="tu@email.com"
-                        className="border-[#b2ebf2] focus:border-[#9a8bc2] focus:ring-2 focus:ring-[#9a8bc2]/30 focus:ring-offset-0"
+                        className="border-[#bbe5eb] focus:border-[#9a8bc2] focus:ring-2 focus:ring-[#9a8bc2]/30 focus:ring-offset-0"
                       />
                     </div>
                   </>
@@ -264,7 +264,7 @@ export default function RegisterForm() {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Tu nombre"
-                        className="border-[#b2ebf2] focus:border-[#0099b0] focus:ring-2 focus:ring-[#4dd0e1]/30 focus:ring-offset-0"
+                        className="border-[#bbe5eb] focus:border-[#04799a] focus:ring-2 focus:ring-[#5ec0cf]/30 focus:ring-offset-0"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -274,7 +274,7 @@ export default function RegisterForm() {
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         placeholder="Tu apellido (opcional)"
-                        className="border-[#b2ebf2] focus:border-[#0099b0] focus:ring-2 focus:ring-[#4dd0e1]/30 focus:ring-offset-0"
+                        className="border-[#bbe5eb] focus:border-[#04799a] focus:ring-2 focus:ring-[#5ec0cf]/30 focus:ring-offset-0"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -285,7 +285,7 @@ export default function RegisterForm() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="tu@email.com"
-                        className="border-[#b2ebf2] focus:border-[#0099b0] focus:ring-2 focus:ring-[#4dd0e1]/30 focus:ring-offset-0"
+                        className="border-[#bbe5eb] focus:border-[#04799a] focus:ring-2 focus:ring-[#5ec0cf]/30 focus:ring-offset-0"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -298,7 +298,7 @@ export default function RegisterForm() {
                         onChange={handlePinChange}
                         placeholder="••••"
                         maxLength={4}
-                        className="border-[#b2ebf2] focus:border-[#0099b0] focus:ring-2 focus:ring-[#4dd0e1]/30 focus:ring-offset-0 tracking-widest text-center text-lg"
+                        className="border-[#bbe5eb] focus:border-[#04799a] focus:ring-2 focus:ring-[#5ec0cf]/30 focus:ring-offset-0 tracking-widest text-center text-lg"
                       />
                     </div>
                   </>
@@ -313,14 +313,14 @@ export default function RegisterForm() {
                 <Button
                   type="submit"
                   disabled={loading || !role}
-                  className="w-full bg-[#0099b0] hover:bg-[#007a8e] active:bg-[#006478] active:scale-[0.98] text-white font-semibold py-2.5 px-4 rounded-lg transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+                  className="w-full bg-[#04799a] hover:bg-[#03617b] active:bg-[#03617b] active:scale-[0.98] text-white font-semibold py-2.5 px-4 rounded-lg transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
                 >
                   {loading ? "Registrando..." : "Registrarse"}
                 </Button>
 
                 <p className="text-gray-500 text-sm text-center">
                   ¿Ya tenés cuenta?{" "}
-                  <a href="/" className="text-[#0099b0] font-semibold hover:underline">Iniciá sesión</a>
+                  <a href="/" className="text-[#04799a] font-semibold hover:underline">Iniciá sesión</a>
                 </p>
               </form>
             )}

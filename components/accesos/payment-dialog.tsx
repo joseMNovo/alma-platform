@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { toast } from "@/hooks/use-toast"
 import { Loader2, DollarSign } from "lucide-react"
 import type { AccessMatrixRow, Training } from "@/lib/data-manager"
@@ -87,7 +87,7 @@ export default function PaymentDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-[#4dd0e1]" />
+            <DollarSign className="h-5 w-5 text-[#5ec0cf]" />
             Registrar pago
           </DialogTitle>
         </DialogHeader>
@@ -128,7 +128,7 @@ export default function PaymentDialog({
               )}
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 [&>*]:min-w-0">
             <div>
               <Label className="text-xs">Monto *</Label>
               <Input type="number" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
@@ -145,7 +145,7 @@ export default function PaymentDialog({
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 [&>*]:min-w-0">
             <div>
               <Label className="text-xs">Fecha</Label>
               <Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
@@ -157,13 +157,13 @@ export default function PaymentDialog({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-2">
+        <DialogFooter className="pt-2">
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={submit} disabled={saving} className="bg-[#4dd0e1] hover:bg-[#3bb8c9]">
+          <Button onClick={submit} disabled={saving} className="bg-alma-fuerte hover:bg-alma-oscuro">
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Registrar
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

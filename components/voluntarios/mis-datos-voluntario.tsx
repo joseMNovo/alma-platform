@@ -97,7 +97,7 @@ export default function MisDatosVoluntario({ user }: { user: any }) {
         }),
       })
       if (res.ok) {
-        setMessage({ type: "ok", text: "¡Datos guardados! Si cambiaste tu nombre, se verá al próximo inicio de sesión." })
+        setMessage({ type: "ok", text: "Datos guardados. Si cambiaste tu nombre, se verá al próximo inicio de sesión." })
       } else {
         setMessage({ type: "error", text: "Error al guardar. Intentá de nuevo." })
       }
@@ -110,7 +110,7 @@ export default function MisDatosVoluntario({ user }: { user: any }) {
 
   if (loadingData) {
     return (
-      <div className="flex items-center justify-center py-16 text-[#4dd0e1]">
+      <div className="flex items-center justify-center py-16 text-[#5ec0cf]">
         Cargando tus datos...
       </div>
     )
@@ -118,7 +118,8 @@ export default function MisDatosVoluntario({ user }: { user: any }) {
 
   return (
     <div className="space-y-6">
-      <div>
+      {/* Oculto en el teléfono: el encabezado de sección, arriba, ya dice esto mismo. */}
+      <div className="hidden sm:block">
         <h2 className="text-xl md:text-2xl font-bold text-gray-900">Mis Datos</h2>
         <p className="text-gray-600">Tu información personal en la plataforma</p>
       </div>
@@ -126,7 +127,7 @@ export default function MisDatosVoluntario({ user }: { user: any }) {
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <UserCircle className="w-5 h-5 text-[#4dd0e1]" />
+            <UserCircle className="w-5 h-5 text-[#5ec0cf]" />
             Perfil
           </CardTitle>
           <CardDescription>Email: <span className="font-medium text-gray-700">{user.email}</span></CardDescription>
@@ -227,7 +228,7 @@ export default function MisDatosVoluntario({ user }: { user: any }) {
                   {formData.specialties.map((s, i) => (
                     <span
                       key={i}
-                      className="inline-flex items-center gap-1 bg-[#e0f7fa] text-[#00838f] text-xs font-medium px-2.5 py-1 rounded-full"
+                      className="inline-flex items-center gap-1 bg-[#dff2f5] text-alma-fuerte text-xs font-medium px-2.5 py-1 rounded-full"
                     >
                       {s}
                       <button type="button" onClick={() => removeSpecialty(i)} className="hover:text-red-500 transition-colors">
@@ -250,7 +251,7 @@ export default function MisDatosVoluntario({ user }: { user: any }) {
             <Button
               type="submit"
               disabled={saving || !formData.name.trim()}
-              className="bg-[#0099b0] hover:bg-[#007a8e] text-white disabled:opacity-50"
+              className="bg-[#04799a] hover:bg-[#03617b] text-white disabled:opacity-50"
             >
               <Save className="w-4 h-4 mr-2" />
               {saving ? "Guardando..." : "Guardar cambios"}

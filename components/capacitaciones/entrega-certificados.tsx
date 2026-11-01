@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import BarraSeleccion from "@/components/ui/barra-seleccion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -187,7 +188,8 @@ export default function EntregaCertificados() {
     <div className="space-y-4">
       {/* El título NO repite la capacitación elegida: está acá abajo, en el
           desplegable, que es además donde se cambia. */}
-      <div className="text-center">
+      {/* Oculto en el teléfono: el encabezado de sección, arriba, ya dice esto mismo. */}
+      <div className="hidden text-center sm:block">
         <h3 className="font-semibold text-gray-900">Emisión</h3>
         <p className="text-sm text-gray-500">
           Quién completó, quién aprobó y a quién le falta su certificado.
@@ -202,7 +204,7 @@ export default function EntregaCertificados() {
           value={trainingId ? String(trainingId) : undefined}
           onValueChange={(v) => setTrainingId(Number(v))}
         >
-          <SelectTrigger className="h-12 justify-center gap-2 rounded-full border-2 border-[#4dd0e1]/40 bg-[#4dd0e1]/5 px-6 text-base font-medium text-[#00838f] hover:bg-[#4dd0e1]/10 focus:ring-[#4dd0e1] [&>span]:truncate">
+          <SelectTrigger className="h-12 justify-center gap-2 rounded-full border-2 border-[#5ec0cf]/40 bg-[#5ec0cf]/5 px-6 text-base font-medium text-alma-fuerte hover:bg-[#5ec0cf]/10 focus:ring-[#5ec0cf] [&>span]:truncate">
             <GraduationCap className="h-5 w-5 shrink-0" />
             <SelectValue placeholder="Elegí una capacitación" />
           </SelectTrigger>
@@ -216,7 +218,7 @@ export default function EntregaCertificados() {
 
       {/* Chips en vez de un desplegable: los cuatro filtros se ven de una y
           se cambian de un toque, sin abrir nada. */}
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className="sin-barra flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:flex-wrap sm:overflow-visible">
         {FILTROS.map((f) => {
           const activo = filtro === f.value
           return (
@@ -226,7 +228,7 @@ export default function EntregaCertificados() {
               onClick={() => setFiltro(f.value)}
               className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                 activo
-                  ? "bg-[#4dd0e1] text-white"
+                  ? "bg-alma-fuerte text-white"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
@@ -238,7 +240,7 @@ export default function EntregaCertificados() {
 
       {cargando ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-[#4dd0e1]" />
+          <Loader2 className="h-8 w-8 animate-spin text-[#5ec0cf]" />
         </div>
       ) : !visibles.length ? (
         <Card>
@@ -252,7 +254,85 @@ export default function EntregaCertificados() {
         </Card>
       ) : (
         <>
-          <Card>
+          {/*
+            ── Telefono: una tarjeta por persona ──────────────────────
+
+            La tabla de abajo declara `min-w-[720px]`, o sea que en un
+            telefono de 360px SIEMPRE se arrastra de costado: para ver si
+            alguien aprobó había que correr la pantalla y, al hacerlo, el
+            nombre se iba por la izquierda. Quedabas mirando un "85%" sin
+            saber de quién era.
+
+            En tarjeta entra todo de frente: nombre, mail, y los tres
+            estados —contenido, evaluación, certificado— en una fila de
+            etiquetas que se leen sin moverse.
+          */}
+          <div className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200 bg-white sm:hidden">
+            {visibles.map((fila) => {
+              const tildada = seleccion.has(fila.person_id)
+              return (
+                <div
+                  key={fila.person_id}
+                  onClick={() => alternar(fila.person_id)}
+                  className={`flex items-start gap-3 px-3 py-3 transition-colors ${tildada ? "bg-alma-suave" : "active:bg-gray-50"}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={tildada}
+                    onChange={() => alternar(fila.person_id)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="mt-1 h-5 w-5 shrink-0 accent-alma-fuerte"
+                  />
+
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-gray-900">{fila.name ?? "Sin nombre"}</p>
+                    {fila.email ? (
+                      <p className="truncate text-[12.5px] text-alma-tinta">{fila.email}</p>
+                    ) : (
+                      <p className="truncate text-[12.5px] text-amber-600">Sin email</p>
+                    )}
+
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 ${fila.content_done ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-600"}`}>
+                        {fila.content_done && <Check className="h-3 w-3" />}
+                        {fila.items_completed}/{fila.items_total} contenido
+                      </span>
+
+                      {fila.survey_passed == null ? (
+                        <span className="rounded-full bg-gray-100 px-2 py-1 text-gray-500">Sin evaluación</span>
+                      ) : fila.survey_passed ? (
+                        <span className="rounded-full bg-green-50 px-2 py-1 font-medium text-green-700">
+                          Aprobó{fila.best_score != null && ` (${fila.best_score.toFixed(0)}%)`}
+                        </span>
+                      ) : fila.best_score != null ? (
+                        <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">
+                          No aprobó ({fila.best_score.toFixed(0)}%)
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-gray-100 px-2 py-1 text-gray-500">No rindió</span>
+                      )}
+
+                      {fila.certificate_code && (
+                        <a
+                          href={`/certificado/${fila.certificate_code}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-1 font-medium ${fila.sent_at ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}
+                        >
+                          {fila.sent_at ? "Enviado" : "Sin enviar"}
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* ── Escritorio: la tabla, que ahí sí entra entera ─────────── */}
+          <Card className="hidden sm:block">
             <CardContent className="overflow-x-auto py-4">
               <table className="w-full min-w-[720px] text-sm">
                 <thead>
@@ -266,7 +346,7 @@ export default function EntregaCertificados() {
                             e.target.checked ? new Set(visibles.map((f) => f.person_id)) : new Set(),
                           )
                         }
-                        className="h-4 w-4 accent-[#4dd0e1]"
+                        className="h-4 w-4 accent-[#5ec0cf]"
                         title="Seleccionar todos"
                       />
                     </th>
@@ -284,7 +364,7 @@ export default function EntregaCertificados() {
                           type="checkbox"
                           checked={seleccion.has(fila.person_id)}
                           onChange={() => alternar(fila.person_id)}
-                          className="h-4 w-4 accent-[#4dd0e1]"
+                          className="h-4 w-4 accent-[#5ec0cf]"
                         />
                       </td>
                       <td className="px-2 py-2">
@@ -324,7 +404,7 @@ export default function EntregaCertificados() {
                               href={`/certificado/${fila.certificate_code}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 font-mono text-xs text-[#00838f] underline-offset-2 hover:underline"
+                              className="inline-flex items-center gap-1 font-mono text-xs text-alma-fuerte underline-offset-2 hover:underline"
                             >
                               {fila.certificate_code}
                               <ExternalLink className="h-3 w-3" />
@@ -346,14 +426,38 @@ export default function EntregaCertificados() {
             </CardContent>
           </Card>
 
-          <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-3 rounded-t-lg border-t border-gray-200 bg-white/95 px-3 py-3 backdrop-blur">
+          {/* La barra flotante del telefono. En escritorio sigue la de
+              siempre, pegada al pie del contenido. */}
+          <BarraSeleccion
+            className="sm:hidden"
+            cantidad={seleccion.size}
+            sustantivo="personas"
+            onLimpiar={() => setSeleccion(new Set())}
+          >
+            {puedeEnviar && (
+              <Button variant="outline" onClick={enviar} disabled={trabajando} className="h-11 w-11 shrink-0 p-0">
+                <Send className="h-4 w-4" />
+                <span className="sr-only">Enviar por mail</span>
+              </Button>
+            )}
+            <Button
+              onClick={emitir}
+              disabled={trabajando}
+              className="h-11 gap-1.5 bg-alma-fuerte px-4 text-white hover:bg-alma-oscuro"
+            >
+              {trabajando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Award className="h-4 w-4" />}
+              {esReemision ? "Reemitir" : "Emitir"}
+            </Button>
+          </BarraSeleccion>
+
+          <div className="sticky bottom-0 z-10 hidden flex-wrap items-center gap-3 rounded-t-lg border-t border-gray-200 bg-white/95 px-3 py-3 backdrop-blur sm:flex">
             <span className="text-sm text-gray-600">
               {seleccion.size} {seleccion.size === 1 ? "seleccionada" : "seleccionadas"}
             </span>
             <Button
               onClick={emitir}
               disabled={trabajando || !seleccion.size}
-              className="bg-[#4dd0e1] hover:bg-[#3bb8c9]"
+              className="bg-alma-fuerte text-white hover:bg-alma-oscuro"
             >
               {trabajando ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

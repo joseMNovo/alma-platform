@@ -181,3 +181,82 @@
     @apply bg-background text-foreground font-gotham;
   }
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   Arreglos de teléfono
+   ══════════════════════════════════════════════════════════════════════
+
+   Esto va al final del archivo y FUERA de `@layer` a propósito.
+
+   Tailwind ordena las reglas base antes que las utilidades, así que un
+   `font-size` escrito en `@layer base` pierde contra cualquier `text-sm`
+   que haya en un campo. Acá abajo, sin capa y con un selector de
+   especificidad mayor, gana siempre.
+   ────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  /* Safari hace zoom solo cuando enfocás un campo de menos de 16px, y te
+     deja la pantalla corrida de lado sin forma obvia de volver. No es una
+     preferencia estética: es la causa número uno de "se me movió todo". */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  /* Ningún campo puede ser más ancho que su caja. Sin esto, un `<select>`
+     con una opción larga o un `date` empujan la hoja y habilitan arrastre
+     lateral. */
+  input,
+  select,
+  textarea {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  /* Los campos de fecha y hora de iOS traen un ancho propio de la época del
+     iPhone 4 y se niegan a achicarse. Hay que desarmarles la apariencia
+     nativa para que respeten el ancho que les da el formulario. */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  input[type="month"] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    text-align: left;
+  }
+
+  /* `clip` y no `hidden`: los dos recortan lo que se pasa de ancho, pero
+     `hidden` convierte al body en contenedor de scroll y eso rompe TODOS
+     los `position: sticky` de la app —encabezados, pies de hoja, la barra
+     de módulos—. `clip` recorta sin crear contenedor. */
+  body {
+    overflow-x: clip;
+  }
+}
+
+/* El destello gris de Android al tocar, y los 300ms de espera que algunos
+   navegadores todavía dejan por si el toque era un doble toque para hacer
+   zoom. En una app de botones, esos 300ms se notan como lentitud. */
+button,
+[role="button"],
+a {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Desplazamiento horizontal sin barra a la vista.
+   Las filas de pestañas y de chips se arrastran con el dedo: la barra no
+   agrega información y, peor, en Chrome de escritorio ocupa alto real y
+   descuadra la fila. El scroll sigue funcionando igual, solo se esconde. */
+.sin-barra {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.sin-barra::-webkit-scrollbar {
+  display: none;
+}

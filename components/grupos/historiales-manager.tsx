@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
+import BotonFlotante from "@/components/ui/boton-flotante"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -372,7 +373,7 @@ export default function HistorialesManager({
   const groupTheme = (name: string) =>
     /virtual/i.test(name || "")
       ? { border: "border-violet-200", header: "bg-violet-50/60", title: "text-violet-800", badge: "bg-violet-400" }
-      : { border: "border-cyan-200", header: "bg-cyan-50/60", title: "text-cyan-800", badge: "bg-[#4dd0e1]" }
+      : { border: "border-cyan-200", header: "bg-cyan-50/60", title: "text-cyan-800", badge: "bg-[#5ec0cf]" }
 
   return (
     <div className="space-y-4">
@@ -381,7 +382,7 @@ export default function HistorialesManager({
         <div className="space-y-1">
           <button
             onClick={onBack}
-            className="group inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-[#4dd0e1] transition-colors"
+            className="group inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-[#5ec0cf] transition-colors"
           >
             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
             Volver a Grupos
@@ -390,10 +391,18 @@ export default function HistorialesManager({
           <p className="text-sm text-gray-500">Minutas de encuentros de grupos de apoyo</p>
         </div>
         {can(user, "historiales:create") && (
-          <Button onClick={openCreate} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white w-full sm:w-auto">
+          <>
+          <Button onClick={openCreate} className="hidden sm:inline-flex bg-alma-fuerte hover:bg-alma-oscuro text-white w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-2" />
             Nueva ficha
           </Button>
+            {/* En el teléfono el botón de crear flota abajo a la derecha: el
+                de arriba dejaba de existir apenas bajabas tres filas de la
+                lista, que es justo cuando se te ocurre agregar algo. */}
+          <BotonFlotante onClick={openCreate} className="sm:hidden">
+            Nueva ficha
+          </BotonFlotante>
+          </>
         )}
       </div>
 
@@ -405,10 +414,10 @@ export default function HistorialesManager({
           aria-expanded={filtersOpen}
           className="w-full flex items-center gap-2 p-4 text-left"
         >
-          <Search className="w-4 h-4 text-[#4dd0e1] flex-shrink-0" />
+          <Search className="w-4 h-4 text-[#5ec0cf] flex-shrink-0" />
           <span className="text-sm font-medium text-gray-600">Filtros de búsqueda</span>
           {hasActiveFilters && (
-            <span className="w-2 h-2 rounded-full bg-[#4dd0e1] flex-shrink-0" title="Hay filtros activos" />
+            <span className="w-2 h-2 rounded-full bg-[#5ec0cf] flex-shrink-0" title="Hay filtros activos" />
           )}
           <ChevronDown className={`ml-auto w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
         </button>
@@ -463,7 +472,7 @@ export default function HistorialesManager({
               type="button"
               onClick={() => setViewMode("cards")}
               title="Vista tarjetas"
-              className={`p-1.5 transition-colors ${viewMode === "cards" ? "bg-[#4dd0e1] text-white" : "bg-white text-gray-400 hover:text-gray-600"}`}
+              className={`p-1.5 transition-colors ${viewMode === "cards" ? "bg-alma-fuerte text-white" : "bg-white text-gray-400 hover:text-gray-600"}`}
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
@@ -471,7 +480,7 @@ export default function HistorialesManager({
               type="button"
               onClick={() => setViewMode("list")}
               title="Vista lista"
-              className={`p-1.5 transition-colors ${viewMode === "list" ? "bg-[#4dd0e1] text-white" : "bg-white text-gray-400 hover:text-gray-600"}`}
+              className={`p-1.5 transition-colors ${viewMode === "list" ? "bg-alma-fuerte text-white" : "bg-white text-gray-400 hover:text-gray-600"}`}
             >
               <List className="w-4 h-4" />
             </button>
@@ -496,10 +505,10 @@ export default function HistorialesManager({
             <Card key={h.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => { setViewing(h); setDetailOpen(true) }}>
               <CardHeader>
                 <div className="flex justify-between items-start gap-2">
-                  <CardTitle className="text-base hover:text-[#4dd0e1] transition-colors">
+                  <CardTitle className="text-base hover:text-[#5ec0cf] transition-colors">
                     {h.group_name || "Encuentro"}
                   </CardTitle>
-                  <Badge className="bg-[#4dd0e1] flex-shrink-0">
+                  <Badge className="bg-alma-fuerte flex-shrink-0">
                     <Users className="w-3 h-3 mr-1" />
                     {h.attendee_count}
                   </Badge>
@@ -634,7 +643,7 @@ export default function HistorialesManager({
                   </Button>
                 )}
                 {can(user, "historiales:edit") && (
-                  <Button onClick={() => { setDetailOpen(false); openEdit(viewing) }} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+                  <Button onClick={() => { setDetailOpen(false); openEdit(viewing) }} className="bg-alma-fuerte hover:bg-alma-oscuro text-white">
                     <Edit className="w-4 h-4 mr-1" /> Editar
                   </Button>
                 )}
@@ -647,7 +656,7 @@ export default function HistorialesManager({
       {/* Create/Edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-5xl w-[96vw] h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
-          <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+          <DialogHeader className="mx-0 px-6 pt-6 pb-4 border-b shrink-0">
             <DialogTitle>{editing ? "Editar historial" : "Nueva ficha de encuentro"}</DialogTitle>
           </DialogHeader>
 
@@ -667,8 +676,8 @@ export default function HistorialesManager({
                           onClick={() => setForm({ ...form, group_id: String(g.id) })}
                           className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
                             active
-                              ? "bg-[#4dd0e1] border-[#4dd0e1] text-white"
-                              : "bg-white border-gray-200 text-gray-600 hover:border-[#4dd0e1] hover:text-[#4dd0e1]"
+                              ? "bg-alma-fuerte border-[#5ec0cf] text-white"
+                              : "bg-white border-gray-200 text-gray-600 hover:border-[#5ec0cf] hover:text-[#5ec0cf]"
                           }`}
                         >
                           {g.name}
@@ -716,7 +725,7 @@ export default function HistorialesManager({
               <div className="p-5 border-b bg-white shrink-0 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
-                    <Users className="w-4 h-4 text-[#4dd0e1]" />
+                    <Users className="w-4 h-4 text-[#5ec0cf]" />
                     {editingAttendeeIdx != null ? "Editando asistente" : "Agregar asistente"}
                   </h3>
                   <span className="text-[11px] text-gray-400">Enter para agregar</span>
@@ -733,12 +742,12 @@ export default function HistorialesManager({
                       onFocus={() => setSuggestOpen(true)}
                       onBlur={closeSuggestions}
                       autoComplete="off"
-                      className={draft.person_profile_id ? "pr-8 border-[#4dd0e1]" : "pr-8"}
+                      className={draft.person_profile_id ? "pr-8 border-[#5ec0cf]" : "pr-8"}
                     />
                     {suggestLoading ? (
                       <Loader2 className="w-4 h-4 text-gray-400 animate-spin absolute right-2.5 top-1/2 -translate-y-1/2" />
                     ) : draft.person_profile_id ? (
-                      <UserCheck className="w-4 h-4 text-[#4dd0e1] absolute right-2.5 top-1/2 -translate-y-1/2" />
+                      <UserCheck className="w-4 h-4 text-[#5ec0cf] absolute right-2.5 top-1/2 -translate-y-1/2" />
                     ) : null}
 
                     {suggestOpen && !suggestLoading && suggestItems.length > 0 && (
@@ -751,7 +760,7 @@ export default function HistorialesManager({
                             className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50"
                           >
                             <span className="text-gray-800 truncate">{s.label}</span>
-                            <span className={`text-[11px] flex-shrink-0 ${s.source === "participante" ? "text-[#4dd0e1]" : "text-gray-400"}`}>
+                            <span className={`text-[11px] flex-shrink-0 ${s.source === "participante" ? "text-[#5ec0cf]" : "text-gray-400"}`}>
                               · {s.source === "participante" ? "participante" : "en otro fichero"}
                             </span>
                           </button>
@@ -809,7 +818,7 @@ export default function HistorialesManager({
                     type="button"
                     size="sm"
                     onClick={commitDraft}
-                    className="flex-1 bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
+                    className="flex-1 bg-alma-fuerte hover:bg-alma-oscuro text-white"
                   >
                     {editingAttendeeIdx != null ? (
                       <><Check className="w-4 h-4 mr-1.5" /> Guardar cambios</>
@@ -824,12 +833,12 @@ export default function HistorialesManager({
               <div className="flex-1 min-h-0 lg:overflow-y-auto p-5 bg-gray-50/60">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Asistentes cargados</p>
-                  <Badge className="bg-[#4dd0e1]">{attendees.length}</Badge>
+                  <Badge className="bg-alma-fuerte">{attendees.length}</Badge>
                 </div>
 
                 {attendees.length === 0 ? (
                   <div className="text-center text-sm text-gray-400 py-10 leading-relaxed">
-                    Todavía no agregaste asistentes.<br />Cargá el primero arriba.
+                    Sin asistentes cargados.
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -839,12 +848,12 @@ export default function HistorialesManager({
                         <div
                           key={idx}
                           className={`rounded-lg border p-3 text-sm flex items-start gap-3 transition-colors ${
-                            isEditing ? "border-[#4dd0e1] bg-cyan-50/60" : "border-gray-200 bg-white hover:border-gray-300"
+                            isEditing ? "border-[#5ec0cf] bg-cyan-50/60" : "border-gray-200 bg-white hover:border-gray-300"
                           }`}
                         >
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-gray-900 flex items-center gap-1.5">
-                              {a.person_profile_id && <UserCheck className="w-3.5 h-3.5 text-[#4dd0e1] shrink-0" />}
+                              {a.person_profile_id && <UserCheck className="w-3.5 h-3.5 text-[#5ec0cf] shrink-0" />}
                               <span className="truncate">
                                 {a.person_name}{a.person_age ? ` (${a.person_age})` : ""}
                               </span>
@@ -861,7 +870,7 @@ export default function HistorialesManager({
                             <button
                               type="button"
                               onClick={() => editAttendeeRow(idx)}
-                              className="p-1.5 rounded text-gray-400 hover:text-[#4dd0e1] hover:bg-gray-100 transition-colors"
+                              className="p-1.5 rounded text-gray-400 hover:text-[#5ec0cf] hover:bg-gray-100 transition-colors"
                               title="Editar"
                             >
                               <Edit className="w-3.5 h-3.5" />
@@ -884,9 +893,9 @@ export default function HistorialesManager({
             </div>
           </div>
 
-          <DialogFooter className="px-6 py-4 border-t shrink-0">
+          <DialogFooter className="mx-0 mb-0 px-6 py-4 border-t shrink-0">
             <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saving} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+            <Button onClick={handleSave} disabled={saving} className="bg-alma-fuerte hover:bg-alma-oscuro text-white">
               {saving ? "Guardando…" : editing ? "Actualizar" : "Guardar ficha"}
             </Button>
           </DialogFooter>

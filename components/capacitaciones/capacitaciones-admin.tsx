@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 import ImageUpload from "@/components/ui/image-upload"
@@ -381,7 +381,7 @@ function DetalleCapacitacion({
     <div className="space-y-4">
       <button
         onClick={onVolver}
-        className="flex items-center gap-1.5 text-sm font-medium text-gray-500 transition hover:text-[#00838f]"
+        className="flex items-center gap-1.5 text-sm font-medium text-gray-500 transition hover:text-alma-fuerte"
       >
         <ArrowLeft className="h-4 w-4" />
         Todas las capacitaciones
@@ -460,7 +460,7 @@ function DetalleCapacitacion({
             <Card>
               <CardContent className="flex flex-col items-center gap-3 py-14 text-center text-gray-500">
                 <FileText className="h-8 w-8 text-gray-300" />
-                <p>Todavía no cargaste contenido.</p>
+                <p>Sin contenido cargado.</p>
               </CardContent>
             </Card>
           )}
@@ -480,7 +480,7 @@ function DetalleCapacitacion({
                 // lista, no botones; alcanza con que acompañen al mouse.
                 className={`group relative rounded-lg border p-2.5 transition hover:shadow-sm ${
                   activo
-                    ? "border-[#4dd0e1] bg-[#4dd0e1]/5 hover:bg-[#4dd0e1]/10"
+                    ? "border-[#5ec0cf] bg-[#5ec0cf]/5 hover:bg-[#5ec0cf]/10"
                     : it.is_published
                       ? "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                       : "border-amber-200 bg-amber-50/70 hover:border-amber-300 hover:bg-amber-50"
@@ -647,7 +647,7 @@ function DetalleCapacitacion({
           <Button
             size="sm"
             variant="outline"
-            className="w-full border-[#4dd0e1]/40 bg-[#4dd0e1]/10 font-medium text-[#00838f] hover:bg-[#4dd0e1]/20"
+            className="w-full border-[#5ec0cf]/40 bg-[#5ec0cf]/10 font-medium text-alma-fuerte hover:bg-[#5ec0cf]/20"
             onClick={onNuevoItem}
           >
             <Plus className="mr-2 h-3 w-3" />
@@ -752,7 +752,7 @@ function TrainingDialog({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
             <div>
               <Label>Precio</Label>
               <Input
@@ -775,7 +775,7 @@ function TrainingDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
             <div>
               <Label>Acceso</Label>
               <Select value={value.access_mode ?? "grant"} onValueChange={(v) => onChange({ ...value, access_mode: v })}>
@@ -822,20 +822,22 @@ function TrainingDialog({
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-2">
-          {portadaOcupada && (
-            <span className="mr-auto text-xs text-gray-500">Terminá con la portada</span>
-          )}
+        {/* El aviso de la portada sale del pie: ahí adentro se comía el ancho
+            de los botones en el teléfono y los dejaba en dos renglones. */}
+        {portadaOcupada && (
+          <p className="text-xs text-gray-500">Terminá con la portada antes de guardar.</p>
+        )}
+        <DialogFooter className="pt-2">
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button
             onClick={onSave}
             disabled={saving || portadaOcupada}
-            className="bg-[#4dd0e1] hover:bg-[#3bb8c9]"
+            className="bg-alma-fuerte hover:bg-alma-oscuro"
           >
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Guardar
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
@@ -1084,13 +1086,13 @@ function ItemDialog({
           )}
         </div>
 
-        <div className="flex justify-end gap-2 pt-2">
+        <DialogFooter className="pt-2">
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={onSave} disabled={saving} className="bg-[#4dd0e1] hover:bg-[#3bb8c9]">
+          <Button onClick={onSave} disabled={saving} className="bg-alma-fuerte hover:bg-alma-oscuro">
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Guardar
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

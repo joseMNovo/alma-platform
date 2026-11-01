@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
+import { SegmentadoSimple } from "@/components/ui/pestanas-mobile"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "@/hooks/use-toast"
@@ -14,6 +15,7 @@ import QrVidriera from "@/components/capacitaciones/qr-vidriera"
 import AvisoDePago from "@/components/capacitaciones/aviso-de-pago"
 import TrainingSurvey from "@/components/capacitaciones/training-survey"
 import CapacitacionesAdmin from "@/components/capacitaciones/capacitaciones-admin"
+import BotonFlotante from "@/components/ui/boton-flotante"
 import type { Training, TrainingItem } from "@/lib/data-manager"
 import {
   GraduationCap, Lock, CheckCircle2, PlayCircle, FileText,
@@ -141,7 +143,7 @@ export default function CapacitacionesManager({ user }: { user: any }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-8 w-8 animate-spin text-[#4dd0e1]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#5ec0cf]" />
       </div>
     )
   }
@@ -150,7 +152,7 @@ export default function CapacitacionesManager({ user }: { user: any }) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <GraduationCap className="h-6 w-6 text-[#4dd0e1]" />
+          <GraduationCap className="h-6 w-6 text-[#5ec0cf]" />
           <h2 className="text-xl font-bold text-gray-900">Academia ALMA</h2>
           {/* Para mostrarle la vidriera a alguien en el stand. El participante
               no lo necesita: ya está adentro. */}
@@ -163,29 +165,23 @@ export default function CapacitacionesManager({ user }: { user: any }) {
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             {/* Ver / Administrar: dos modos separados, no una pestaña más
                 mezclada con la lista de cursos (confundía). */}
-            <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
-              <button
-                onClick={() => setView("ver")}
-                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition sm:px-3 ${
-                  view === "ver" ? "bg-[#4dd0e1] text-white" : "text-gray-500 hover:bg-gray-50"
-                }`}
-              >
-                <Eye className="h-4 w-4 shrink-0" />
-                Ver
-              </button>
-              <button
-                onClick={() => setView("administrar")}
-                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition sm:px-3 ${
-                  view === "administrar" ? "bg-[#9A8BC2] text-white" : "text-gray-500 hover:bg-gray-50"
-                }`}
-              >
-                <Settings className="h-4 w-4 shrink-0" />
-                Administrar
-              </button>
-            </div>
+            {/* "Administrar" conserva el lavanda: es el modo en el que se
+                toca lo que ven los demás, y que se vea distinto de "Ver" es
+                justamente el aviso. */}
+            <SegmentadoSimple
+              valor={view}
+              onCambio={setView}
+              className="flex-1 sm:flex-none"
+              opciones={[
+                { valor: "ver" as const, etiqueta: "Ver", icono: Eye },
+                { valor: "administrar" as const, etiqueta: "Administrar", icono: Settings, claseActiva: "text-[#7c6cab]" },
+              ]}
+            />
+            {/* En el teléfono este botón no va acá: ver el comentario del
+                flotante, abajo de todo. */}
             <Button
               onClick={() => { setView("administrar"); setOpenNewTraining(true) }}
-              className="flex-1 bg-[#4dd0e1] hover:bg-[#3bb8c9] sm:flex-none"
+              className="hidden bg-alma-fuerte hover:bg-alma-oscuro sm:inline-flex sm:flex-none"
             >
               <Plus className="mr-2 h-4 w-4 shrink-0" />
               Nueva capacitación
@@ -224,7 +220,7 @@ export default function CapacitacionesManager({ user }: { user: any }) {
           <div className="flex items-center justify-between gap-3">
             <button
               onClick={() => router.push(irA())}
-              className="flex items-center gap-1.5 text-sm font-medium text-gray-500 transition hover:text-[#00838f]"
+              className="flex items-center gap-1.5 text-sm font-medium text-gray-500 transition hover:text-alma-fuerte"
             >
               <ArrowLeft className="h-4 w-4" />
               Todas las capacitaciones
@@ -248,6 +244,27 @@ export default function CapacitacionesManager({ user }: { user: any }) {
             user={user}
           />
         </div>
+      )}
+
+      {/*
+        Crear, flotando, como en el resto de los módulos.
+
+        Arriba se comía un renglón entero del encabezado —que acá ya tiene
+        título, QR y el par Ver/Administrar— y además dejaba de existir apenas
+        bajabas dos tarjetas del catálogo, que son altas.
+
+        No aparece mientras estás ADENTRO de una capacitación: ahí la pantalla
+        es el reproductor, y un botón de "crear otra" flotando sobre un video
+        que alguien está mirando no es la acción que busca nadie. En la
+        vidriera y en Administrar sí, que es donde se crea.
+      */}
+      {isManager && !(view === "ver" && current) && (
+        <BotonFlotante
+          onClick={() => { setView("administrar"); setOpenNewTraining(true) }}
+          className="sm:hidden"
+        >
+          Nueva capacitación
+        </BotonFlotante>
       )}
     </div>
   )
@@ -290,7 +307,7 @@ function TrainingView({
                       href={item.file_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-4 inline-flex items-center gap-1 text-[#4dd0e1]"
+                      className="mt-4 inline-flex items-center gap-1 text-[#5ec0cf]"
                     >
                       Abrir <ExternalLink className="h-3 w-3" />
                     </a>
@@ -330,7 +347,7 @@ function TrainingView({
               </span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-              <div className="h-full bg-[#4dd0e1] transition-all" style={{ width: `${progress}%` }} />
+              <div className="h-full bg-[#5ec0cf] transition-all" style={{ width: `${progress}%` }} />
             </div>
             {training.access_expires_at && (
               <p className="flex items-center gap-1 text-xs text-amber-600">
@@ -350,7 +367,7 @@ function TrainingView({
                 key={it.id}
                 onClick={() => onSelectItem(it.id)}
                 className={`flex w-full items-start gap-3 rounded-lg border p-3 text-left transition ${
-                  active ? "border-[#4dd0e1] bg-[#4dd0e1]/5" : "border-gray-200 hover:bg-gray-50"
+                  active ? "border-[#5ec0cf] bg-[#5ec0cf]/5" : "border-gray-200 hover:bg-gray-50"
                 }`}
               >
                 <span className="mt-0.5 shrink-0">
@@ -400,7 +417,7 @@ function LockedTraining({ training }: { training: Training }) {
               <p className="mt-1 text-sm text-gray-600">{training.description}</p>
             )}
             {Number(training.price) > 0 && (
-              <p className="mt-3 text-2xl font-bold text-[#4dd0e1]">
+              <p className="mt-3 text-2xl font-bold text-[#5ec0cf]">
                 ${Number(training.price).toLocaleString("es-AR")}
                 <span className="ml-1 text-sm font-normal text-gray-500">{training.currency}</span>
               </p>
@@ -459,7 +476,7 @@ function LockedTraining({ training }: { training: Training }) {
             href={training.payment_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#4dd0e1] px-4 py-3 font-semibold text-white transition hover:bg-[#3bb8c9]"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-alma-fuerte px-4 py-3 font-semibold text-white transition hover:bg-alma-oscuro"
           >
             <CreditCard className="h-4 w-4" />
             Comprar con MercadoPago
@@ -488,7 +505,7 @@ function LockedTraining({ training }: { training: Training }) {
             ¿Alguna otra duda? Escribinos a{" "}
             <a
               href={`mailto:${config.contact.email}`}
-              className="font-medium text-[#00838f] underline-offset-2 hover:underline"
+              className="font-medium text-alma-fuerte underline-offset-2 hover:underline"
             >
               {config.contact.email}
             </a>

@@ -241,7 +241,7 @@ export default function InicioLauncher({
               <button
                 key={a.key}
                 onClick={() => navegar(a.route)}
-                className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white py-1 pl-1 pr-3 text-[13px] transition-colors hover:border-[#4dd0e1] hover:bg-[#4dd0e1]/5"
+                className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white py-1 pl-1 pr-3 text-[13px] transition-colors hover:border-[#5ec0cf] hover:bg-[#5ec0cf]/5"
               >
                 <span className="flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
                   {a.cantidad}
@@ -272,8 +272,8 @@ export default function InicioLauncher({
       */}
       <div className="flex flex-col gap-7">
       {recientes.length > 0 && (
-        <section className="order-2 rounded-2xl border border-[#4dd0e1]/30 bg-[#4dd0e1]/[0.07] p-4 lg:order-1">
-          <p className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#00838f]">
+        <section className="order-2 rounded-2xl border border-[#5ec0cf]/30 bg-[#5ec0cf]/[0.07] p-4 lg:order-1">
+          <p className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-alma-fuerte">
             <Clock className="h-3.5 w-3.5" />
             {/* En el teléfono el rótulo largo se parte en dos renglones para
                 decir algo que la hora de al lado ya no muestra. */}
@@ -287,10 +287,10 @@ export default function InicioLauncher({
                 <button
                   key={mod.key}
                   onClick={() => onAbrir(mod)}
-                  className="flex items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-left transition-colors hover:border-[#4dd0e1]"
+                  className="flex items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-left transition-colors hover:border-[#5ec0cf]"
                 >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#4dd0e1]/10">
-                    <Icono className="h-[15px] w-[15px] text-[#4dd0e1]" />
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#5ec0cf]/10">
+                    <Icono className="h-[15px] w-[15px] text-[#5ec0cf]" />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13.5px] font-semibold text-gray-800">
@@ -351,8 +351,8 @@ export default function InicioLauncher({
                 onClick={() => onAbrir(mod)}
                 className="flex flex-col items-center gap-1.5"
               >
-                <span className="relative flex h-12 w-12 items-center justify-center rounded-xl border border-gray-200 bg-white transition-colors active:bg-[#4dd0e1]/10">
-                  <Icono className="h-5 w-5 text-[#4dd0e1]" />
+                <span className="relative flex h-12 w-12 items-center justify-center rounded-xl border border-gray-200 bg-white transition-colors active:bg-[#5ec0cf]/10">
+                  <Icono className="h-5 w-5 text-[#5ec0cf]" />
                   {esperando > 0 && (
                     <span className="absolute -right-1.5 -top-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-[#f9fafb] bg-red-500 px-1 text-[10px] font-bold text-white">
                       {esperando}
@@ -377,7 +377,7 @@ export default function InicioLauncher({
               className="flex flex-col items-center gap-1.5 no-underline"
             >
               <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-gray-200 bg-white">
-                <Gamepad2 className="h-5 w-5 text-[#4dd0e1]" />
+                <Gamepad2 className="h-5 w-5 text-[#5ec0cf]" />
               </span>
               <span className="text-center text-[11px] font-medium leading-tight text-gray-700">
                 Juegos
@@ -415,10 +415,10 @@ export default function InicioLauncher({
                         onClick={() => onAbrir(mod)}
                         className="group flex w-full items-center gap-2.5 text-left"
                       >
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#4dd0e1]/10 transition-colors group-hover:bg-[#4dd0e1]/20">
-                          <Icono className="h-[17px] w-[17px] text-[#4dd0e1]" />
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#5ec0cf]/10 transition-colors group-hover:bg-[#5ec0cf]/20">
+                          <Icono className="h-[17px] w-[17px] text-[#5ec0cf]" />
                         </span>
-                        <span className="truncate text-[15px] font-semibold text-gray-800 transition-colors group-hover:text-[#00838f]">
+                        <span className="truncate text-[15px] font-semibold text-gray-800 transition-colors group-hover:text-alma-fuerte">
                           {mod.label}
                         </span>
                       </button>
@@ -435,7 +435,7 @@ export default function InicioLauncher({
                               <button
                                 key={hijo.key}
                                 onClick={() => onAbrir(hijo)}
-                                className="flex items-center gap-1 text-[13px] text-[#00838f] transition-colors hover:underline"
+                                className="flex items-center gap-1 text-[13px] text-alma-fuerte transition-colors hover:underline"
                               >
                                 {hijo.label}
                                 {esperando > 0 && (
@@ -451,7 +451,7 @@ export default function InicioLauncher({
                              aire, sin decir qué pasa si lo tocás. */
                           <button
                             onClick={() => onAbrir(mod)}
-                            className="text-[13px] text-[#00838f] transition-colors hover:underline"
+                            className="text-[13px] text-alma-fuerte transition-colors hover:underline"
                           >
                             Abrir {mod.label.toLowerCase()} →
                           </button>
@@ -473,7 +473,7 @@ export default function InicioLauncher({
           no dibuja nada si la app ya está instalada, así que lo habitual es que
           acá solo quede el QR. */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 lg:max-w-sm">
-        <span className="mr-auto text-sm font-medium text-gray-700">alma en tu celular</span>
+        <span className="mr-auto text-sm font-medium text-gray-700">Alma en tu celular</span>
         <InstalarApp className="h-8 px-3 text-[13px]" />
         {/* Apunta a la app, no a la vidriera: esta es la pantalla donde le
             mostrás ALMA a alguien para que entre por primera vez. El de la

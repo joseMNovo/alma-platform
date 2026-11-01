@@ -51,7 +51,7 @@ const ROLE_LABELS: Record<string, string> = {
 
 /** Estilo de la insignia de rol, en la paleta ALMA */
 const ROLE_STYLES: Record<string, string> = {
-  admin: "bg-[#e0f7fa] text-[#00838f] border-[#4dd0e1]/40",
+  admin: "bg-[#dff2f5] text-alma-fuerte border-[#5ec0cf]/40",
   voluntario: "bg-violet-50 text-violet-700 border-violet-200",
   participante: "bg-amber-50 text-amber-700 border-amber-200",
 }
@@ -236,21 +236,26 @@ export default function ActividadManager({ user }: { user: CurrentUser }) {
   const SortIcon = ({ k }: { k: SortKey }) => {
     if (sort.key !== k) return <ArrowUpDown className="w-3.5 h-3.5 text-gray-300" />
     return sort.dir === "asc"
-      ? <ArrowUp className="w-3.5 h-3.5 text-[#00838f]" />
-      : <ArrowDown className="w-3.5 h-3.5 text-[#00838f]" />
+      ? <ArrowUp className="w-3.5 h-3.5 text-alma-fuerte" />
+      : <ArrowDown className="w-3.5 h-3.5 text-alma-fuerte" />
   }
 
   // ── Render ───────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
-      {/* Banner institucional */}
-      <div className="rounded-2xl bg-gradient-to-br from-[#e0f7fa] to-[#b2ebf2] border border-[#4dd0e1]/40 px-6 py-5 flex items-center gap-4 shadow-sm">
+      {/* Banner institucional — solo escritorio.
+
+          En el teléfono repetía, palabra por palabra, el título que ya está
+          arriba en el encabezado de sección, y le sumaba dos renglones de
+          explicación. Entre eso y el botón, el primer dato real aparecía
+          recién al segundo scroll. */}
+      <div className="hidden sm:flex rounded-2xl bg-gradient-to-br from-[#dff2f5] to-[#bbe5eb] border border-[#5ec0cf]/40 px-6 py-5 items-center gap-4 shadow-sm">
         <div className="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-xl bg-white/70 shadow-sm">
-          <BarChart3 className="w-6 h-6 text-[#4dd0e1]" />
+          <BarChart3 className="w-6 h-6 text-[#5ec0cf]" />
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-semibold text-[#00838f] leading-tight">Actividad de usuarios</h2>
-          <p className="text-sm text-[#00838f]/80 mt-0.5">
+          <h2 className="text-lg font-semibold text-alma-fuerte leading-tight">Actividad de usuarios</h2>
+          <p className="text-sm text-alma-fuerte/80 mt-0.5">
             Seguí quién usa la plataforma: ingresos, módulos visitados y cambios que hizo cada persona.
           </p>
         </div>
@@ -258,7 +263,7 @@ export default function ActividadManager({ user }: { user: CurrentUser }) {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard icon={Users} label="Con actividad" value={kpi.users} tint="text-[#4dd0e1]" />
+        <KpiCard icon={Users} label="Con actividad" value={kpi.users} tint="text-[#5ec0cf]" />
         <KpiCard icon={Activity} label="Activos (24 h)" value={kpi.active} tint="text-emerald-500" />
         <KpiCard icon={LogIn} label="Ingresos" value={kpi.logins} tint="text-violet-500" />
         <KpiCard icon={MousePointerClick} label="Cambios" value={kpi.actions} tint="text-amber-500" />
@@ -267,7 +272,7 @@ export default function ActividadManager({ user }: { user: CurrentUser }) {
       {/* Listado */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-8 h-8 animate-spin text-[#4dd0e1]" />
+          <Loader2 className="w-8 h-8 animate-spin text-[#5ec0cf]" />
         </div>
       ) : summary.length === 0 ? (
         <Card>
@@ -355,7 +360,7 @@ export default function ActividadManager({ user }: { user: CurrentUser }) {
                   const key = `${row.user_type}-${row.user_id}`
                   const modules = Object.entries(row.view_counts)
                   return (
-                    <tr key={key} className="border-b border-gray-100 last:border-0 even:bg-gray-50/50 hover:bg-[#4dd0e1]/[0.06] transition-colors">
+                    <tr key={key} className="border-b border-gray-100 last:border-0 even:bg-gray-50/50 hover:bg-[#5ec0cf]/[0.06] transition-colors">
                       <td className="px-4 py-2">
                         <div className="flex items-center gap-3">
                           <Avatar row={row} />
@@ -386,7 +391,7 @@ export default function ActividadManager({ user }: { user: CurrentUser }) {
                       <td className="px-4 py-2 text-right">
                         <Button
                           variant="ghost" size="sm" onClick={() => openTimeline(row)}
-                          className="h-8 gap-1 text-gray-500 hover:text-[#00838f] hover:bg-[#4dd0e1]/10"
+                          className="h-8 gap-1 text-gray-500 hover:text-alma-fuerte hover:bg-[#5ec0cf]/10"
                         >
                           Ver detalle <ChevronRight className="w-3.5 h-3.5" />
                         </Button>
@@ -425,7 +430,7 @@ export default function ActividadManager({ user }: { user: CurrentUser }) {
                   .map(([m, c]) => (
                     <div key={m} className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-2.5 py-1.5">
                       <span className="text-xs text-gray-600 truncate capitalize">{m}</span>
-                      <span className="text-xs font-semibold text-[#00838f] tabular-nums">{c}</span>
+                      <span className="text-xs font-semibold text-alma-fuerte tabular-nums">{c}</span>
                     </div>
                   ))}
               </div>
@@ -433,7 +438,7 @@ export default function ActividadManager({ user }: { user: CurrentUser }) {
           )}
           {timelineLoading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-[#4dd0e1]" />
+              <Loader2 className="w-6 h-6 animate-spin text-[#5ec0cf]" />
             </div>
           ) : timeline.length === 0 ? (
             <p className="text-sm text-gray-500 py-4 text-center">Sin eventos registrados.</p>
@@ -441,7 +446,7 @@ export default function ActividadManager({ user }: { user: CurrentUser }) {
             <ul className="relative space-y-3 pl-4 mt-2 before:absolute before:left-[3px] before:top-1.5 before:bottom-1.5 before:w-px before:bg-gray-200">
               {timeline.map((event) => (
                 <li key={event.id} className="relative">
-                  <span className={`absolute -left-4 top-1.5 w-1.5 h-1.5 rounded-full ring-2 ring-white ${event.event_type === "login" ? "bg-violet-400" : "bg-[#4dd0e1]"}`} />
+                  <span className={`absolute -left-4 top-1.5 w-1.5 h-1.5 rounded-full ring-2 ring-white ${event.event_type === "login" ? "bg-violet-400" : "bg-[#5ec0cf]"}`} />
                   <div className="flex items-center justify-between gap-2 text-sm">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="capitalize font-medium text-gray-700">{EVENT_LABELS[event.event_type] ?? event.event_type}</span>
@@ -465,7 +470,7 @@ export default function ActividadManager({ user }: { user: CurrentUser }) {
 // ── Subcomponentes ───────────────────────────────────────────────────────
 function Avatar({ row }: { row: { name: string | null; last_name: string | null } }) {
   return (
-    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#4dd0e1] to-[#3bc0d1] flex items-center justify-center flex-shrink-0">
+    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#5ec0cf] to-[#55adba] flex items-center justify-center flex-shrink-0">
       <span className="text-white font-semibold text-xs">{initials(row)}</span>
     </div>
   )
@@ -507,7 +512,7 @@ function SortableTh({
 }) {
   return (
     <th className="px-4 py-2 font-semibold">
-      <button onClick={() => onClick(k)} className="inline-flex items-center gap-1.5 hover:text-[#00838f] transition-colors">
+      <button onClick={() => onClick(k)} className="inline-flex items-center gap-1.5 hover:text-alma-fuerte transition-colors">
         {label}
         <SortIcon k={k} />
       </button>

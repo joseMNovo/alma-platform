@@ -118,7 +118,7 @@ export default function BarraSincro({
             type="checkbox"
             checked={modoOffline}
             onChange={onAlternarModo}
-            className="h-[22px] w-[22px] cursor-pointer rounded border-gray-300 accent-[#00838f]"
+            className="h-[22px] w-[22px] cursor-pointer rounded border-gray-300 accent-alma-fuerte"
           />
           Trabajar sin conexión
         </label>

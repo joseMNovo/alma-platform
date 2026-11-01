@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 import FilterChip from "@/components/ui/filter-chip"
+import BotonFlotante from "@/components/ui/boton-flotante"
+import { HojaFiltros, ChipsActivos } from "@/components/ui/filtros-mobile"
 import {
   Plus, Edit, Trash2, Database, Search, X, ChevronDown,
   ArrowUpDown, ArrowUp, ArrowDown, Send, Loader2, AlertTriangle,
@@ -75,7 +77,7 @@ function fullAddress(p: Persona): string {
 function MemberMark({ active, size = "w-4 h-4" }: { active?: boolean; size?: string }) {
   return (
     <BadgeCheck
-      className={`${size} ${active ? "fill-[#4dd0e1] text-white" : "fill-none text-gray-300"}`}
+      className={`${size} ${active ? "fill-[#5ec0cf] text-white" : "fill-none text-gray-300"}`}
       aria-label={active ? "Socia" : "No socia"}
     />
   )
@@ -244,6 +246,28 @@ export default function PersonasDbManager({ user }: { user: any }) {
 
   const limpiarFiltros = () => { setBusqueda(""); setSeg(EMPTY_SEG) }
 
+  /**
+   * Los filtros puestos, escritos.
+   *
+   * En el teléfono las pastillas viven adentro de la hoja de filtros, así que
+   * desde la lista no se ve ninguna. Sin esto, "¿por qué no aparece Juana?"
+   * no tiene respuesta visible: la respuesta es un filtro que quedó prendido
+   * la semana pasada. Acá queda escrito y se saca de un toque.
+   */
+  const ETIQUETA_SEG: Record<string, string> = {
+    "volunteer:yes": "Voluntarios",
+    "volunteer:no": "Participantes",
+    "member:yes": "Socios",
+    "account:without": "Sin usuario",
+  }
+  const filtrosPuestos = Object.entries(seg)
+    .filter(([, v]) => v !== "all")
+    .map(([campo, valor]) => ({
+      id: `${campo}:${valor}`,
+      texto: ETIQUETA_SEG[`${campo}:${valor}`] ?? String(valor),
+      quitar: () => setSeg(st => ({ ...st, [campo]: "all" })),
+    }))
+
   /** Prende el valor o, si ya estaba prendido, vuelve a "all". */
   const alternarSeg = (campo: keyof typeof EMPTY_SEG, valor: string) =>
     setSeg(s => ({ ...s, [campo]: s[campo] === valor ? "all" : valor }))
@@ -254,8 +278,8 @@ export default function PersonasDbManager({ user }: { user: any }) {
   const SortIcon = ({ k }: { k: SortKey }) => {
     if (sort.key !== k) return <ArrowUpDown className="w-3.5 h-3.5 text-gray-300" />
     return sort.dir === "asc"
-      ? <ArrowUp className="w-3.5 h-3.5 text-[#00838f]" />
-      : <ArrowDown className="w-3.5 h-3.5 text-[#00838f]" />
+      ? <ArrowUp className="w-3.5 h-3.5 text-alma-fuerte" />
+      : <ArrowDown className="w-3.5 h-3.5 text-alma-fuerte" />
   }
 
   // ── Alta / edición ──────────────────────────────────────────────────
@@ -565,20 +589,28 @@ export default function PersonasDbManager({ user }: { user: any }) {
   // ── Render ──────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
-      {/* Banner institucional */}
-      <div className="rounded-2xl bg-gradient-to-br from-[#e0f7fa] to-[#b2ebf2] border border-[#4dd0e1]/40 px-6 py-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 shadow-sm">
+      {/*
+        Banner institucional — solo escritorio.
+
+        En el teléfono decía "Base de datos de personas" justo debajo de una
+        pestaña que ya dice "Base de datos", y le sumaba dos renglones de
+        texto explicativo. Entre eso y el botón, la primera persona de la
+        lista aparecía recién al segundo scroll. El botón de crear no se
+        pierde: pasa a ser el botón flotante de abajo.
+      */}
+      <div className="hidden sm:flex rounded-2xl bg-gradient-to-br from-[#dff2f5] to-[#bbe5eb] border border-[#5ec0cf]/40 px-6 py-5 flex-col sm:flex-row items-start sm:items-center gap-4 shadow-sm">
         <div className="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-xl bg-white/70 shadow-sm">
-          <Database className="w-6 h-6 text-[#4dd0e1]" />
+          <Database className="w-6 h-6 text-[#5ec0cf]" />
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-semibold text-[#00838f] leading-tight">Base de datos de personas</h2>
-          <p className="text-sm text-[#00838f]/80 mt-0.5">
+          <h2 className="text-lg font-semibold text-alma-fuerte leading-tight">Base de datos de personas</h2>
+          <p className="text-sm text-alma-fuerte/80 mt-0.5">
             Todas las personas vinculadas a ALMA: voluntarias, participantes y socias. Consultá, agregá y mantené sus datos actualizados.
           </p>
         </div>
         {canCreate && (
           <div className="flex-shrink-0 w-full sm:w-auto">
-            <Button onClick={openCreate} className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white w-full sm:w-auto">
+            <Button onClick={openCreate} className="bg-alma-fuerte hover:bg-alma-oscuro text-white w-full sm:w-auto">
               <Plus className="w-4 h-4 mr-2" />
               Nueva persona
             </Button>
@@ -590,7 +622,9 @@ export default function PersonasDbManager({ user }: { user: any }) {
           texto y pastillas que se prenden y apagan. Sin acordeón: los filtros
           escondidos no se usan. */}
       <div className="space-y-2">
-        <div className="relative">
+        {/* Un solo renglón: buscar y filtrar son la misma tarea. */}
+        <div className="flex items-center gap-2">
+        <div className="relative min-w-0 flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
             className="pl-9"
@@ -609,7 +643,36 @@ export default function PersonasDbManager({ user }: { user: any }) {
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
+        <HojaFiltros
+          className="sm:hidden"
+          cantidad={filtrosPuestos.length}
+          resultados={filtered.length}
+          onLimpiar={() => setSeg(EMPTY_SEG)}
+          sustantivo="personas"
+        >
+          <div className="flex flex-wrap gap-2">
+            <FilterChip active={seg.volunteer === "yes"} onClick={() => alternarSeg("volunteer", "yes")}>Voluntarios</FilterChip>
+            <FilterChip active={seg.volunteer === "no"} onClick={() => alternarSeg("volunteer", "no")}>Participantes</FilterChip>
+            <FilterChip active={seg.member === "yes"} onClick={() => alternarSeg("member", "yes")}>Socios</FilterChip>
+            <FilterChip active={seg.account === "without"} onClick={() => alternarSeg("account", "without")}>Sin usuario</FilterChip>
+          </div>
+        </HojaFiltros>
+        </div>
+
+        {/* Cuántas quedan y por qué. Solo teléfono: arriba, en escritorio, ya
+            está la pastilla con el conteo y las pastillas a la vista. */}
+        <ChipsActivos
+          className="sm:hidden"
+          total={filtered.length}
+          sustantivo="personas"
+          filtros={filtrosPuestos}
+        />
+
+        {/*
+          Escritorio: las pastillas a la vista, que hay lugar de sobra.
+          Teléfono: el botón "Filtros" de arriba las abre en una hoja.
+        */}
+        <div className="hidden sm:flex flex-wrap items-center gap-1.5">
           <FilterChip active={seg.volunteer === "yes"} onClick={() => alternarSeg("volunteer", "yes")}>
             Voluntarios
           </FilterChip>
@@ -630,8 +693,10 @@ export default function PersonasDbManager({ user }: { user: any }) {
         </div>
       </div>
 
-      {/* Conteo + KPIs */}
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-1">
+      {/* Conteo + KPIs — solo escritorio. En el teléfono el conteo lo da la
+          línea de chips de arriba, y los tres KPIs ocupaban cuatro renglones
+          de datos que no se miran mientras se busca a alguien. */}
+      <div className="hidden sm:flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-1">
         <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
           {loading ? "Cargando…" : `${filtered.length} ${filtered.length === 1 ? "persona" : "personas"}`}
           {!loading && hasActiveFilters && (
@@ -652,7 +717,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
               <span className="text-xs text-gray-400">· {kpi.volunteerMembers} socios</span>
             </span>
             <span className="inline-flex items-center gap-1.5" title="Socios/as sin ninguna cuenta (ni participante ni voluntario) — solo socio">
-              <BadgeCheck className="w-4 h-4 fill-[#4dd0e1] text-white" />
+              <BadgeCheck className="w-4 h-4 fill-[#5ec0cf] text-white" />
               <span className="font-semibold text-gray-700">{kpi.membersNoAccount}</span> socios sin usuario
             </span>
           </div>
@@ -688,7 +753,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
                   onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpandedId(isExpanded ? null : p.id) } }}
                   className="w-full flex items-center gap-3 px-4 py-2 text-left cursor-pointer transition-colors active:bg-gray-50"
                 >
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#4dd0e1] to-[#3bc0d1] flex items-center justify-center flex-shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#5ec0cf] to-[#55adba] flex items-center justify-center flex-shrink-0">
                     <span className="text-white font-semibold text-xs">{initials(p)}</span>
                   </div>
                   <div className="flex-1 min-w-0">
@@ -725,7 +790,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
                         aria-pressed={!!p.is_admin}
                         className="p-1 rounded-full transition-transform active:scale-90 disabled:opacity-50"
                       >
-                        <ShieldCheck className={`w-[18px] h-[18px] ${p.is_admin ? "text-[#00838f]" : "text-gray-300"}`} />
+                        <ShieldCheck className={`w-[18px] h-[18px] ${p.is_admin ? "text-alma-fuerte" : "text-gray-300"}`} />
                       </button>
                     )}
                     {/* Voluntario/a — flor: toca para habilitar (si no lo es) o
@@ -787,7 +852,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
                           variant="outline" size="sm"
                           onClick={() => handleInvite(p)}
                           disabled={invitingId === p.id}
-                          className="w-full h-9 gap-1.5 border-[#4dd0e1]/50 text-[#00838f] hover:bg-[#4dd0e1]/10"
+                          className="w-full h-9 gap-1.5 border-[#5ec0cf]/50 text-alma-fuerte hover:bg-[#5ec0cf]/10"
                         >
                           {invitingId === p.id
                             ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -855,7 +920,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
               {filtered.map(p => {
                 const st = personaStatus(p)
                 return (
-                  <tr key={p.id} className="border-b border-gray-100 last:border-0 even:bg-gray-50/50 hover:bg-[#4dd0e1]/[0.06] transition-colors">
+                  <tr key={p.id} className="border-b border-gray-100 last:border-0 even:bg-gray-50/50 hover:bg-[#5ec0cf]/[0.06] transition-colors">
                     <td className="px-4 py-2 font-medium text-gray-900">{p.name || "—"}</td>
                     <td className="px-4 py-2 text-gray-700">{p.last_name || "—"}</td>
                     <td className="px-4 py-2 text-gray-500 tabular-nums">{p.cuit || "—"}</td>
@@ -938,7 +1003,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
                               aria-pressed={!!p.is_admin}
                               className="p-1 rounded-full transition-transform hover:scale-110 active:scale-95 disabled:opacity-50"
                             >
-                              <ShieldCheck className={`w-[18px] h-[18px] ${p.is_admin ? "text-[#00838f]" : "text-gray-300"}`} />
+                              <ShieldCheck className={`w-[18px] h-[18px] ${p.is_admin ? "text-alma-fuerte" : "text-gray-300"}`} />
                             </button>
                           ) : (
                             <span className="text-gray-200">—</span>
@@ -957,7 +1022,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
                         {canCreate && !hasUserAccount(p) && !!p.email && (
                           <Button variant="ghost" size="sm" onClick={() => handleInvite(p)} disabled={invitingId === p.id}
                             title="Invitar a Comunidad ALMA"
-                            className="h-7 w-7 p-0 text-gray-400 hover:text-[#00838f] hover:bg-[#4dd0e1]/10">
+                            className="h-7 w-7 p-0 text-gray-400 hover:text-alma-fuerte hover:bg-[#5ec0cf]/10">
                             {invitingId === p.id
                               ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                               : <Send className="w-3.5 h-3.5" />}
@@ -974,7 +1039,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
                         )}
                         {canEdit && (
                           <Button variant="ghost" size="sm" onClick={() => openEdit(p)} title="Editar"
-                            className="h-7 w-7 p-0 text-gray-400 hover:text-[#4dd0e1] hover:bg-[#4dd0e1]/10">
+                            className="h-7 w-7 p-0 text-gray-400 hover:text-[#5ec0cf] hover:bg-[#5ec0cf]/10">
                             <Edit className="w-3.5 h-3.5" />
                           </Button>
                         )}
@@ -1009,14 +1074,14 @@ export default function PersonasDbManager({ user }: { user: any }) {
               <button
                 type="button"
                 onClick={() => setCreateTab("participante")}
-                className={`flex items-center justify-center gap-2 h-9 rounded-md text-sm font-medium transition-colors ${createTab === "participante" ? "bg-white text-[#00838f] shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                className={`flex items-center justify-center gap-2 h-9 rounded-md text-sm font-medium transition-colors ${createTab === "participante" ? "bg-white text-alma-fuerte shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
               >
                 <UserCircle className="w-4 h-4" /> Participante
               </button>
               <button
                 type="button"
                 onClick={() => setCreateTab("voluntario")}
-                className={`flex items-center justify-center gap-2 h-9 rounded-md text-sm font-medium transition-colors ${createTab === "voluntario" ? "bg-white text-[#00838f] shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                className={`flex items-center justify-center gap-2 h-9 rounded-md text-sm font-medium transition-colors ${createTab === "voluntario" ? "bg-white text-alma-fuerte shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/images/flor.png" alt="" className="w-4 h-4 object-contain" /> Voluntario/a
@@ -1059,7 +1124,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
               aria-checked={form.is_member}
               onClick={() => setForm(prev => ({ ...prev, is_member: !prev.is_member }))}
               className={`w-full flex items-center justify-between gap-3 rounded-lg border px-4 py-2 text-left transition-colors ${
-                form.is_member ? "border-[#4dd0e1] bg-[#e0f7fa]/50" : "border-gray-200 hover:border-gray-300"
+                form.is_member ? "border-[#5ec0cf] bg-[#dff2f5]/50" : "border-gray-200 hover:border-gray-300"
               }`}
             >
               <span className="flex items-center gap-2.5">
@@ -1068,7 +1133,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
                   <span className="block text-sm font-medium text-gray-700">Socio/a de ALMA</span>
                 </span>
               </span>
-              <span className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${form.is_member ? "bg-[#4dd0e1]" : "bg-gray-200"}`}>
+              <span className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${form.is_member ? "bg-[#5ec0cf]" : "bg-gray-200"}`}>
                 <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${form.is_member ? "translate-x-5" : "translate-x-1"}`} />
               </span>
             </button>
@@ -1105,16 +1170,16 @@ export default function PersonasDbManager({ user }: { user: any }) {
                 <button
                   type="button" role="switch" aria-checked={sendInvite}
                   onClick={() => setSendInvite(v => !v)}
-                  className={`w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors ${sendInvite ? "bg-[#e0f7fa]/50" : "hover:bg-gray-50"}`}
+                  className={`w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors ${sendInvite ? "bg-[#dff2f5]/50" : "hover:bg-gray-50"}`}
                 >
                   <span className="flex items-center gap-2.5">
-                    <Send className={`w-5 h-5 flex-shrink-0 ${sendInvite ? "text-[#00838f]" : "text-gray-400"}`} />
+                    <Send className={`w-5 h-5 flex-shrink-0 ${sendInvite ? "text-alma-fuerte" : "text-gray-400"}`} />
                     <span>
                       <span className="block text-sm font-medium text-gray-700">Enviar invitación a Comunidad ALMA</span>
                       <span className="block text-xs text-gray-500">Le llega un email para crear su cuenta y su PIN.</span>
                     </span>
                   </span>
-                  <span className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${sendInvite ? "bg-[#4dd0e1]" : "bg-gray-200"}`}>
+                  <span className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${sendInvite ? "bg-[#5ec0cf]" : "bg-gray-200"}`}>
                     <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${sendInvite ? "translate-x-5" : "translate-x-1"}`} />
                   </span>
                 </button>
@@ -1127,19 +1192,19 @@ export default function PersonasDbManager({ user }: { user: any }) {
             )}
 
             <p className="text-xs text-gray-400 pt-1">* Campos obligatorios</p>
-            <div className="flex justify-end gap-2 pt-2">
+            <DialogFooter className="pt-2">
               <Button variant="outline" onClick={closeForm} disabled={submitting}>Cancelar</Button>
-              <Button onClick={handleSubmit} disabled={submitting} className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white">
+              <Button onClick={handleSubmit} disabled={submitting} className="bg-alma-fuerte hover:bg-alma-oscuro text-white">
                 {submitting ? "Guardando..." : editing ? "Guardar cambios" : sendInvite ? "Crear e invitar" : "Agregar persona"}
               </Button>
-            </div>
+            </DialogFooter>
           </div>
           )}
 
           {/* ── Ficha Voluntario/a (solo alta) ── */}
           {!editing && createTab === "voluntario" && (
           <div className="space-y-4 mt-1">
-            <div className="rounded-lg bg-[#e0f7fa]/50 border border-[#4dd0e1]/30 px-4 py-2 text-sm text-[#00838f] flex gap-2">
+            <div className="rounded-lg bg-[#dff2f5]/50 border border-[#5ec0cf]/30 px-4 py-2 text-sm text-alma-fuerte flex gap-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/images/flor.png" alt="" className="w-4 h-4 flex-shrink-0 mt-0.5 object-contain" />
               <span>
@@ -1164,12 +1229,12 @@ export default function PersonasDbManager({ user }: { user: any }) {
               </Field>
             </div>
             <p className="text-xs text-gray-400 pt-1">* Campos obligatorios</p>
-            <div className="flex justify-end gap-2 pt-2">
+            <DialogFooter className="pt-2">
               <Button variant="outline" onClick={closeForm} disabled={volSubmitting}>Cancelar</Button>
-              <Button onClick={handleVolSubmit} disabled={volSubmitting} className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white">
+              <Button onClick={handleVolSubmit} disabled={volSubmitting} className="bg-alma-fuerte hover:bg-alma-oscuro text-white">
                 {volSubmitting ? "Registrando..." : "Registrar voluntario/a"}
               </Button>
-            </div>
+            </DialogFooter>
           </div>
           )}
         </DialogContent>
@@ -1182,7 +1247,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
             <DialogTitle>{volPersona ? "Habilitar como voluntario/a" : "Nuevo voluntario/a"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-1">
-            <div className="rounded-lg bg-[#e0f7fa]/50 border border-[#4dd0e1]/30 px-4 py-2 text-sm text-[#00838f] flex gap-2">
+            <div className="rounded-lg bg-[#dff2f5]/50 border border-[#5ec0cf]/30 px-4 py-2 text-sm text-alma-fuerte flex gap-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/images/flor.png" alt="" className="w-4 h-4 flex-shrink-0 mt-0.5 object-contain" />
               <span>
@@ -1225,12 +1290,12 @@ export default function PersonasDbManager({ user }: { user: any }) {
               </Field>
             </div>
             <p className="text-xs text-gray-400 pt-1">* Campos obligatorios</p>
-            <div className="flex justify-end gap-2 pt-2">
+            <DialogFooter className="pt-2">
               <Button variant="outline" onClick={closeVolForm} disabled={volSubmitting}>Cancelar</Button>
-              <Button onClick={handleVolSubmit} disabled={volSubmitting} className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white">
+              <Button onClick={handleVolSubmit} disabled={volSubmitting} className="bg-alma-fuerte hover:bg-alma-oscuro text-white">
                 {volSubmitting ? "Registrando..." : volPersona ? "Habilitar" : "Registrar voluntario/a"}
               </Button>
-            </div>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>
@@ -1258,12 +1323,12 @@ export default function PersonasDbManager({ user }: { user: any }) {
               </span>
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-4">
+          <DialogFooter className="pt-4">
             <Button variant="outline" onClick={() => { setRevertOpen(false); setRevertPersona(null) }} disabled={reverting}>Cancelar</Button>
             <Button onClick={handleRevert} disabled={reverting} className="bg-amber-500 hover:bg-amber-600 text-white">
               {reverting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Quitar rol y volver participante"}
             </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -1305,6 +1370,14 @@ export default function PersonasDbManager({ user }: { user: any }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* La acción principal, al alcance del pulgar y siempre a la vista: el
+          botón de arriba desaparecía apenas bajabas tres filas de la lista. */}
+      {canCreate && (
+        <BotonFlotante onClick={openCreate} className="sm:hidden">
+          Nueva persona
+        </BotonFlotante>
+      )}
     </div>
   )
 }
@@ -1318,7 +1391,7 @@ function SortableTh({
 }) {
   return (
     <th className="px-4 py-2 font-semibold">
-      <button onClick={() => onClick(k)} className="inline-flex items-center gap-1.5 hover:text-[#00838f] transition-colors">
+      <button onClick={() => onClick(k)} className="inline-flex items-center gap-1.5 hover:text-alma-fuerte transition-colors">
         {label}
         <SortIcon k={k} />
       </button>

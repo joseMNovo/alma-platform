@@ -50,7 +50,7 @@ www.almarosario.org`,
 
   // Configuración visual
   const [visualConfig, setVisualConfig] = useState({
-    colorPrimario: "#4dd0e1",
+    colorPrimario: "#5ec0cf",
     colorSecundario: "#ffffff",
     colorTexto: "#333333",
     fuente: "Raleway",
@@ -112,11 +112,12 @@ www.almarosario.org`,
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <div>
+        {/* Oculto en el teléfono: el encabezado de sección, arriba, ya dice esto mismo. */}
+        <div className="hidden sm:block">
           <h2 className="text-2xl font-bold text-gray-900">Configuración del Sistema</h2>
           <p className="text-gray-600">Personaliza los parámetros de la plataforma alma</p>
         </div>
-        <Button onClick={handleSaveConfig} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white" disabled={saving}>
+        <Button onClick={handleSaveConfig} className="bg-alma-fuerte hover:bg-alma-oscuro text-white" disabled={saving}>
           {saving ? (
             <>
               <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
@@ -143,7 +144,7 @@ www.almarosario.org`,
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 bg-white border border-gray-200 p-1 rounded-lg">
           <TabsTrigger
             value="general"
-            className="data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
+            className="data-[state=active]:bg-alma-fuerte data-[state=active]:text-white"
             onClick={() => setActiveTab("general")}
           >
             <Building className="w-4 h-4 mr-2 hidden sm:block" />
@@ -151,7 +152,7 @@ www.almarosario.org`,
           </TabsTrigger>
           <TabsTrigger
             value="email"
-            className="data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
+            className="data-[state=active]:bg-alma-fuerte data-[state=active]:text-white"
             onClick={() => setActiveTab("email")}
           >
             <Mail className="w-4 h-4 mr-2 hidden sm:block" />
@@ -159,7 +160,7 @@ www.almarosario.org`,
           </TabsTrigger>
           <TabsTrigger
             value="visual"
-            className="data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
+            className="data-[state=active]:bg-alma-fuerte data-[state=active]:text-white"
             onClick={() => setActiveTab("visual")}
           >
             <Palette className="w-4 h-4 mr-2 hidden sm:block" />
@@ -167,7 +168,7 @@ www.almarosario.org`,
           </TabsTrigger>
           <TabsTrigger
             value="system"
-            className="data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
+            className="data-[state=active]:bg-alma-fuerte data-[state=active]:text-white"
             onClick={() => setActiveTab("system")}
           >
             <Settings className="w-4 h-4 mr-2 hidden sm:block" />
@@ -389,7 +390,7 @@ www.almarosario.org`,
                 <Button
                   onClick={handleTestEmail}
                   variant="outline"
-                  className="border-[#4dd0e1] text-[#4dd0e1] hover:bg-[#4dd0e1] hover:text-white bg-transparent"
+                  className="border-[#5ec0cf] text-[#5ec0cf] hover:bg-alma-fuerte hover:text-white bg-transparent"
                 >
                   <Mail className="w-4 h-4 mr-2" />
                   Enviar Email de Prueba
@@ -519,7 +520,7 @@ www.almarosario.org`,
                 >
                   <div className="flex items-center gap-2 mb-2">
                     {visualConfig.mostrarLogo && (
-                      <div className="w-8 h-8 rounded-full bg-[#4dd0e1] flex items-center justify-center text-white font-bold">
+                      <div className="w-8 h-8 rounded-full bg-alma-fuerte flex items-center justify-center text-white font-bold">
                         A
                       </div>
                     )}

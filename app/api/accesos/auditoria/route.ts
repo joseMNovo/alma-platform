@@ -22,11 +22,13 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url)
     const personId = url.searchParams.get("person_id")
     const limit = url.searchParams.get("limit")
+    const offset = url.searchParams.get("offset")
     return NextResponse.json(
       await getAccessAudit({
         personId: personId ? Number.parseInt(personId, 10) : undefined,
         moduleKey: url.searchParams.get("module_key") || undefined,
         limit: limit ? Number.parseInt(limit, 10) : undefined,
+        offset: offset ? Number.parseInt(offset, 10) : undefined,
       }),
     )
   } catch (error) {

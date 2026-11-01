@@ -127,9 +127,10 @@ export default function AjustesManager({ user }: { user: any }) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
+      {/* Oculto en el teléfono: el encabezado de sección, arriba, ya dice esto mismo. */}
+      <div className="hidden sm:block">
         <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-          <FileText className="w-6 h-6 mr-3 text-[#4dd0e1]" />
+          <FileText className="w-6 h-6 mr-3 text-[#5ec0cf]" />
           Ajustes del Sistema
         </h2>
         <p className="text-gray-600 mt-1">Gestiona la importación y exportación de datos</p>
@@ -173,7 +174,7 @@ export default function AjustesManager({ user }: { user: any }) {
         <Card className="hover:shadow-lg transition-shadow duration-200">
           <CardHeader>
             <CardTitle className="flex items-center text-lg">
-              <Download className="w-5 h-5 mr-2 text-[#4dd0e1]" />
+              <Download className="w-5 h-5 mr-2 text-[#5ec0cf]" />
               Exportar Datos
             </CardTitle>
             <CardDescription>
@@ -188,7 +189,7 @@ export default function AjustesManager({ user }: { user: any }) {
             </div>
             <Button 
               onClick={handleExport}
-              className="w-full bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
+              className="w-full bg-alma-fuerte hover:bg-alma-oscuro text-white"
             >
               <Download className="w-4 h-4 mr-2" />
               Exportar JSON
@@ -200,7 +201,7 @@ export default function AjustesManager({ user }: { user: any }) {
         <Card className="hover:shadow-lg transition-shadow duration-200">
           <CardHeader>
             <CardTitle className="flex items-center text-lg">
-              <Upload className="w-5 h-5 mr-2 text-[#4dd0e1]" />
+              <Upload className="w-5 h-5 mr-2 text-[#5ec0cf]" />
               Importar Datos
             </CardTitle>
             <CardDescription>

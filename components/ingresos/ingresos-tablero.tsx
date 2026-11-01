@@ -63,7 +63,7 @@ export default function IngresosTablero({ esAdmin = false }: { esAdmin?: boolean
   if (cargando && !datos) {
     return (
       <div className="flex justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-[#4dd0e1]" />
+        <Loader2 className="h-6 w-6 animate-spin text-[#5ec0cf]" />
       </div>
     )
   }
@@ -85,7 +85,8 @@ export default function IngresosTablero({ esAdmin = false }: { esAdmin?: boolean
 
   return (
     <div className="space-y-4 px-4 sm:px-0">
-      <div>
+      {/* Oculto en el teléfono: el encabezado de sección, arriba, ya dice esto mismo. */}
+      <div className="hidden sm:block">
         <h2 className="text-2xl font-bold text-gray-900">Ingresos</h2>
         <p className="text-sm text-gray-500">Todo lo que entra, junto</p>
       </div>
@@ -112,10 +113,10 @@ export default function IngresosTablero({ esAdmin = false }: { esAdmin?: boolean
       </div>
 
       {/* ── El número grande ───────────────────────────────────────────── */}
-      <Card className="border-[#4dd0e1]/30 bg-gradient-to-br from-[#4dd0e1]/10 to-transparent">
+      <Card className="border-[#5ec0cf]/30 bg-gradient-to-br from-[#5ec0cf]/10 to-transparent">
         <CardContent className="flex flex-wrap items-center justify-between gap-4 py-5">
           <div className="flex items-center gap-3">
-            <TrendingUp className="h-8 w-8 shrink-0 text-[#00838f]" />
+            <TrendingUp className="h-8 w-8 shrink-0 text-alma-fuerte" />
             <div>
               <p className="text-xs uppercase tracking-wide text-gray-500">
                 Registrado en {year}
@@ -170,12 +171,12 @@ export default function IngresosTablero({ esAdmin = false }: { esAdmin?: boolean
                 <Card
                   key={o.key}
                   onClick={destino ? () => router.push(destino.ruta) : undefined}
-                  className={destino ? "cursor-pointer transition-colors hover:border-[#4dd0e1]" : ""}
+                  className={destino ? "cursor-pointer transition-colors hover:border-[#5ec0cf]" : ""}
                 >
                   <CardContent className="py-3">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex min-w-0 items-center gap-2">
-                        <Icono className="h-4 w-4 shrink-0 text-[#00838f]" />
+                        <Icono className="h-4 w-4 shrink-0 text-alma-fuerte" />
                         <span className="truncate font-medium text-gray-800">{o.label}</span>
                       </div>
                       {/* Lleva al módulo en vez de cargar acá: una sola
@@ -191,7 +192,7 @@ export default function IngresosTablero({ esAdmin = false }: { esAdmin?: boolean
 
                     <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100">
                       <div
-                        className="h-full rounded-full bg-[#4dd0e1]"
+                        className="h-full rounded-full bg-[#5ec0cf]"
                         style={{ width: `${Math.max(parte, 2)}%` }}
                       />
                     </div>
@@ -246,7 +247,7 @@ export default function IngresosTablero({ esAdmin = false }: { esAdmin?: boolean
                       <div className="flex w-full flex-1 items-end">
                         <div
                           className={`w-full rounded-t transition-all ${
-                            Number(m.total) > 0 ? "bg-[#4dd0e1]" : "bg-gray-100"
+                            Number(m.total) > 0 ? "bg-[#5ec0cf]" : "bg-gray-100"
                           }`}
                           style={{ height: `${Math.max(alto, 2)}%` }}
                           title={`${pesos(Number(m.total))}`}

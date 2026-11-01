@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { SegmentadoSimple } from "@/components/ui/pestanas-mobile"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 import FilterChip from "@/components/ui/filter-chip"
 import Ayuda from "@/components/ui/ayuda"
@@ -155,7 +156,7 @@ export default function EncuestasManager({ user }: { user: any }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-8 w-8 animate-spin text-[#4dd0e1]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#5ec0cf]" />
       </div>
     )
   }
@@ -175,7 +176,8 @@ export default function EncuestasManager({ user }: { user: any }) {
 
   return (
     <div className="space-y-4">
-      <div>
+      {/* Oculto en el teléfono: el encabezado de sección, arriba, ya dice esto mismo. */}
+      <div className="hidden sm:block">
         <h3 className="font-semibold text-gray-900">Evaluaciones</h3>
         <p className="text-sm text-gray-500">Una por capacitación.</p>
       </div>
@@ -244,7 +246,7 @@ export default function EncuestasManager({ user }: { user: any }) {
                     <Button
                       variant="outline"
                       onClick={() => setCreandoPara(t)}
-                      className="border-[#4dd0e1]/40 bg-[#4dd0e1]/10 text-[#00838f] hover:bg-[#4dd0e1]/20"
+                      className="border-[#5ec0cf]/40 bg-[#5ec0cf]/10 text-alma-fuerte hover:bg-[#5ec0cf]/20"
                     >
                       <Plus className="mr-2 h-4 w-4" />
                       Crear evaluación
@@ -321,7 +323,7 @@ function NuevaEvaluacion({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-2">
+        <DialogFooter className="pt-2">
           <Button variant="outline" onClick={onCancelar}>Cancelar</Button>
           <Button
             disabled={!title.trim() || creando}
@@ -331,12 +333,12 @@ function NuevaEvaluacion({
               // poder reintentar sin volver a escribir todo.
               try { await onCrear(title.trim(), description) } finally { setCreando(false) }
             }}
-            className="bg-[#4dd0e1] hover:bg-[#3bb8c9]"
+            className="bg-alma-fuerte hover:bg-alma-oscuro"
           >
             {creando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Cargar las preguntas
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
@@ -539,7 +541,7 @@ function EditorDeEncuesta({
     <div className="space-y-4">
       <button
         onClick={onVolver}
-        className="flex items-center gap-1.5 text-sm font-medium text-gray-500 transition hover:text-[#00838f]"
+        className="flex items-center gap-1.5 text-sm font-medium text-gray-500 transition hover:text-alma-fuerte"
       >
         <ArrowLeft className="h-4 w-4" />
         Todas las evaluaciones
@@ -557,24 +559,16 @@ function EditorDeEncuesta({
             <Eye className="mr-1.5 h-4 w-4" />
             Vista previa
           </Button>
-          <div className="inline-flex rounded-lg border border-gray-200 bg-white p-0.5">
-          <button
-            onClick={() => setVista("preguntas")}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-              vista === "preguntas" ? "bg-[#4dd0e1] text-white" : "text-gray-500 hover:bg-gray-50"
-            }`}
-          >
-            Preguntas
-          </button>
-          <button
-            onClick={verResultados}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-              vista === "resultados" ? "bg-[#4dd0e1] text-white" : "text-gray-500 hover:bg-gray-50"
-            }`}
-          >
-            Quiénes rindieron
-            </button>
-          </div>
+          {/* `verResultados` y no `setVista`: pasar a resultados ADEMAS los
+              carga. Por eso no alcanza con el cambio de estado pelado. */}
+          <SegmentadoSimple
+            valor={vista}
+            onCambio={(v) => (v === "resultados" ? verResultados() : setVista("preguntas"))}
+            opciones={[
+              { valor: "preguntas" as const, etiqueta: "Preguntas" },
+              { valor: "resultados" as const, etiqueta: "Quiénes rindieron" },
+            ]}
+          />
         </div>
       </div>
 
@@ -591,7 +585,7 @@ function EditorDeEncuesta({
               aria-expanded={ajustesAbiertos}
               className="flex w-full items-center gap-2 px-4 py-3 text-left"
             >
-              <Settings className="h-4 w-4 shrink-0 text-[#4dd0e1]" />
+              <Settings className="h-4 w-4 shrink-0 text-[#5ec0cf]" />
               <span className="text-sm font-medium text-gray-700">Ajustes</span>
               <span className="text-xs text-gray-400">
                 Aprueba con {ajustes.passing_score}% ·{" "}
@@ -664,7 +658,7 @@ function EditorDeEncuesta({
                   type="checkbox"
                   checked={ajustes.shuffle_questions}
                   onChange={(e) => setAjustes({ ...ajustes, shuffle_questions: e.target.checked })}
-                  className="h-4 w-4 rounded border-gray-300 accent-[#4dd0e1]"
+                  className="h-4 w-4 rounded border-gray-300 accent-[#5ec0cf]"
                 />
                 Mezclar el orden de las preguntas
               </label>
@@ -673,7 +667,7 @@ function EditorDeEncuesta({
                   type="checkbox"
                   checked={ajustes.show_answers}
                   onChange={(e) => setAjustes({ ...ajustes, show_answers: e.target.checked })}
-                  className="h-4 w-4 rounded border-gray-300 accent-[#4dd0e1]"
+                  className="h-4 w-4 rounded border-gray-300 accent-[#5ec0cf]"
                 />
                 Mostrar las correctas al terminar
               </label>
@@ -683,7 +677,7 @@ function EditorDeEncuesta({
                   type="checkbox"
                   checked={ajustes.is_published}
                   onChange={(e) => setAjustes({ ...ajustes, is_published: e.target.checked })}
-                  className="h-4 w-4 rounded border-gray-300 accent-[#4dd0e1]"
+                  className="h-4 w-4 rounded border-gray-300 accent-[#5ec0cf]"
                 />
                 Publicada
               </label>
@@ -751,7 +745,7 @@ function EditorDeEncuesta({
                   setPreguntas((prev) => [...prev, nueva])
                   setPreguntaAbierta(nueva.id)
                 }}
-                className="border-[#4dd0e1]/40 bg-[#4dd0e1]/10 text-[#00838f] hover:bg-[#4dd0e1]/20"
+                className="border-[#5ec0cf]/40 bg-[#5ec0cf]/10 text-alma-fuerte hover:bg-[#5ec0cf]/20"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Agregar pregunta
@@ -798,7 +792,7 @@ function EditorDeEncuesta({
               <Button
                 onClick={guardar}
                 disabled={guardando || !hayCambios || problemas.length > 0}
-                className="h-11 rounded-full bg-[#4dd0e1] px-8 text-base font-semibold hover:bg-[#3bb8c9]"
+                className="h-11 rounded-full bg-alma-fuerte px-8 text-base font-semibold hover:bg-alma-oscuro"
               >
                 {guardando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Guardar
@@ -934,7 +928,7 @@ function PreguntaEditable({
   }
 
   return (
-    <Card className={abierta ? "border-[#4dd0e1]/50" : undefined}>
+    <Card className={abierta ? "border-[#5ec0cf]/50" : undefined}>
       {/* Cabecera: siempre visible. Los botones de orden y borrado van AFUERA
           del botón que despliega — un botón adentro de otro no es válido. */}
       <div className="flex items-center gap-1 pr-2">
@@ -945,7 +939,7 @@ function PreguntaEditable({
           title={abierta ? "Plegar la pregunta" : "Abrir la pregunta"}
           className="group flex min-w-0 flex-1 items-center gap-2 rounded-lg py-3 pl-4 text-left transition-colors hover:bg-gray-50"
         >
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#4dd0e1]/10 text-xs font-bold text-[#00838f]">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#5ec0cf]/10 text-xs font-bold text-alma-fuerte">
             {index + 1}
           </span>
           <span className={`min-w-0 flex-1 truncate text-sm ${pregunta.text.trim() ? "text-gray-800" : "text-gray-300"}`}>
@@ -965,7 +959,7 @@ function PreguntaEditable({
           )}
           {/* La flecha sola, suelta entre el puntaje y los botones de acción,
               se perdía. Adentro de un círculo se lee como un control. */}
-          <span className="ml-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-colors group-hover:bg-[#4dd0e1] group-hover:text-white">
+          <span className="ml-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-colors group-hover:bg-alma-fuerte group-hover:text-white">
             <ChevronDown
               className={`h-4 w-4 transition-transform ${abierta ? "rotate-180" : ""}`}
             />
@@ -1153,7 +1147,7 @@ function ResultadosDeEncuesta({ filas }: { filas: SurveyAttemptRow[] | null }) {
   if (!filas) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-[#4dd0e1]" />
+        <Loader2 className="h-6 w-6 animate-spin text-[#5ec0cf]" />
       </div>
     )
   }
@@ -1162,7 +1156,7 @@ function ResultadosDeEncuesta({ filas }: { filas: SurveyAttemptRow[] | null }) {
     return (
       <Card>
         <CardContent className="py-14 text-center text-gray-500">
-          Todavía no la rindió nadie.
+          Sin respuestas registradas.
         </CardContent>
       </Card>
     )

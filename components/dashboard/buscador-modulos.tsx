@@ -40,12 +40,17 @@ export default function BuscadorModulos({
   modules,
   navegar,
   rutaDe,
+  soloIcono = false,
+  className = "",
 }: {
   user: any
   grants: Grant[]
   modules: ModuleDef[]
   navegar: (ruta: string) => void
   rutaDe: (mod: ModuleDef) => string
+  /** En el teléfono no hay lugar para un campo: va de lupa en el encabezado. */
+  soloIcono?: boolean
+  className?: string
 }) {
   const [abierto, setAbierto] = useState(false)
   const [q, setQ] = useState("")
@@ -141,21 +146,35 @@ export default function BuscadorModulos({
         Un input acá abriría el diálogo al primer tecleo y la letra se perdería
         en el camino: escribías "pa" y en el buscador aparecía "a".
       */}
-      <button
-        type="button"
-        onClick={() => setAbierto(true)}
-        className="flex h-9 w-full max-w-md items-center gap-2 rounded-lg border border-gray-200 bg-gray-50/70 px-3 text-left text-[13px] text-gray-400 transition-colors hover:border-[#4dd0e1] hover:bg-white"
-      >
-        <Search className="h-4 w-4 shrink-0" />
-        <span className="truncate">Buscar sección…</span>
-        <kbd className="ml-auto hidden shrink-0 rounded border border-gray-200 bg-white px-1.5 py-0.5 font-sans text-[10px] font-medium text-gray-400 lg:inline">
-          Ctrl K
-        </kbd>
-      </button>
+      {soloIcono ? (
+        /* En el encabezado del teléfono no entra un campo al lado de la
+           campanita y el menú, pero sí una lupa. Abre exactamente el mismo
+           diálogo. */
+        <button
+          type="button"
+          onClick={() => setAbierto(true)}
+          aria-label="Buscar sección"
+          className={`flex h-10 w-10 items-center justify-center rounded-md text-gray-600 transition-colors active:bg-gray-100 ${className}`}
+        >
+          <Search className="h-5 w-5" />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAbierto(true)}
+          className={`flex h-9 w-full max-w-md items-center gap-2 rounded-lg border border-gray-200 bg-gray-50/70 px-3 text-left text-[13px] text-gray-400 transition-colors hover:border-[#5ec0cf] hover:bg-white ${className}`}
+        >
+          <Search className="h-4 w-4 shrink-0" />
+          <span className="truncate">Buscar sección…</span>
+          <kbd className="ml-auto hidden shrink-0 rounded border border-gray-200 bg-white px-1.5 py-0.5 font-sans text-[10px] font-medium text-gray-400 lg:inline">
+            Ctrl K
+          </kbd>
+        </button>
+      )}
 
       {abierto && (
         <div
-          className="fixed inset-0 z-[120] flex items-start justify-center bg-black/30 px-4 pt-[12vh]"
+          className="fixed inset-0 z-[120] flex items-start justify-center bg-black/30 px-4 pt-[6vh] sm:pt-[12vh]"
           onClick={() => setAbierto(false)}
         >
           <div
@@ -192,10 +211,10 @@ export default function BuscadorModulos({
                     onClick={() => elegir(d)}
                     onMouseEnter={() => setCursor(i)}
                     className={`flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm transition-colors ${
-                      i === cursor ? "bg-[#4dd0e1]/10 text-[#00838f]" : "text-gray-700"
+                      i === cursor ? "bg-[#5ec0cf]/10 text-alma-fuerte" : "text-gray-700"
                     }`}
                   >
-                    <Icono className="h-4 w-4 shrink-0 text-[#4dd0e1]" />
+                    <Icono className="h-4 w-4 shrink-0 text-[#5ec0cf]" />
                     <span className="truncate font-medium">{d.label}</span>
                     {d.contexto && (
                       <span className="ml-auto shrink-0 truncate pl-3 text-xs text-gray-400">

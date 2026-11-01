@@ -11,9 +11,9 @@ const POLL_MS = 60_000
 
 // Ícono + color por tipo de notificación.
 const KIND_STYLES: Record<string, { Icon: typeof Bell; bg: string; fg: string }> = {
-  announcement: { Icon: Megaphone, bg: "bg-[#4dd0e1]/10", fg: "text-[#4dd0e1]" },
-  calendar_reminder: { Icon: CalendarClock, bg: "bg-[#4dd0e1]/10", fg: "text-[#4dd0e1]" },
-  calendar_new: { Icon: CalendarPlus, bg: "bg-[#4dd0e1]/10", fg: "text-[#4dd0e1]" },
+  announcement: { Icon: Megaphone, bg: "bg-[#5ec0cf]/10", fg: "text-[#5ec0cf]" },
+  calendar_reminder: { Icon: CalendarClock, bg: "bg-[#5ec0cf]/10", fg: "text-[#5ec0cf]" },
+  calendar_new: { Icon: CalendarPlus, bg: "bg-[#5ec0cf]/10", fg: "text-[#5ec0cf]" },
   system: { Icon: Info, bg: "bg-gray-100", fg: "text-gray-400" },
 }
 
@@ -127,7 +127,7 @@ export default function NotificationBell() {
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button
-          className="relative inline-flex items-center justify-center h-9 w-9 rounded-md text-gray-600 hover:text-[#4dd0e1] hover:bg-gray-100 transition-colors"
+          className="relative inline-flex items-center justify-center h-9 w-9 rounded-md text-gray-600 hover:text-[#5ec0cf] hover:bg-gray-100 transition-colors"
           aria-label="Notificaciones"
         >
           <Bell className="w-5 h-5" />
@@ -140,7 +140,7 @@ export default function NotificationBell() {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-[22rem] p-0 overflow-hidden rounded-xl shadow-md">
         <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
-          <Bell className="w-4 h-4 text-[#4dd0e1]" />
+          <Bell className="w-4 h-4 text-[#5ec0cf]" />
           <p className="font-semibold text-sm text-gray-700">Notificaciones</p>
         </div>
         <ScrollArea className="max-h-96">
@@ -159,11 +159,11 @@ export default function NotificationBell() {
                     <button
                       onClick={() => handleClick(n)}
                       className={`relative w-full text-left flex gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${
-                        n.is_read ? "" : "bg-[#4dd0e1]/[0.07]"
+                        n.is_read ? "" : "bg-[#5ec0cf]/[0.07]"
                       }`}
                     >
                       {/* Barra de acento para no leídas */}
-                      {!n.is_read && <span className="absolute left-0 top-0 bottom-0 w-1 bg-[#4dd0e1]" />}
+                      {!n.is_read && <span className="absolute left-0 top-0 bottom-0 w-1 bg-[#5ec0cf]" />}
                       {/* Ícono por tipo */}
                       <span className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${style.bg}`}>
                         <Icon className={`w-4 h-4 ${style.fg}`} />
@@ -173,7 +173,7 @@ export default function NotificationBell() {
                           <p className={`text-sm break-words ${n.is_read ? "font-medium text-gray-700" : "font-semibold text-gray-900"}`}>
                             {n.title}
                           </p>
-                          {!n.is_read && <span className="mt-1.5 w-2 h-2 rounded-full bg-[#4dd0e1] shrink-0" />}
+                          {!n.is_read && <span className="mt-1.5 w-2 h-2 rounded-full bg-[#5ec0cf] shrink-0" />}
                         </div>
                         {n.body && <p className="text-xs text-gray-600 mt-0.5 break-words">{n.body}</p>}
                         <p className="text-[11px] text-gray-400 mt-1">{timeAgo(n.created_at)}</p>

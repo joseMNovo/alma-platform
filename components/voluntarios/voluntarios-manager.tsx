@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/dialog"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog"
 import FilterChip from "@/components/ui/filter-chip"
+import BotonFlotante from "@/components/ui/boton-flotante"
+import { HojaFiltros, ChipsActivos } from "@/components/ui/filtros-mobile"
 import { formatLocalDate } from "@/lib/utils"
 import { Plus, Edit, Trash2, Users, User, Calendar, Phone, Mail, Heart, KeyRound, X, ChevronDown, LayoutGrid, List, Search } from "lucide-react"
 
@@ -350,7 +352,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4dd0e1] mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#5ec0cf] mx-auto mb-4"></div>
           <p className="text-gray-600">Cargando voluntarios...</p>
         </div>
       </div>
@@ -361,10 +363,15 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
     <div className="space-y-4 px-4 sm:px-0">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-        <div className="text-center sm:text-left">
+        {/* Fuera del teléfono: decía "Gestión de voluntarios" dos centímetros
+            debajo de un encabezado de sección que ya dice "Voluntarios", y le
+            sumaba un renglón de explicación. El contador se va con él porque
+            abajo, junto a los filtros, dice lo mismo y además dice de cuántos
+            sobre cuántos. */}
+        <div className="hidden text-center sm:block sm:text-left">
           <div className="flex items-center justify-center sm:justify-start gap-3">
             <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Users className="w-6 h-6 text-[#4dd0e1]" />
+              <Users className="w-6 h-6 text-[#5ec0cf]" />
               Gestión de voluntarios
               <Badge variant="secondary">{volunteers.length}</Badge>
             </h2>
@@ -377,7 +384,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
             <DialogTrigger asChild>
               <Button
                 onClick={() => { resetForm(); setDialogOpen(true) }}
-                className="w-full sm:w-auto bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
+                className="hidden sm:inline-flex w-full sm:w-auto bg-alma-fuerte hover:bg-alma-oscuro text-white"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Nuevo voluntario/a
@@ -493,7 +500,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                     id="is_admin"
                     checked={formData.is_admin}
                     onChange={(e) => setFormData({ ...formData, is_admin: e.target.checked })}
-                    className="rounded border-gray-300 text-[#4dd0e1] focus:ring-[#4dd0e1]"
+                    className="rounded border-gray-300 text-[#5ec0cf] focus:ring-[#5ec0cf]"
                   />
                   <Label htmlFor="is_admin" className="text-sm font-medium">
                     Administrador
@@ -521,7 +528,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                     {formData.specialties.map((s, i) => (
                       <span
                         key={i}
-                        className="inline-flex items-center gap-1 bg-[#e0f7fa] text-[#00838f] text-xs font-medium px-2.5 py-1 rounded-full"
+                        className="inline-flex items-center gap-1 bg-[#dff2f5] text-alma-fuerte text-xs font-medium px-2.5 py-1 rounded-full"
                       >
                         {s}
                         <button type="button" onClick={() => removeSpecialty(i)} className="hover:text-red-500 transition-colors">
@@ -538,7 +545,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" className="bg-[#4dd0e1] hover:bg-[#3bc0d1]">
+                <Button type="submit" className="bg-alma-fuerte hover:bg-alma-oscuro">
                   {editingVolunteer ? "Actualizar" : "Agregar"}
                 </Button>
               </DialogFooter>
@@ -549,11 +556,12 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
 
       {/* ── Buscador + filtros rápidos ── */}
       <div className="space-y-2">
-        <div className="relative">
+        <div className="flex items-center gap-2">
+        <div className="relative min-w-0 flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
             className="pl-9"
-            placeholder="Buscar por nombre, email, teléfono o especialidad…"
+            placeholder="Buscar voluntario…"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
           />
@@ -568,8 +576,56 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
+        {/*
+          Las especialidades van adentro de la hoja y no sueltas arriba de la
+          lista. Hoy son siete y ya ocupan tres renglones; cada especialidad
+          nueva que alguien cargue suma otra pastilla, así que el problema
+          crece solo. Adentro de la hoja da igual que sean siete o cuarenta.
+        */}
+        <HojaFiltros
+          className="sm:hidden"
+          cantidad={(soloAdmins ? 1 : 0) + (especialidadFiltro ? 1 : 0)}
+          resultados={filteredVolunteers.length}
+          onLimpiar={() => { setSoloAdmins(false); setEspecialidadFiltro(null) }}
+          sustantivo="voluntarios"
+        >
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Rol</p>
+            <FilterChip active={soloAdmins} onClick={() => setSoloAdmins((v) => !v)}>
+              Administradores
+            </FilterChip>
+          </div>
+          {especialidades.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Especialidad</p>
+              <div className="flex flex-wrap gap-2">
+                {especialidades.map((e) => (
+                  <FilterChip
+                    key={e}
+                    active={especialidadFiltro === e}
+                    onClick={() => setEspecialidadFiltro((f) => (f === e ? null : e))}
+                  >
+                    {e}
+                  </FilterChip>
+                ))}
+              </div>
+            </div>
+          )}
+        </HojaFiltros>
+        </div>
+
+        <ChipsActivos
+          className="sm:hidden"
+          total={filteredVolunteers.length}
+          sustantivo="voluntarios"
+          filtros={[
+            ...(soloAdmins ? [{ id: "admin", texto: "Administradores", quitar: () => setSoloAdmins(false) }] : []),
+            ...(especialidadFiltro ? [{ id: "esp", texto: especialidadFiltro, quitar: () => setEspecialidadFiltro(null) }] : []),
+          ]}
+        />
+
+        <div className="hidden sm:flex flex-wrap items-center gap-1.5">
+          <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
             {filteredVolunteers.length}{" "}
             {filteredVolunteers.length === 1 ? "voluntario" : "voluntarios"}
             {hayFiltros && (
@@ -596,6 +652,15 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
         </div>
       </div>
 
+      {user.role === "admin" && (
+        <BotonFlotante
+          className="sm:hidden"
+          onClick={() => { resetForm(); setDialogOpen(true) }}
+        >
+          Nuevo voluntario/a
+        </BotonFlotante>
+      )}
+
       {/* ── MOBILE: Acordeón (< sm) ── */}
       <div className="sm:hidden space-y-2">
         {filteredVolunteers.map((volunteer) => {
@@ -619,7 +684,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                     className="w-9 h-9 rounded-full object-cover flex-shrink-0"
                   />
                 ) : (
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#4dd0e1] to-[#3bc0d1] flex items-center justify-center flex-shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#5ec0cf] to-[#55adba] flex items-center justify-center flex-shrink-0">
                     <User className="w-4 h-4 text-white" />
                   </div>
                 )}
@@ -723,7 +788,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                             onClick={() => openPinDialog(volunteer)}
                             variant="outline"
                             size="sm"
-                            className="h-9 w-9 p-0 text-[#4dd0e1] border-[#4dd0e1] hover:bg-[#e0f7fa]"
+                            className="h-9 w-9 p-0 text-[#5ec0cf] border-[#5ec0cf] hover:bg-[#dff2f5]"
                             title="Asignar PIN"
                           >
                             <KeyRound className="w-3.5 h-3.5" />
@@ -763,7 +828,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                       className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#4dd0e1] to-[#3bc0d1] flex items-center justify-center flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#5ec0cf] to-[#55adba] flex items-center justify-center flex-shrink-0">
                       <User className="w-6 h-6 text-white" />
                     </div>
                   )}
@@ -848,7 +913,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                       onClick={() => openPinDialog(volunteer)}
                       variant="outline"
                       size="sm"
-                      className="text-[#4dd0e1] border-[#4dd0e1] hover:bg-[#e0f7fa]"
+                      className="text-[#5ec0cf] border-[#5ec0cf] hover:bg-[#dff2f5]"
                       title="Asignar PIN"
                     >
                       <KeyRound className="w-4 h-4" />
@@ -878,7 +943,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-separate border-spacing-0">
                 <thead>
-                  <tr className="text-center text-[11px] font-semibold text-[#00838f]/70 uppercase tracking-wider bg-[#e0f7fa]/40">
+                  <tr className="text-center text-[11px] font-semibold text-alma-fuerte/70 uppercase tracking-wider bg-[#dff2f5]/40">
                     <th className="px-5 py-2.5 font-semibold border-r border-gray-100">Voluntario</th>
                     <th className="px-5 py-2.5 font-semibold border-r border-gray-100">Edad</th>
                     <th className="px-5 py-2.5 font-semibold border-r border-gray-100">Teléfono</th>
@@ -891,7 +956,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                 <tbody>
                   {filteredVolunteers
                     .map((volunteer) => (
-                    <tr key={volunteer.id} className="group border-t border-gray-50 transition-colors even:bg-gray-50/50 hover:bg-[#f6fdfe]">
+                    <tr key={volunteer.id} className="group border-t border-gray-50 transition-colors even:bg-gray-50/50 hover:bg-[#f2fafb]">
                       <td className="px-5 py-2 border-t border-r border-gray-100">
                         <div className="flex items-center gap-3">
                           {volunteer.photo && (
@@ -914,7 +979,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                             {volunteer.specialties.map((specialty, index) => (
                               <span
                                 key={index}
-                                className="inline-flex items-center bg-[#e0f7fa] text-[#00838f] text-xs font-medium px-2.5 py-0.5 rounded-full"
+                                className="inline-flex items-center bg-[#dff2f5] text-alma-fuerte text-xs font-medium px-2.5 py-0.5 rounded-full"
                               >
                                 {specialty}
                               </span>
@@ -929,7 +994,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                           {canEditVolunteer(volunteer) && (
                             <button
                               onClick={() => openEditDialog(volunteer)}
-                              className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-gray-400 hover:text-[#00838f] hover:bg-[#e0f7fa] transition-colors"
+                              className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-gray-400 hover:text-alma-fuerte hover:bg-[#dff2f5] transition-colors"
                               title="Editar"
                             >
                               <Edit className="w-4 h-4" />
@@ -938,7 +1003,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                           {isAdmin && (
                             <button
                               onClick={() => openPinDialog(volunteer)}
-                              className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-gray-400 hover:text-[#00838f] hover:bg-[#e0f7fa] transition-colors"
+                              className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-gray-400 hover:text-alma-fuerte hover:bg-[#dff2f5] transition-colors"
                               title="Asignar PIN"
                             >
                               <KeyRound className="w-4 h-4" />
@@ -1004,7 +1069,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
         <DialogContent className="sm:max-w-[360px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <KeyRound className="w-5 h-5 text-[#4dd0e1]" />
+              <KeyRound className="w-5 h-5 text-[#5ec0cf]" />
               Asignar PIN
             </DialogTitle>
             <DialogDescription>
@@ -1040,7 +1105,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
               Cerrar
             </Button>
             <Button
-              className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
+              className="bg-alma-fuerte hover:bg-alma-oscuro text-white"
               onClick={handleSavePin}
               disabled={pinLoading || pinValue.length !== 4}
             >

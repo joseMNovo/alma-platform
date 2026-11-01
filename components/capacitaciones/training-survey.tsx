@@ -59,7 +59,7 @@ export default function TrainingSurvey({
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-10">
-          <Loader2 className="h-6 w-6 animate-spin text-[#4dd0e1]" />
+          <Loader2 className="h-6 w-6 animate-spin text-[#5ec0cf]" />
         </CardContent>
       </Card>
     )
@@ -137,7 +137,7 @@ export default function TrainingSurvey({
             )}
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
-                {resultado.passed ? "¡Aprobaste!" : "Todavía no alcanzó"}
+                {resultado.passed ? "¡Aprobaste!" : "No alcanzaste el puntaje mínimo"}
               </h3>
               <p className="text-sm text-gray-600">
                 Acertaste {resultado.correct_questions} de {resultado.total_questions}:{" "}
@@ -155,7 +155,7 @@ export default function TrainingSurvey({
               </p>
               <Link
                 href={`/certificado/${resultado.certificate_code}`}
-                className="rounded-lg bg-[#4dd0e1] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#3bb8c9]"
+                className="rounded-lg bg-alma-fuerte px-4 py-2 text-sm font-semibold text-white transition hover:bg-alma-oscuro"
               >
                 Ver mi certificado
               </Link>
@@ -254,7 +254,7 @@ export default function TrainingSurvey({
                           key={opcion.id}
                           className={`flex cursor-pointer items-center gap-2.5 rounded-lg border p-3 text-sm transition ${
                             marcada
-                              ? "border-[#4dd0e1] bg-[#4dd0e1]/5 font-medium text-[#00838f]"
+                              ? "border-[#5ec0cf] bg-[#5ec0cf]/5 font-medium text-alma-fuerte"
                               : "border-gray-200 hover:bg-gray-50"
                           }`}
                         >
@@ -263,7 +263,7 @@ export default function TrainingSurvey({
                             name={`pregunta-${pregunta.id}`}
                             checked={marcada}
                             onChange={() => elegir(pregunta.id, opcion.id, varias)}
-                            className="h-4 w-4 shrink-0 accent-[#4dd0e1]"
+                            className="h-4 w-4 shrink-0 accent-[#5ec0cf]"
                           />
                           {opcion.text}
                         </label>
@@ -279,7 +279,7 @@ export default function TrainingSurvey({
             <Button
               onClick={entregar}
               disabled={enviando}
-              className="bg-[#4dd0e1] hover:bg-[#3bb8c9]"
+              className="bg-alma-fuerte hover:bg-alma-oscuro"
             >
               {enviando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Entregar
@@ -338,7 +338,7 @@ export default function TrainingSurvey({
           </div>
         ) : (
           <>
-            <Button onClick={() => setRindiendo(true)} className="bg-[#4dd0e1] hover:bg-[#3bb8c9]">
+            <Button onClick={() => setRindiendo(true)} className="bg-alma-fuerte hover:bg-alma-oscuro">
               {survey.attempts_used > 0 ? "Volver a rendir" : "Rendir la evaluación"}
             </Button>
             <p className="text-xs text-gray-500">

@@ -8,7 +8,7 @@ import CamposPago from "@/components/accesos/campos-pago"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { toast } from "@/hooks/use-toast"
 import { Loader2, Search, ChevronLeft, ChevronRight, GraduationCap, Users, CheckCircle2, CreditCard, X } from "lucide-react"
 import type { AccessMatrixRow, Training } from "@/lib/data-manager"
@@ -275,9 +275,9 @@ export default function GrantWizard({
               <div
                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
                   i < indice
-                    ? "bg-[#4dd0e1] text-white"
+                    ? "bg-alma-fuerte text-white"
                     : i === indice
-                    ? "bg-[#4dd0e1] text-white ring-4 ring-[#4dd0e1]/20"
+                    ? "bg-alma-fuerte text-white ring-4 ring-[#5ec0cf]/20"
                     : "bg-gray-100 text-gray-400"
                 }`}
               >
@@ -313,12 +313,12 @@ export default function GrantWizard({
                     return (
                       <label
                         key={c.id}
-                        className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 text-sm hover:bg-[#4dd0e1]/5"
+                        className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 text-sm hover:bg-[#5ec0cf]/5"
                       >
                         <Checkbox
                           checked={trainingIds.has(c.id)}
                           onCheckedChange={() => toggleTraining(c.id)}
-                          className="border-gray-300 data-[state=checked]:border-[#4dd0e1] data-[state=checked]:bg-[#4dd0e1]"
+                          className="border-gray-300 data-[state=checked]:border-[#5ec0cf] data-[state=checked]:bg-[#5ec0cf]"
                         />
                         <span className="min-w-0 flex-1 truncate text-gray-800">{c.label}</span>
                         {t && Number(t.price) > 0 && (
@@ -350,14 +350,14 @@ export default function GrantWizard({
                   la lista ordenada alfabéticamente, alguien que eligió a
                   "Zulema" ve cinco casillas vacías y cree que no marcó nada. */}
               {seleccionadas.length > 0 && (
-                <div className="max-h-24 overflow-y-auto rounded-lg bg-[#4dd0e1]/5 p-2">
+                <div className="max-h-24 overflow-y-auto rounded-lg bg-[#5ec0cf]/5 p-2">
                   <div className="flex flex-wrap gap-1.5">
                     {seleccionadas.map((p) => (
                       <button
                         key={p.person_id}
                         onClick={() => togglePerson(p.person_id)}
                         title="Quitar de la selección"
-                        className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-[#00838f] shadow-sm ring-1 ring-[#4dd0e1]/40 hover:bg-red-50 hover:text-red-600 hover:ring-red-200"
+                        className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-alma-fuerte shadow-sm ring-1 ring-[#5ec0cf]/40 hover:bg-red-50 hover:text-red-600 hover:ring-red-200"
                       >
                         {`${p.name ?? ""} ${p.last_name ?? ""}`.trim() || p.email || "Sin nombre"}
                         <X className="h-3 w-3" />
@@ -378,8 +378,8 @@ export default function GrantWizard({
                     onClick={() => setFiltroRol(clave)}
                     className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                       filtroRol === clave
-                        ? "border-[#4dd0e1] bg-[#4dd0e1] text-white"
-                        : "border-gray-200 bg-white text-gray-600 hover:border-[#4dd0e1]"
+                        ? "border-alma-fuerte bg-alma-fuerte text-white"
+                        : "border-gray-200 bg-white text-gray-600 hover:border-alma-fuerte"
                     }`}
                   >
                     {texto}
@@ -387,7 +387,7 @@ export default function GrantWizard({
                 ))}
                 <button
                   onClick={alternarTodos}
-                  className="ml-auto text-xs font-medium text-[#00838f] hover:underline"
+                  className="ml-auto text-xs font-medium text-alma-fuerte hover:underline"
                 >
                   Seleccionar todos
                 </button>
@@ -395,7 +395,7 @@ export default function GrantWizard({
 
               <div className="max-h-72 space-y-1 overflow-y-auto rounded-lg border border-gray-100 p-1">
                 {loadingPeople ? (
-                  <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-[#4dd0e1]" /></div>
+                  <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-[#5ec0cf]" /></div>
                 ) : visibles.length === 0 ? (
                   <p className="p-3 text-center text-sm text-gray-400">Sin resultados.</p>
                 ) : (
@@ -405,14 +405,14 @@ export default function GrantWizard({
                       <label
                         key={p.person_id}
                         className={`flex items-center gap-2.5 rounded-md px-2 py-2 text-sm ${
-                          tiene ? "opacity-50" : "cursor-pointer hover:bg-[#4dd0e1]/5"
+                          tiene ? "opacity-50" : "cursor-pointer hover:bg-[#5ec0cf]/5"
                         }`}
                       >
                         <Checkbox
                           checked={personIds.has(p.person_id)}
                           disabled={tiene}
                           onCheckedChange={() => togglePerson(p.person_id)}
-                          className="border-gray-300 data-[state=checked]:border-[#4dd0e1] data-[state=checked]:bg-[#4dd0e1]"
+                          className="border-gray-300 data-[state=checked]:border-[#5ec0cf] data-[state=checked]:bg-[#5ec0cf]"
                         />
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-medium text-gray-800">
@@ -497,7 +497,7 @@ export default function GrantWizard({
                     {selectedPeopleLabels.map((label, i) => (
                       <span
                         key={i}
-                        className="rounded-full bg-[#4dd0e1]/15 px-2 py-0.5 text-xs font-medium text-[#00838f]"
+                        className="rounded-full bg-[#5ec0cf]/15 px-2 py-0.5 text-xs font-medium text-alma-fuerte"
                       >
                         {label}
                       </span>
@@ -559,23 +559,23 @@ export default function GrantWizard({
           )}
         </div>
 
-        <div className="flex justify-between gap-2 border-t pt-3">
+        <DialogFooter className="border-t pt-3">
           <Button variant="outline" onClick={goBack}>
             <ChevronLeft className="mr-1 h-4 w-4" />
             {indice === 0 ? "Cancelar" : "Atrás"}
           </Button>
           {paso === "confirm" ? (
-            <Button onClick={submit} disabled={saving} className="bg-[#4dd0e1] hover:bg-[#3bb8c9]">
+            <Button onClick={submit} disabled={saving} className="bg-alma-fuerte hover:bg-alma-oscuro">
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Habilitar
             </Button>
           ) : (
-            <Button onClick={goNext} className="bg-[#4dd0e1] hover:bg-[#3bb8c9]">
+            <Button onClick={goNext} className="bg-alma-fuerte hover:bg-alma-oscuro">
               Siguiente
               <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           )}
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
@@ -599,11 +599,11 @@ function OpcionPago({
       onClick={onClick}
       className={`rounded-lg border p-3 text-left transition ${
         activa
-          ? "border-[#4dd0e1] bg-[#4dd0e1]/5 ring-1 ring-[#4dd0e1]"
+          ? "border-[#5ec0cf] bg-[#5ec0cf]/5 ring-1 ring-[#5ec0cf]"
           : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
       }`}
     >
-      <span className={`block text-sm font-medium ${activa ? "text-[#00838f]" : "text-gray-800"}`}>
+      <span className={`block text-sm font-medium ${activa ? "text-alma-fuerte" : "text-gray-800"}`}>
         {titulo}
       </span>
       <span className="mt-0.5 block text-xs text-gray-500">{detalle}</span>

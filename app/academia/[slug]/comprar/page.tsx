@@ -60,7 +60,7 @@ export default async function ComprarPage({
           </Link>
           <Link
             href="/"
-            className="text-sm font-medium text-[#4dd0e1] underline-offset-2 hover:underline"
+            className="text-sm font-medium text-[#5ec0cf] underline-offset-2 hover:underline"
           >
             Ya tengo cuenta
           </Link>
@@ -72,7 +72,7 @@ export default async function ComprarPage({
           <p className="text-sm text-gray-500">Estás comprando</p>
           <h1 className="text-2xl font-bold text-gray-900">{training.title}</h1>
           {Number(training.price) > 0 && (
-            <p className="mt-1 text-xl font-bold text-[#4dd0e1]">
+            <p className="mt-1 text-xl font-bold text-[#5ec0cf]">
               ${Number(training.price).toLocaleString("es-AR")}
               <span className="ml-1 text-sm font-normal text-gray-500">{training.currency}</span>
             </p>

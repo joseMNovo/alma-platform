@@ -1,6 +1,8 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { SegmentadoSimple } from "@/components/ui/pestanas-mobile"
+import BarraSeleccion from "@/components/ui/barra-seleccion"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -147,7 +149,7 @@ export default function AccesosManager({
   const clearFilters = () => { setRoleFilter("all"); setNoAccessOnly(false); setTrainingFilterId(null) }
 
   const subTabTriggerClass =
-    "flex items-center gap-2 transition-all duration-200 active:scale-95 data-[state=inactive]:hover:bg-[#4dd0e1]/10 data-[state=inactive]:hover:text-[#00838f] data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white"
+    "flex items-center gap-2 transition-all duration-200 active:scale-95 data-[state=inactive]:hover:bg-[#5ec0cf]/10 data-[state=inactive]:hover:text-alma-fuerte data-[state=active]:bg-alma-fuerte data-[state=active]:text-white"
 
   const toggleSelect = (personId: number) => {
     setSelected((prev) => {
@@ -162,7 +164,7 @@ export default function AccesosManager({
       {vista === "habilitaciones" && (
         <div>
           <div className="flex items-center gap-2">
-            <KeyRound className="h-6 w-6 text-[#4dd0e1]" />
+            <KeyRound className="h-6 w-6 text-[#5ec0cf]" />
             <h2 className="text-xl font-bold text-gray-900">Accesos</h2>
             {/* El número dice cuántas personas hay en la lista de abajo. */}
             <span className="rounded-full bg-gray-100 px-2 py-0.5 text-sm font-medium text-gray-600">
@@ -195,36 +197,51 @@ export default function AccesosManager({
             <div className="relative min-w-[220px] flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
-                className="pl-9"
-                placeholder="Buscar por nombre, apellido o email…"
+                className="h-11 pl-9 sm:h-10"
+                placeholder="Buscar persona…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
 
-            {selected.size > 0 && (
-              <Badge variant="secondary" className="shrink-0">{selected.size} seleccionadas</Badge>
-            )}
-            <Button
-              size="sm"
-              disabled={selected.size === 0}
-              onClick={() => setWizard({ personIds: [...selected] })}
-              className={`shrink-0 ${selected.size > 0 ? "bg-[#4dd0e1] hover:bg-[#3bb8c9]" : ""}`}
-            >
-              <UserPlus className="mr-1.5 h-4 w-4" />
-              Habilitar acceso
-            </Button>
-            {selected.size > 0 && (
-              <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
-                <X className="h-4 w-4" />
+            {/*
+              El conteo y el boton de habilitar se fueron a la barra de abajo
+              (BarraSeleccion). Aca arriba el boton quedaba fuera de pantalla
+              apenas empezabas a tildar gente, que es exactamente cuando hace
+              falta; y encima, deshabilitado y gris, ocupaba lugar permanente
+              sin hacer nada el 95% del tiempo.
+
+              En escritorio se queda donde estaba: ahi la lista entra entera y
+              el boton nunca se va de la vista.
+            */}
+            <div className="hidden shrink-0 items-center gap-2 sm:flex">
+              {selected.size > 0 && (
+                <Badge variant="secondary" className="shrink-0">{selected.size} seleccionadas</Badge>
+              )}
+              <Button
+                size="sm"
+                disabled={selected.size === 0}
+                onClick={() => setWizard({ personIds: [...selected] })}
+                className={`shrink-0 ${selected.size > 0 ? "bg-alma-fuerte hover:bg-alma-oscuro text-white" : ""}`}
+              >
+                <UserPlus className="mr-1.5 h-4 w-4" />
+                Habilitar acceso
               </Button>
-            )}
+              {selected.size > 0 && (
+                <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Filtros rápidos. El de capacitación es un <select>, no un chip
               por curso: con 50 capacitaciones un chip por cada una se vuelve
               inmanejable, un desplegable no. */}
-          <div className="flex flex-wrap items-center gap-1.5">
+          {/* Una sola línea que se arrastra. Envolviendo, cuatro filtros se comían tres renglones
+          antes del primer resultado; y la barra de scroll va escondida, que si no
+          descuadra la fila. */}
+          <div className="sin-barra flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:flex-wrap sm:overflow-visible">
             <FilterChip active={roleFilter === "voluntario"} onClick={() => setRoleFilter((f) => (f === "voluntario" ? "all" : "voluntario"))}>
               Voluntarios
             </FilterChip>
@@ -239,8 +256,8 @@ export default function AccesosManager({
               onValueChange={(v) => setTrainingFilterId(v === "todas" ? null : Number(v))}
             >
               <SelectTrigger
-                className={`h-7 w-auto gap-1 rounded-full border px-2.5 text-xs font-medium [&>svg]:h-3 [&>svg]:w-3 ${
-                  trainingFilterId != null ? "border-[#4dd0e1] bg-[#4dd0e1]/10 text-[#00838f]" : "border-gray-300 text-gray-500"
+                className={`h-10 sm:h-7 w-auto gap-1 rounded-full border px-2.5 text-xs font-medium [&>svg]:h-3 [&>svg]:w-3 ${
+                  trainingFilterId != null ? "border-[#5ec0cf] bg-[#5ec0cf]/10 text-alma-fuerte" : "border-gray-300 text-gray-500"
                 }`}
               >
                 <SelectValue placeholder="Acceso a…" />
@@ -261,7 +278,7 @@ export default function AccesosManager({
 
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-[#4dd0e1]" />
+              <Loader2 className="h-8 w-8 animate-spin text-[#5ec0cf]" />
             </div>
           ) : visibleRows.length === 0 ? (
             <Card>
@@ -270,7 +287,93 @@ export default function AccesosManager({
               </CardContent>
             </Card>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+            <>
+            {/*
+              ── Telefono: tarjetas ──────────────────────────────────────
+
+              La tabla de abajo tiene `whitespace-nowrap` en cada celda, que
+              en escritorio es lo correcto (que no se parta un nombre) y en
+              360px de ancho es la causa del arrastre lateral: la fila mide
+              900px y la pantalla 360. Arrastrabas para ver el mail y perdias
+              de vista el nombre.
+
+              En tarjeta cada persona ocupa dos renglones y nada se corta.
+            */}
+            <div className="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white sm:hidden">
+              {visibleRows.map((row) => {
+                const granted = columns.filter((c) => row.grants?.[String(c.id)] === true)
+                const nombre = `${row.name ?? ""} ${row.last_name ?? ""}`.trim() || "Sin nombre"
+                const iniciales = ((row.name ?? "").trim().charAt(0) + (row.last_name ?? "").trim().charAt(0)).toUpperCase() || "?"
+                const tildada = selected.has(row.person_id)
+                return (
+                  <div
+                    key={row.person_id}
+                    onClick={() => toggleSelect(row.person_id)}
+                    className={`flex items-start gap-3 px-3 py-3 transition-colors ${tildada ? "bg-alma-suave" : "active:bg-gray-50"}`}
+                  >
+                    <div onClick={(e) => e.stopPropagation()} className="pt-2.5">
+                      <Checkbox
+                        className="h-5 w-5 border-gray-300 data-[state=checked]:border-alma-fuerte data-[state=checked]:bg-alma-fuerte"
+                        checked={tildada}
+                        onCheckedChange={() => toggleSelect(row.person_id)}
+                      />
+                    </div>
+
+                    {/* 40px: el tamano en el que una inicial se lee de un
+                        vistazo mientras se recorre la lista con el pulgar. */}
+                    <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-alma-suave text-[13px] font-bold text-alma-fuerte">
+                      {iniciales}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="min-w-0 truncate font-medium text-gray-900">{nombre}</p>
+                        <VolunteerFlower active={row.is_volunteer} size="w-3.5 h-3.5" />
+                        <ParticipantMark active={row.has_login} size="w-3.5 h-3.5" />
+                      </div>
+                      {/* `truncate` y no `whitespace-nowrap`: un mail largo se
+                          corta con puntos suspensivos en vez de empujar la
+                          tarjeta fuera de la pantalla. */}
+                      <p className="truncate text-[12.5px] text-alma-tinta">{row.email || "sin email"}</p>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        {granted.map((c) => (
+                          <span
+                            key={c.id}
+                            className="inline-flex max-w-full items-center gap-1 rounded-full border border-green-500 bg-green-50 py-0.5 pl-2.5 pr-1 text-xs font-medium text-green-700"
+                          >
+                            <span className="truncate">{c.label}</span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setRevokeTarget({ row, resourceId: c.id, label: c.label }) }}
+                              className="shrink-0 rounded-full p-1 active:bg-green-200/60"
+                              aria-label={`Revocar ${c.label}`}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        ))}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setPaymentTarget(row) }}
+                          className={`inline-flex h-8 shrink-0 items-center gap-1 rounded-md border px-2.5 text-xs font-medium transition ${
+                            Number(row.total_paid) > 0
+                              ? "border-green-500 bg-green-50 text-green-700"
+                              : "border-alma/50 bg-white text-alma-fuerte"
+                          }`}
+                        >
+                          <DollarSign className="h-3 w-3" />
+                          {Number(row.total_paid) > 0
+                            ? `$${Number(row.total_paid).toLocaleString("es-AR")}`
+                            : "Registrar pago"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* ── Escritorio: la tabla de siempre ──────────────────────── */}
+            <div className="hidden overflow-x-auto rounded-lg border border-gray-200 bg-white sm:block">
               <table className="w-full text-sm">
                 <tbody className="divide-y divide-gray-100">
                   {visibleRows.map((row) => {
@@ -279,11 +382,11 @@ export default function AccesosManager({
                       <tr
                         key={row.person_id}
                         onClick={() => toggleSelect(row.person_id)}
-                        className="cursor-pointer transition-colors hover:bg-[#4dd0e1]/5"
+                        className="cursor-pointer transition-colors hover:bg-[#5ec0cf]/5"
                       >
                         <td className="py-2 pl-3 pr-1" onClick={(e) => e.stopPropagation()}>
                           <Checkbox
-                            className="border-gray-300 data-[state=checked]:border-[#4dd0e1] data-[state=checked]:bg-[#4dd0e1]"
+                            className="border-gray-300 data-[state=checked]:border-[#5ec0cf] data-[state=checked]:bg-[#5ec0cf]"
                             checked={selected.has(row.person_id)}
                             onCheckedChange={() => toggleSelect(row.person_id)}
                           />
@@ -326,7 +429,7 @@ export default function AccesosManager({
                               className={`ml-1 inline-flex shrink-0 items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium shadow-sm transition ${
                                 Number(row.total_paid) > 0
                                   ? "border-green-500 bg-green-50 text-green-700 hover:bg-green-100"
-                                  : "border-[#4dd0e1]/50 bg-white text-[#00838f] hover:border-[#4dd0e1] hover:bg-[#4dd0e1]/10"
+                                  : "border-[#5ec0cf]/50 bg-white text-alma-fuerte hover:border-[#5ec0cf] hover:bg-[#5ec0cf]/10"
                               }`}
                               title={Number(row.total_paid) > 0 ? "Registrar otro pago" : "Marcar pago"}
                             >
@@ -343,7 +446,29 @@ export default function AccesosManager({
                 </tbody>
               </table>
             </div>
+            </>
           )}
+
+          {/*
+            La barra de abajo: aparece sola al tildar la primera persona y se
+            va al destildar la ultima. Dice cuantas van —antes no lo decia en
+            ningun lado— y tiene el boton que confirma, que es lo que se
+            buscaba a tres pantallas de scroll de distancia.
+          */}
+          <BarraSeleccion
+            className="sm:hidden"
+            cantidad={selected.size}
+            sustantivo="personas"
+            onLimpiar={() => setSelected(new Set())}
+          >
+            <Button
+              onClick={() => setWizard({ personIds: [...selected] })}
+              className="h-11 gap-1.5 bg-alma-fuerte px-4 text-white hover:bg-alma-oscuro"
+            >
+              <UserPlus className="h-4 w-4 shrink-0" />
+              Habilitar acceso
+            </Button>
+          </BarraSeleccion>
         </TabsContent>
 
         <TabsContent value="pagos"><PagosTab /></TabsContent>
@@ -450,24 +575,14 @@ function PagosTab() {
 
       {/* Elegir entre la plata y los avisos. La cola de arriba queda visible en
           las dos: es lo único accionable de la pantalla. */}
-      <div className="flex gap-1.5">
-        <button
-          onClick={() => setSubVista("pagos")}
-          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-            subVista === "pagos" ? "bg-[#4dd0e1] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
-        >
-          Pagos registrados
-        </button>
-        <button
-          onClick={() => setSubVista("avisos")}
-          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-            subVista === "avisos" ? "bg-[#4dd0e1] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
-        >
-          Avisos resueltos
-        </button>
-      </div>
+      <SegmentadoSimple
+        valor={subVista}
+        onCambio={setSubVista}
+        opciones={[
+          { valor: "pagos" as const, etiqueta: "Pagos registrados" },
+          { valor: "avisos" as const, etiqueta: "Avisos resueltos" },
+        ]}
+      />
 
       {subVista === "avisos" && <HistorialAvisosPago />}
 
@@ -476,7 +591,7 @@ function PagosTab() {
       {/* Pastillas y no un campo numérico: los años son cuatro botones, no un
           número que haya que escribir. Con el input se podía tipear 3026 y
           quedar mirando una pantalla vacía sin entender por qué. */}
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className="sin-barra flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:flex-wrap sm:overflow-visible">
         {ANIOS.map((a) => (
           <FilterChip key={a} active={year === a} onClick={() => setYear(a)}>
             {a}
@@ -518,7 +633,7 @@ function PagosTab() {
       )}
 
       {loading ? (
-        <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-[#4dd0e1]" /></div>
+        <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-[#5ec0cf]" /></div>
       ) : payments.length === 0 ? (
         <Card><CardContent className="py-10 text-center text-gray-500">Sin pagos registrados en {year}.</CardContent></Card>
       ) : (
@@ -585,27 +700,76 @@ const ACTION_LABELS: Record<string, string> = {
   payment_deleted: "Eliminó un pago",
 }
 
+/** Movimientos por tanda. */
+const TANDA_AUDITORIA = 50
+
+/**
+ * El registro de movimientos, de a tandas.
+ *
+ * Antes pedía 150 de una y ahí terminaba: la tabla es append-only y no para
+ * de crecer, así que el movimiento 151 no se podía ver desde la aplicación
+ * —y, peor, la pantalla no daba ninguna señal de que existiera—. Justo la
+ * tabla que se mira el día que hay que reconstruir qué pasó.
+ */
 function AuditoriaTab({ moduleKey }: { moduleKey: string }) {
   const [entries, setEntries] = useState<AccessAuditEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [cargandoMas, setCargandoMas] = useState(false)
+  const [hayMas, setHayMas] = useState(false)
+
+  const traer = async (desde: number): Promise<AccessAuditEntry[]> => {
+    try {
+      const r = await fetch(`/api/accesos/auditoria?limit=${TANDA_AUDITORIA}&offset=${desde}`)
+      const data = r.ok ? await r.json() : []
+      const tanda: AccessAuditEntry[] = Array.isArray(data) ? data : []
+      // Una tanda corta es el final seguro. Una completa puede o no tener
+      // continuación: averiguarlo costaría una consulta extra por página, y
+      // equivocarse cuesta un "Cargar más" que no trae nada.
+      setHayMas(tanda.length === TANDA_AUDITORIA)
+      return tanda
+    } catch {
+      setHayMas(false)
+      return []
+    }
+  }
 
   useEffect(() => {
+    let vigente = true
     setLoading(true)
-    fetch(`/api/accesos/auditoria?limit=150`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setEntries(Array.isArray(data) ? data : []))
-      .finally(() => setLoading(false))
+    traer(0)
+      .then((tanda) => { if (vigente) setEntries(tanda) })
+      .finally(() => { if (vigente) setLoading(false) })
+    // Cambiar de módulo con una pestaña a medio cargar dejaba entrar la
+    // respuesta vieja encima de la nueva.
+    return () => { vigente = false }
   }, [moduleKey])
 
+  const cargarMas = async () => {
+    setCargandoMas(true)
+    try {
+      const tanda = await traer(entries.length)
+      // Sin el filtro por id, un movimiento registrado entre dos tandas
+      // corre la lista un lugar y el último de la anterior vuelve a salir
+      // —repetido en pantalla y con la clave duplicada en React—.
+      setEntries((previas) => {
+        const vistos = new Set(previas.map((e) => e.id))
+        return [...previas, ...tanda.filter((e) => !vistos.has(e.id))]
+      })
+    } finally {
+      setCargandoMas(false)
+    }
+  }
+
   if (loading) {
-    return <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-[#4dd0e1]" /></div>
+    return <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-[#5ec0cf]" /></div>
   }
 
   if (entries.length === 0) {
-    return <Card><CardContent className="py-10 text-center text-gray-500">Todavía no hay movimientos.</CardContent></Card>
+    return <Card><CardContent className="py-10 text-center text-gray-500">Sin movimientos registrados.</CardContent></Card>
   }
 
   return (
+    <div className="space-y-3">
     <Card>
       <CardContent className="divide-y p-0">
         {entries.map((e) => (
@@ -632,6 +796,24 @@ function AuditoriaTab({ moduleKey }: { moduleKey: string }) {
         ))}
       </CardContent>
     </Card>
+
+    {hayMas && (
+      <Button
+        variant="outline"
+        onClick={cargarMas}
+        disabled={cargandoMas}
+        className="h-11 w-full"
+      >
+        {cargandoMas ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+        Cargar más
+      </Button>
+    )}
+
+    <p className="text-center text-xs text-gray-400">
+      {entries.length} {entries.length === 1 ? "movimiento" : "movimientos"}
+      {hayMas ? " en pantalla" : ""}
+    </p>
+    </div>
   )
 }
 
@@ -656,19 +838,18 @@ function AlertasTab() {
           <div className="text-amber-900">
             <p className="font-medium">Posibles cuentas compartidas</p>
             <p className="mt-1 text-xs">
-              Personas que reprodujeron contenido desde muchas IPs distintas en la última
-              semana. Es <strong>solo una señal para mirar</strong>: las conexiones móviles
-              cambian de IP todo el tiempo, así que alguien honesto puede aparecer acá.
-              Nunca se revoca nada automáticamente.
+              Reproducciones desde varias IPs distintas en los últimos 7 días. Es un
+              indicio a revisar —las conexiones móviles cambian de IP con frecuencia— y
+              no revoca ningún acceso.
             </p>
           </div>
         </CardContent>
       </Card>
 
       {loading ? (
-        <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-[#4dd0e1]" /></div>
+        <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-[#5ec0cf]" /></div>
       ) : alerts.length === 0 ? (
-        <Card><CardContent className="py-10 text-center text-gray-500">Nada raro en los últimos 7 días.</CardContent></Card>
+        <Card><CardContent className="py-10 text-center text-gray-500">Sin alertas en los últimos 7 días.</CardContent></Card>
       ) : (
         <Card>
           <CardContent className="divide-y p-0">

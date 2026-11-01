@@ -10,7 +10,9 @@ export default function AlmaFooter({
   floating?: boolean
 }) {
   return (
-    <footer className={`py-4 ${floating ? "bg-transparent" : "bg-white"} ${borderTop ? "border-t border-gray-200" : ""}`}>
+    /* `data-alma-pie` lo mira el botón flotante para apartarse cuando este
+       pie aparece en pantalla. Ver components/ui/boton-flotante.tsx. */
+    <footer data-alma-pie className={`py-4 ${floating ? "bg-transparent" : "bg-white"} ${borderTop ? "border-t border-gray-200" : ""}`}>
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex justify-between items-center">
           <div className="text-center flex-1">

@@ -254,7 +254,7 @@ export default function ImageUpload({
           disabled={uploading}
           onClick={() => inputRef.current?.click()}
           style={cropAspect ? { aspectRatio: String(cropAspect) } : undefined}
-          className={`flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 text-gray-500 transition hover:border-[#4dd0e1] hover:text-[#4dd0e1] disabled:opacity-60 ${
+          className={`flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 text-gray-500 transition hover:border-[#5ec0cf] hover:text-[#5ec0cf] disabled:opacity-60 ${
             cropAspect ? "" : "h-40"
           }`}
         >

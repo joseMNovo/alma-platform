@@ -66,7 +66,7 @@ export default async function VerificarCertificadoPage({
           </Link>
           <Link
             href="/academia"
-            className="text-sm font-medium text-[#4dd0e1] underline-offset-2 hover:underline"
+            className="text-sm font-medium text-[#5ec0cf] underline-offset-2 hover:underline"
           >
             Ver capacitaciones
           </Link>
@@ -124,7 +124,7 @@ export default async function VerificarCertificadoPage({
                       Capacitación
                     </p>
                     <p className="flex items-center gap-2 text-gray-800">
-                      <GraduationCap className="h-4 w-4 shrink-0 text-[#4dd0e1]" />
+                      <GraduationCap className="h-4 w-4 shrink-0 text-[#5ec0cf]" />
                       {dato.training_title}
                       {dato.hours && (
                         <span className="text-sm text-gray-500">· {dato.hours}</span>
@@ -146,7 +146,7 @@ export default async function VerificarCertificadoPage({
                   href={`/api/publico/certificado/${encodeURIComponent(dato!.code)}/pdf`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-lg bg-[#4dd0e1] px-4 py-3 font-semibold text-white transition hover:bg-[#3bb8c9]"
+                  className="inline-flex items-center gap-2 rounded-lg bg-alma-fuerte px-4 py-3 font-semibold text-white transition hover:bg-alma-oscuro"
                 >
                   <Download className="h-4 w-4" />
                   Descargar el certificado

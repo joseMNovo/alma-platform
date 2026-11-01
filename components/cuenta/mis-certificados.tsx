@@ -33,8 +33,8 @@ export default function MisCertificados({ certificados }: { certificados: Certif
           <Card key={certificado.id}>
             <CardContent className="space-y-3 py-4">
               <div className="flex items-start gap-3">
-                <div className="rounded-full bg-[#4dd0e1]/10 p-2.5">
-                  <Award className="h-5 w-5 text-[#4dd0e1]" />
+                <div className="rounded-full bg-[#5ec0cf]/10 p-2.5">
+                  <Award className="h-5 w-5 text-[#5ec0cf]" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-gray-900">
@@ -59,7 +59,7 @@ export default function MisCertificados({ certificados }: { certificados: Certif
                   href={`/api/publico/certificado/${certificado.code}/pdf`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#4dd0e1] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#3bb8c9]"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-alma-fuerte px-3 py-2 text-sm font-semibold text-white transition hover:bg-alma-oscuro"
                 >
                   <Download className="h-4 w-4" />
                   Descargar

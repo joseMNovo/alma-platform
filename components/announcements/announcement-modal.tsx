@@ -99,7 +99,7 @@ export default function AnnouncementModal({ user }: AnnouncementModalProps) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
-            <Megaphone className="w-6 h-6 text-[#4dd0e1]" />
+            <Megaphone className="w-6 h-6 text-[#5ec0cf]" />
             {announcement.title}
           </DialogTitle>
         </DialogHeader>
@@ -113,7 +113,7 @@ export default function AnnouncementModal({ user }: AnnouncementModalProps) {
           </label>
           <Button
             onClick={handleClose}
-            className="w-full sm:w-auto bg-[#0099b0] hover:bg-[#007a8e] text-white"
+            className="w-full sm:w-auto bg-[#04799a] hover:bg-[#03617b] text-white"
           >
             Entendido
           </Button>

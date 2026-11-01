@@ -143,7 +143,7 @@ export default function InstalarApp({ className }: { className?: string }) {
           {plataforma === "ios-navegador-interno" ? (
             <div className="space-y-3 text-sm text-gray-700">
               <p className="flex items-start gap-2">
-                <Compass className="mt-0.5 h-5 w-5 shrink-0 text-[#4dd0e1]" />
+                <Compass className="mt-0.5 h-5 w-5 shrink-0 text-[#5ec0cf]" />
                 <span>
                   Estás viendo esto dentro de otra aplicación. Desde acá iOS no deja
                   agregar nada a la pantalla de inicio.
@@ -158,7 +158,7 @@ export default function InstalarApp({ className }: { className?: string }) {
           ) : (
             <ol className="space-y-3 text-sm text-gray-700">
               <li className="flex items-start gap-2">
-                <Share className="mt-0.5 h-5 w-5 shrink-0 text-[#4dd0e1]" />
+                <Share className="mt-0.5 h-5 w-5 shrink-0 text-[#5ec0cf]" />
                 <span>
                   Tocá el botón <strong>Compartir</strong>, el cuadradito con la flecha
                   hacia arriba,{" "}
@@ -169,13 +169,13 @@ export default function InstalarApp({ className }: { className?: string }) {
                 </span>
               </li>
               <li className="flex items-start gap-2">
-                <SquarePlus className="mt-0.5 h-5 w-5 shrink-0 text-[#4dd0e1]" />
+                <SquarePlus className="mt-0.5 h-5 w-5 shrink-0 text-[#5ec0cf]" />
                 <span>
                   Deslizá la lista y elegí <strong>Agregar a inicio</strong>.
                 </span>
               </li>
               <li className="flex items-start gap-2">
-                <Download className="mt-0.5 h-5 w-5 shrink-0 text-[#4dd0e1]" />
+                <Download className="mt-0.5 h-5 w-5 shrink-0 text-[#5ec0cf]" />
                 <span>
                   Confirmá con <strong>Agregar</strong>. Te queda el ícono de ALMA
                   junto al resto de tus aplicaciones.

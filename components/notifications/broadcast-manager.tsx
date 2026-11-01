@@ -60,15 +60,15 @@ function ViaAviso({
         deshabilitada
           ? "border-gray-200 opacity-50"
           : activa
-            ? "border-[#4dd0e1] bg-[#4dd0e1]/10"
-            : "border-gray-200 hover:border-[#b2ebf2]"
+            ? "border-[#5ec0cf] bg-[#5ec0cf]/10"
+            : "border-gray-200 hover:border-[#bbe5eb]"
       }`}
     >
       {/* La casilla no maneja el click: lo maneja la caja entera, que es un
           blanco mucho más grande. Va sin `onCheckedChange` a propósito. */}
       <Checkbox checked={activa} disabled={deshabilitada} className="pointer-events-none mt-0.5" />
       <span className="min-w-0 text-sm leading-snug">
-        <span className={`block font-medium ${activa ? "text-[#00838f]" : "text-gray-700"}`}>
+        <span className={`block font-medium ${activa ? "text-alma-fuerte" : "text-gray-700"}`}>
           {titulo}
         </span>
         <span className="block text-xs text-gray-400">{detalle}</span>
@@ -267,12 +267,12 @@ export default function BroadcastManager({ user }: { user: any }) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Megaphone className="w-5 h-5 text-[#4dd0e1]" />
+            <Megaphone className="w-5 h-5 text-[#5ec0cf]" />
             Enviar aviso
           </CardTitle>
           <CardDescription>
             A quién, por dónde y qué dice. Puede ir a la campanita{" "}
-            <Bell className="inline-block w-4 h-4 align-text-bottom text-[#4dd0e1]" />, como ventana
+            <Bell className="inline-block w-4 h-4 align-text-bottom text-[#5ec0cf]" />, como ventana
             al ingresar y/o por mail.
           </CardDescription>
         </CardHeader>
@@ -291,8 +291,8 @@ export default function BroadcastManager({ user }: { user: any }) {
                     onClick={() => { setAudienceMode(opt.key); setAlsoPopup(false) }}
                     className={`flex items-center justify-center gap-1.5 rounded-lg border-2 px-2 py-2 text-sm font-medium transition ${
                       active
-                        ? "border-[#4dd0e1] bg-[#4dd0e1]/10 text-[#00838f]"
-                        : "border-gray-200 text-gray-600 hover:border-[#b2ebf2]"
+                        ? "border-[#5ec0cf] bg-[#5ec0cf]/10 text-alma-fuerte"
+                        : "border-gray-200 text-gray-600 hover:border-[#bbe5eb]"
                     }`}
                   >
                     <Icon className="h-4 w-4 shrink-0" />
@@ -308,20 +308,20 @@ export default function BroadcastManager({ user }: { user: any }) {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="flex items-center gap-1.5">
-                  <Users className="w-4 h-4 text-[#4dd0e1]" />
+                  <Users className="w-4 h-4 text-[#5ec0cf]" />
                   Destinatarios
                 </Label>
                 <span
                   className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                    selected.size > 0 ? "bg-[#4dd0e1] text-white" : "bg-gray-100 text-gray-500"
+                    selected.size > 0 ? "bg-alma-fuerte text-white" : "bg-gray-100 text-gray-500"
                   }`}
                 >
                   {selected.size} de {volunteers.length}
                 </span>
               </div>
 
-              <div className="border-2 border-[#b2ebf2] rounded-lg overflow-hidden shadow-sm">
-                <div className="p-2.5 border-b border-[#b2ebf2] bg-[#e0f7fa]/50 space-y-2">
+              <div className="border-2 border-[#bbe5eb] rounded-lg overflow-hidden shadow-sm">
+                <div className="p-2.5 border-b border-[#bbe5eb] bg-[#dff2f5]/50 space-y-2">
                   <div className="relative">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <Input
@@ -333,7 +333,7 @@ export default function BroadcastManager({ user }: { user: any }) {
                   </div>
                   <label className="flex items-center gap-2 px-1 py-1 cursor-pointer select-none rounded hover:bg-white/60">
                     <Checkbox checked={allSelected} onCheckedChange={(v) => toggleAll(v === true)} />
-                    <span className="text-sm font-semibold text-[#00838f]">Seleccionar todos ({volunteers.length})</span>
+                    <span className="text-sm font-semibold text-alma-fuerte">Seleccionar todos ({volunteers.length})</span>
                   </label>
                 </div>
 
@@ -355,13 +355,13 @@ export default function BroadcastManager({ user }: { user: any }) {
                             <li key={v.id}>
                               <label
                                 className={`flex items-center gap-2.5 px-3 py-2.5 cursor-pointer select-none transition-colors ${
-                                  checked ? "bg-[#4dd0e1]/10" : "hover:bg-gray-50"
+                                  checked ? "bg-[#5ec0cf]/10" : "hover:bg-gray-50"
                                 }`}
                               >
                                 <Checkbox checked={checked} onCheckedChange={(c) => toggleOne(v.id, c === true)} />
-                                <span className={`text-sm ${checked ? "font-medium text-[#00838f]" : "text-gray-800"}`}>
+                                <span className={`text-sm ${checked ? "font-medium text-alma-fuerte" : "text-gray-800"}`}>
                                   {fullName}
-                                  {isMe && <span className="ml-1.5 text-xs text-[#4dd0e1] font-medium">(vos)</span>}
+                                  {isMe && <span className="ml-1.5 text-xs text-[#5ec0cf] font-medium">(vos)</span>}
                                 </span>
                               </label>
                             </li>
@@ -383,13 +383,13 @@ export default function BroadcastManager({ user }: { user: any }) {
               className={
                 sinDestinatarios
                   ? "border-amber-200 bg-amber-50/60"
-                  : "border-[#b2ebf2] bg-[#e0f7fa]/40"
+                  : "border-[#bbe5eb] bg-[#dff2f5]/40"
               }
             >
-              <Users className={`h-4 w-4 ${sinDestinatarios ? "text-amber-600" : "text-[#00838f]"}`} />
+              <Users className={`h-4 w-4 ${sinDestinatarios ? "text-amber-600" : "text-alma-fuerte"}`} />
               <AlertDescription className="text-gray-600">
                 {sinDestinatarios ? (
-                  <>Todavía no hay participantes registrados.</>
+                  <>Sin participantes registrados.</>
                 ) : (
                   <>
                     Va a <strong>{recipientLabel}</strong>
@@ -513,7 +513,7 @@ export default function BroadcastManager({ user }: { user: any }) {
           <Button
             onClick={() => setConfirmOpen(true)}
             disabled={!canSend}
-            className="bg-[#4dd0e1] hover:bg-[#3bbccd] text-white"
+            className="bg-alma-fuerte hover:bg-alma-oscuro text-white"
           >
             {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
             {sending ? "Enviando..." : "Enviar aviso"}
@@ -552,7 +552,7 @@ export default function BroadcastManager({ user }: { user: any }) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSend} className="bg-[#4dd0e1] hover:bg-[#3bbccd] text-white">
+            <AlertDialogAction onClick={handleSend} className="bg-alma-fuerte hover:bg-alma-oscuro text-white">
               Sí, enviar
             </AlertDialogAction>
           </AlertDialogFooter>

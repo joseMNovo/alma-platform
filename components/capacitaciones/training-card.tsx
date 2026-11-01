@@ -108,8 +108,8 @@ export default function TrainingCard({
             className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#4dd0e1]/15 to-[#9A8BC2]/15">
-            <GraduationCap className="h-10 w-10 text-[#4dd0e1]" />
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#5ec0cf]/15 to-[#9A8BC2]/15">
+            <GraduationCap className="h-10 w-10 text-[#5ec0cf]" />
           </div>
         )}
 
@@ -133,7 +133,7 @@ export default function TrainingCard({
           </span>
         )}
         {showAccess && training.has_access && (
-          <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-[#4dd0e1] px-2 py-1 text-xs font-medium text-white">
+          <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-alma-fuerte px-2 py-1 text-xs font-medium text-white">
             <PlayCircle className="h-3 w-3" />
             Disponible
           </span>
@@ -223,7 +223,7 @@ export default function TrainingCard({
         {showAccess && training.has_access && training.item_count > 0 && (
           <div className="space-y-1">
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-              <div className="h-full bg-[#4dd0e1] transition-all" style={{ width: `${progress}%` }} />
+              <div className="h-full bg-[#5ec0cf] transition-all" style={{ width: `${progress}%` }} />
             </div>
             <p className="flex items-center gap-1 text-xs text-gray-500">
               {progress === 100 ? (
@@ -249,14 +249,14 @@ export default function TrainingCard({
           ) : (
             <span className="font-semibold text-green-600">Gratuita</span>
           )}
-          <span className="text-sm font-medium text-[#4dd0e1]">{cta}</span>
+          <span className="text-sm font-medium text-[#5ec0cf]">{cta}</span>
         </div>
       </div>
     </>
   )
 
   const shell =
-    "group flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white text-left transition hover:border-[#4dd0e1] hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4dd0e1]"
+    "group flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white text-left transition hover:border-[#5ec0cf] hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5ec0cf]"
 
   if (href) {
     return (

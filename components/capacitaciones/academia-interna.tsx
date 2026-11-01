@@ -40,7 +40,7 @@ export default function AcademiaInterna() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white">
-        <div className="text-xl text-[#4dd0e1]">Cargando...</div>
+        <div className="text-xl text-[#5ec0cf]">Cargando...</div>
       </div>
     )
   }

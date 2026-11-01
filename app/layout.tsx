@@ -31,9 +31,9 @@ export default function RootLayout({
         />
         <link rel="icon" href="/images/flor.png" type="image/png" />
         <link rel="apple-touch-icon" href="/images/flor.png" />
-        <meta name="theme-color" content="#00bcd4" />
+        <meta name="theme-color" content="#5ec0cf" />
         <meta name="msapplication-TileImage" content="/images/flor.png" />
-        <meta name="msapplication-TileColor" content="#00bcd4" />
+        <meta name="msapplication-TileColor" content="#5ec0cf" />
 
         {/*
           Atrapar `beforeinstallprompt` ANTES de que React se monte.

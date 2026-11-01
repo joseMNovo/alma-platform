@@ -64,7 +64,8 @@ export default function AprobacionesManager({ user, onPendingCount }: { user: Cu
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
+        {/* Oculto en el teléfono: el encabezado de sección, arriba, ya dice esto mismo. */}
+        <div className="hidden sm:block">
           <h2 className="text-2xl font-bold text-gray-800">Aprobaciones</h2>
           <p className="text-gray-500 text-sm mt-1">Voluntarios que esperan ser aprobados</p>
         </div>
@@ -76,7 +77,7 @@ export default function AprobacionesManager({ user, onPendingCount }: { user: Cu
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader2 className="w-8 h-8 animate-spin text-[#4dd0e1]" />
+          <Loader2 className="w-8 h-8 animate-spin text-[#5ec0cf]" />
         </div>
       ) : volunteers.length === 0 ? (
         <div className="text-center py-16 space-y-3">
@@ -91,7 +92,7 @@ export default function AprobacionesManager({ user, onPendingCount }: { user: Cu
               <CardContent className="p-5 space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#f5f3ff] flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-[#e8e6fb] flex items-center justify-center">
                       <User className="w-5 h-5 text-[#9a8bc2]" />
                     </div>
                     <div>
@@ -121,7 +122,7 @@ export default function AprobacionesManager({ user, onPendingCount }: { user: Cu
                 </div>
 
                 <Button
-                  className="w-full bg-[#4dd0e1] hover:bg-[#0099b0] text-white text-sm"
+                  className="w-full bg-alma-fuerte hover:bg-alma-oscuro text-white text-sm"
                   disabled={approvingId === v.id}
                   onClick={() => handleApprove(v.id)}
                 >

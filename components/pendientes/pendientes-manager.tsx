@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import BotonFlotante from "@/components/ui/boton-flotante"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Plus, CheckSquare, User, Calendar, Trash2, Edit } from "lucide-react"
@@ -331,7 +332,9 @@ export default function PendientesManager({ user }: { user: any }) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
+        {/* Oculto en el teléfono: el encabezado de sección, arriba, ya dice
+            esto mismo. */}
+        <div className="hidden sm:block">
           <h1 className="text-2xl font-bold text-gray-900">Pendientes</h1>
           <p className="text-gray-600">Gestiona tus tareas y categorías pendientes</p>
         </div>
@@ -351,13 +354,30 @@ export default function PendientesManager({ user }: { user: any }) {
           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
             <DialogTrigger asChild>
               <Button
-                className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white w-full sm:w-auto"
+                className="hidden sm:inline-flex bg-alma-fuerte hover:bg-alma-oscuro text-white w-full sm:w-auto"
                 onClick={() => setFormData({ description: '', assigned_volunteer_id: user.id.toString() })}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Agregar
               </Button>
             </DialogTrigger>
+
+            {/*
+              El botón flotante crea CATEGORÍA, que es el primer nivel.
+              Las sub-categorías siguen naciéndo desde su categoría madre, con
+              el botón que ya tiene cada una: una sub-categoría suelta no
+              existe —necesita saber de quién cuelga— y un botón flotante no
+              tiene forma de preguntarlo sin abrir otro paso.
+            */}
+            <BotonFlotante
+              className="sm:hidden"
+              onClick={() => {
+                setFormData({ description: '', assigned_volunteer_id: user.id.toString() })
+                setIsModalOpen(true)
+              }}
+            >
+              Nueva categoría
+            </BotonFlotante>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Nueva Categoría</DialogTitle>
@@ -392,12 +412,12 @@ export default function PendientesManager({ user }: { user: any }) {
                   </Select>
                 </div>
                 <p className="text-xs text-gray-400">* Campos obligatorios</p>
-                <div className="flex justify-end gap-2">
+                <DialogFooter>
                   <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-                  <Button onClick={handleAddCategory} className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white">
+                  <Button onClick={handleAddCategory} className="bg-alma-fuerte hover:bg-alma-oscuro text-white">
                     Crear Categoría
                   </Button>
-                </div>
+                </DialogFooter>
               </div>
             </DialogContent>
           </Dialog>
@@ -457,12 +477,12 @@ export default function PendientesManager({ user }: { user: any }) {
                   </Select>
                 </div>
                 <p className="text-xs text-gray-400">* Campos obligatorios</p>
-                <div className="flex justify-end gap-2">
+                <DialogFooter>
                   <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancelar</Button>
-                  <Button onClick={handleEditSave} className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white">
+                  <Button onClick={handleEditSave} className="bg-alma-fuerte hover:bg-alma-oscuro text-white">
                     Guardar Cambios
                   </Button>
-                </div>
+                </DialogFooter>
               </div>
             </DialogContent>
           </Dialog>
@@ -503,12 +523,12 @@ export default function PendientesManager({ user }: { user: any }) {
                   </Select>
                 </div>
                 <p className="text-xs text-gray-400">* Campos obligatorios</p>
-                <div className="flex justify-end gap-2">
+                <DialogFooter>
                   <Button variant="outline" onClick={() => setIsSubCategoryModalOpen(false)}>Cancelar</Button>
-                  <Button onClick={handleAddSubCategorySave} className="bg-[#4dd0e1] hover:bg-[#3bb5c7] text-white">
+                  <Button onClick={handleAddSubCategorySave} className="bg-alma-fuerte hover:bg-alma-oscuro text-white">
                     Crear Sub-categoría
                   </Button>
-                </div>
+                </DialogFooter>
               </div>
             </DialogContent>
           </Dialog>
@@ -544,7 +564,7 @@ export default function PendientesManager({ user }: { user: any }) {
                         </CardTitle>
                         <div className="flex items-center gap-2 mt-2">
                           <User className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm text-[#4dd0e1] font-medium">
+                          <span className="text-sm text-[#5ec0cf] font-medium">
                             {getVolunteerName(category.assigned_volunteer_id)}
                           </span>
                         </div>
@@ -567,7 +587,7 @@ export default function PendientesManager({ user }: { user: any }) {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleAddSubCategory(category.id)}
-                              className="h-8 w-8 p-0 text-[#4dd0e1] hover:text-[#3bb5c7] hover:bg-[#4dd0e1]/10"
+                              className="h-8 w-8 p-0 text-[#04799a] hover:text-[#03617b] hover:bg-[#5ec0cf]/10"
                               title="Agregar sub-categoría"
                             >
                               <Plus className="w-4 h-4" />
@@ -624,7 +644,7 @@ export default function PendientesManager({ user }: { user: any }) {
                                 </p>
                                 <div className="flex items-center gap-2 mt-1">
                                   <User className="w-3 h-3 text-gray-500" />
-                                  <span className="text-xs text-[#4dd0e1] font-medium">
+                                  <span className="text-xs text-[#5ec0cf] font-medium">
                                     {getVolunteerName(subItem.assigned_volunteer_id)}
                                   </span>
                                 </div>

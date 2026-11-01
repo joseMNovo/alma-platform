@@ -142,7 +142,7 @@ function Chip({
       onClick={onClick}
       className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition ${
         activo
-          ? "bg-[#4dd0e1] text-white"
+          ? "bg-alma-fuerte text-white"
           : color
             ? `${color} hover:brightness-95`
             : "bg-gray-100 text-gray-600 hover:bg-gray-200"

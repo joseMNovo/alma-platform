@@ -38,7 +38,7 @@ export default function HistorialAvisosPago() {
   if (cargando) {
     return (
       <div className="flex justify-center py-8">
-        <Loader2 className="h-5 w-5 animate-spin text-[#4dd0e1]" />
+        <Loader2 className="h-5 w-5 animate-spin text-[#5ec0cf]" />
       </div>
     )
   }
@@ -47,7 +47,7 @@ export default function HistorialAvisosPago() {
     return (
       <Card>
         <CardContent className="py-10 text-center text-gray-500">
-          Todavía no se resolvió ningún aviso.
+          Sin avisos resueltos.
         </CardContent>
       </Card>
     )

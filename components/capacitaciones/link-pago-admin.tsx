@@ -121,7 +121,7 @@ export default function LinkPagoAdmin() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-8 w-8 animate-spin text-[#4dd0e1]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#5ec0cf]" />
       </div>
     )
   }
@@ -131,7 +131,8 @@ export default function LinkPagoAdmin() {
 
   return (
     <div className="space-y-4">
-      <div>
+      {/* Oculto en el teléfono: el encabezado de sección, arriba, ya dice esto mismo. */}
+      <div className="hidden sm:block">
         <h3 className="font-semibold text-gray-900">Link de pago</h3>
         <p className="text-sm text-gray-500">
           Adónde mandamos a la gente cuando toca «Comprar» en una capacitación.
@@ -160,7 +161,7 @@ export default function LinkPagoAdmin() {
             <Button
               onClick={guardarGeneral}
               disabled={savingGeneral || !hayCambioGeneral}
-              className="bg-[#4dd0e1] hover:bg-[#3bb8c9]"
+              className="bg-alma-fuerte hover:bg-alma-oscuro"
             >
               {savingGeneral && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Guardar
@@ -183,7 +184,7 @@ export default function LinkPagoAdmin() {
                 href={guardado}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-[#00838f] underline-offset-2 hover:underline"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-alma-fuerte underline-offset-2 hover:underline"
               >
                 <ExternalLink className="h-4 w-4" />
                 Probarlo

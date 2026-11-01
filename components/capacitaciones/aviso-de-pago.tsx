@@ -121,7 +121,7 @@ export default function AvisoDePago({
 
           <div>
             <Label>Comprobante (opcional)</Label>
-            <label className="mt-1 flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-gray-300 p-3 text-sm text-gray-600 transition hover:border-[#4dd0e1]">
+            <label className="mt-1 flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-gray-300 p-3 text-sm text-gray-600 transition hover:border-[#5ec0cf]">
               <Upload className="h-4 w-4 shrink-0 text-gray-400" />
               <span className="min-w-0 flex-1 truncate">
                 {archivo ? archivo.name : "Elegir imagen o PDF"}
@@ -153,7 +153,7 @@ export default function AvisoDePago({
               Cancelar
             </Button>
             <Button
-              className="gap-2 bg-[#4dd0e1] hover:bg-[#3bb8c9]"
+              className="gap-2 bg-alma-fuerte hover:bg-alma-oscuro"
               onClick={enviar}
               disabled={enviando}
             >

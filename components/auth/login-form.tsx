@@ -112,7 +112,7 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
 
   return (
     <div
-      className="min-h-screen flex flex-col bg-gradient-to-br from-[#4dd0e1] to-[#9a8bc2] relative overflow-hidden"
+      className="min-h-screen flex flex-col bg-gradient-to-br from-[#5ec0cf] to-[#9a8bc2] relative overflow-hidden"
       style={{ fontFamily: "'Gotham Rounded', system-ui, sans-serif" }}
     >
       {/* Link a juegos — esquina superior derecha */}
@@ -195,7 +195,7 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
                   type="button"
                   onClick={handleLoginButtonClick}
                   disabled={loading}
-                  className="w-full bg-white hover:bg-[#f0fdff] active:scale-[0.98] text-[#0099b0] font-semibold rounded-full px-8 py-3 text-base transition-all shadow-lg hover:shadow-xl border-0 disabled:opacity-60"
+                  className="w-full bg-white hover:bg-[#f2fafb] active:scale-[0.98] text-[#04799a] font-semibold rounded-full px-8 py-3 text-base transition-all shadow-lg hover:shadow-xl border-0 disabled:opacity-60"
                 >
                   {loading ? "Iniciando sesión..." : "Iniciar sesión"}
                 </Button>
@@ -220,7 +220,7 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
                 <form
                   onSubmit={handleSubmit}
                   noValidate
-                  className="bg-white rounded-2xl shadow-2xl p-6 space-y-4 text-left border border-[#b2ebf2]"
+                  className="bg-white rounded-2xl shadow-2xl p-6 space-y-4 text-left border border-[#bbe5eb]"
                 >
                   <div className="space-y-1.5">
                     <Label htmlFor="email" className="text-gray-800 font-semibold text-sm">Email</Label>
@@ -232,7 +232,7 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="tu@email.com"
                       required
-                      className="border-[#b2ebf2] placeholder:text-gray-400 text-gray-800 focus:border-[#0099b0] focus:ring-2 focus:ring-[#4dd0e1]/30 focus:ring-offset-0 transition-shadow"
+                      className="border-[#bbe5eb] placeholder:text-gray-400 text-gray-800 focus:border-[#04799a] focus:ring-2 focus:ring-[#5ec0cf]/30 focus:ring-offset-0 transition-shadow"
                     />
                   </div>
 
@@ -247,7 +247,7 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
                       placeholder="••••"
                       required
                       maxLength={4}
-                      className="border-[#b2ebf2] placeholder:text-gray-400 text-gray-800 focus:border-[#0099b0] focus:ring-2 focus:ring-[#4dd0e1]/30 focus:ring-offset-0 tracking-widest text-center text-lg transition-shadow"
+                      className="border-[#bbe5eb] placeholder:text-gray-400 text-gray-800 focus:border-[#04799a] focus:ring-2 focus:ring-[#5ec0cf]/30 focus:ring-offset-0 tracking-widest text-center text-lg transition-shadow"
                     />
                   </div>
 
@@ -256,7 +256,7 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
                       type="checkbox"
                       checked={remember}
                       onChange={(e) => setRemember(e.target.checked)}
-                      className="w-4 h-4 rounded border-gray-300 text-[#0099b0] accent-[#0099b0]"
+                      className="w-4 h-4 rounded border-gray-300 text-[#04799a] accent-[#04799a]"
                     />
                     <span className="text-xs text-gray-500">Recordarme por 15 días</span>
                   </label>
@@ -275,7 +275,7 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
                               type="button"
                               onClick={reenviarVerificacion}
                               disabled={reenviando}
-                              className="mt-2 block font-semibold text-[#0099b0] underline-offset-2 hover:underline disabled:opacity-50"
+                              className="mt-2 block font-semibold text-[#04799a] underline-offset-2 hover:underline disabled:opacity-50"
                             >
                               {reenviando ? "Enviando..." : "Reenviar el correo"}
                             </button>
@@ -288,7 +288,7 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
                   <Button
                     type="submit"
                     disabled={loading || pin.length !== 4}
-                    className="w-full bg-[#0099b0] hover:bg-[#007a8e] active:bg-[#006478] active:scale-[0.98] text-white font-semibold py-2.5 px-4 rounded-lg transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:shadow-none shadow-md hover:shadow-lg"
+                    className="w-full bg-[#04799a] hover:bg-[#03617b] active:bg-[#03617b] active:scale-[0.98] text-white font-semibold py-2.5 px-4 rounded-lg transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:shadow-none shadow-md hover:shadow-lg"
                   >
                     {loading ? "Verificando..." : "Confirmar"}
                   </Button>
@@ -297,14 +297,14 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
                     <button
                       type="button"
                       onClick={() => { setForgotPin(true); setResetStatus("idle"); setResetEmail("") }}
-                      className="text-xs text-[#0099b0] hover:underline"
+                      className="text-xs text-[#04799a] hover:underline"
                     >
                       ¿Olvidaste tu PIN?
                     </button>
                   </p>
                 </form>
               ) : (
-                <div className="bg-white rounded-2xl shadow-2xl p-6 space-y-4 text-left border border-[#b2ebf2]">
+                <div className="bg-white rounded-2xl shadow-2xl p-6 space-y-4 text-left border border-[#bbe5eb]">
                   {resetStatus === "sent" ? (
                     <div className="text-center space-y-3 py-2">
                       <p className="text-gray-700 font-semibold text-sm">¡Listo!</p>
@@ -312,7 +312,7 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
                       <button
                         type="button"
                         onClick={() => { setForgotPin(false); setResetStatus("idle") }}
-                        className="text-xs text-[#0099b0] hover:underline"
+                        className="text-xs text-[#04799a] hover:underline"
                       >
                         Volver al login
                       </button>
@@ -332,7 +332,7 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
                           onChange={(e) => setResetEmail(e.target.value)}
                           placeholder="tu@email.com"
                           required
-                          className="border-[#b2ebf2] placeholder:text-gray-400 text-gray-800 focus:border-[#0099b0] focus:ring-2 focus:ring-[#4dd0e1]/30 focus:ring-offset-0 transition-shadow"
+                          className="border-[#bbe5eb] placeholder:text-gray-400 text-gray-800 focus:border-[#04799a] focus:ring-2 focus:ring-[#5ec0cf]/30 focus:ring-offset-0 transition-shadow"
                         />
                       </div>
 
@@ -344,8 +344,8 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
                             onClick={() => setResetUserType("volunteer")}
                             className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold border transition-all ${
                               resetUserType === "volunteer"
-                                ? "bg-[#0099b0] text-white border-[#0099b0]"
-                                : "bg-white text-gray-500 border-gray-200 hover:border-[#4dd0e1]"
+                                ? "bg-[#04799a] text-white border-[#04799a]"
+                                : "bg-white text-gray-500 border-gray-200 hover:border-[#5ec0cf]"
                             }`}
                           >
                             Voluntario
@@ -355,8 +355,8 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
                             onClick={() => setResetUserType("participant")}
                             className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold border transition-all ${
                               resetUserType === "participant"
-                                ? "bg-[#0099b0] text-white border-[#0099b0]"
-                                : "bg-white text-gray-500 border-gray-200 hover:border-[#4dd0e1]"
+                                ? "bg-[#04799a] text-white border-[#04799a]"
+                                : "bg-white text-gray-500 border-gray-200 hover:border-[#5ec0cf]"
                             }`}
                           >
                             Participante
@@ -367,7 +367,7 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
                       <Button
                         type="submit"
                         disabled={resetStatus === "loading" || !resetEmail}
-                        className="w-full bg-[#0099b0] hover:bg-[#007a8e] text-white font-semibold py-2.5 rounded-lg transition-all disabled:bg-gray-100 disabled:text-gray-400 shadow-md"
+                        className="w-full bg-[#04799a] hover:bg-[#03617b] text-white font-semibold py-2.5 rounded-lg transition-all disabled:bg-gray-100 disabled:text-gray-400 shadow-md"
                       >
                         {resetStatus === "loading" ? "Enviando..." : "Enviar link"}
                       </Button>
@@ -376,7 +376,7 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
                         <button
                           type="button"
                           onClick={() => setForgotPin(false)}
-                          className="text-xs text-[#0099b0] hover:underline"
+                          className="text-xs text-[#04799a] hover:underline"
                         >
                           Volver al login
                         </button>

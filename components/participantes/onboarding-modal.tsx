@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle , DialogFooter} from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -86,7 +86,7 @@ export default function ParticipanteOnboarding({ user }: { user: any }) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
-            <Heart className="h-6 w-6 text-[#4dd0e1]" />
+            <Heart className="h-6 w-6 text-[#5ec0cf]" />
             ¡Bienvenido/a a ALMA!
           </DialogTitle>
         </DialogHeader>
@@ -97,7 +97,7 @@ export default function ParticipanteOnboarding({ user }: { user: any }) {
         </p>
 
         <div className="space-y-3 pt-1">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
             <div>
               <Label htmlFor="ob-name">Nombre *</Label>
               <Input id="ob-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
@@ -113,19 +113,19 @@ export default function ParticipanteOnboarding({ user }: { user: any }) {
           </div>
         </div>
 
-        <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+        <DialogFooter className="pt-2">
           <Button variant="outline" onClick={snooze} className="border-gray-300 text-gray-600">
             Ahora no
           </Button>
           <Button
             onClick={save}
             disabled={saving || !name.trim() || !lastName.trim()}
-            className="bg-[#4dd0e1] hover:bg-[#3bb8c9] text-white"
+            className="bg-alma-fuerte hover:bg-alma-oscuro text-white"
           >
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Guardar
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import BotonFlotante from "@/components/ui/boton-flotante"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -176,19 +177,28 @@ export default function ActividadesManager({ user }: { user: any }) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
-        <div>
+        {/* Oculto en el teléfono: el encabezado de sección, arriba, ya dice esto mismo. */}
+        <div className="hidden sm:block">
           <h2 className="text-xl md:text-2xl font-bold text-gray-900">Actividades</h2>
           <p className="text-sm text-gray-500">Ciclos de charlas, jornadas, eventos y más</p>
         </div>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           {can(user, "actividades:create") && (
+            <>
             <DialogTrigger asChild>
-              <Button onClick={resetForm} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+              <Button onClick={resetForm} className="hidden sm:inline-flex bg-alma-fuerte hover:bg-alma-oscuro text-white">
                 <Plus className="w-4 h-4 mr-2" />
                 Nueva Actividad
               </Button>
             </DialogTrigger>
+            {/* En el teléfono el botón de crear flota abajo a la derecha: el
+                de arriba dejaba de existir apenas bajabas tres filas de la
+                lista, que es justo cuando se te ocurre agregar algo. */}
+            <BotonFlotante onClick={() => { resetForm(); setDialogOpen(true) }} className="sm:hidden">
+              Nueva actividad
+            </BotonFlotante>
+            </>
           )}
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -234,7 +244,7 @@ export default function ActividadesManager({ user }: { user: any }) {
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+                <Button type="submit" className="bg-alma-fuerte hover:bg-alma-oscuro text-white">
                   {editingActivity ? "Actualizar" : "Crear"} Actividad
                 </Button>
               </DialogFooter>
@@ -256,7 +266,7 @@ export default function ActividadesManager({ user }: { user: any }) {
         </div>
         <Button
           variant="outline"
-          className={`shrink-0 h-9 px-3 flex items-center gap-1.5 text-sm ${filterActive ? "bg-orange-400 text-white border-orange-400 hover:bg-orange-500 hover:border-orange-500" : ""}`}
+          className={`shrink-0 h-11 sm:h-9 px-3 flex items-center gap-1.5 text-sm ${filterActive ? "bg-orange-400 text-white border-orange-400 hover:bg-orange-500 hover:border-orange-500" : ""}`}
           onClick={() => setFilterActive(!filterActive)}
         >
           <Filter size={15} />

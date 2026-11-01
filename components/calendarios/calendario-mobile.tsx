@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { ChevronLeft, ChevronRight, MoreHorizontal, Plus, Trash2, Zap } from "lucide-react"
+import BotonFlotante from "@/components/ui/boton-flotante"
 import { useState } from "react"
 
 export type TipoEvento = "grupo" | "taller" | "actividad"
@@ -24,7 +25,7 @@ export interface EventoMobile {
 }
 
 const COLOR: Record<TipoEvento, { punto: string; pastilla: string }> = {
-  grupo: { punto: "bg-[#4dd0e1]", pastilla: "bg-[#4dd0e1]/15 text-[#00838f]" },
+  grupo: { punto: "bg-alma-fuerte", pastilla: "bg-alma-suave text-alma-fuerte" },
   taller: { punto: "bg-purple-500", pastilla: "bg-purple-100 text-purple-700" },
   actividad: { punto: "bg-orange-400", pastilla: "bg-orange-100 text-orange-700" },
 }
@@ -168,7 +169,7 @@ export default function CalendarioMobile({
             </label>
 
             <Select value={filtroVoluntario} onValueChange={onFiltroVoluntario}>
-              <SelectTrigger className="h-9 min-w-0 flex-1 text-[13px]">
+              <SelectTrigger className="h-11 sm:h-9 min-w-0 flex-1 text-[13px]">
                 <SelectValue placeholder="Voluntarios" />
               </SelectTrigger>
               <SelectContent>
@@ -218,9 +219,9 @@ export default function CalendarioMobile({
                 <span
                   className={`flex h-7 w-7 items-center justify-center rounded-full text-[13px] ${
                     elegido
-                      ? "bg-[#00838f] font-bold text-white"
+                      ? "bg-alma-fuerte font-bold text-white"
                       : hoy
-                      ? "font-bold text-[#00838f] ring-2 ring-[#4dd0e1]"
+                      ? "font-bold text-alma-fuerte ring-2 ring-[#5ec0cf]"
                       : "text-gray-700"
                   }`}
                 >
@@ -253,7 +254,7 @@ export default function CalendarioMobile({
             <div className="rounded-xl border border-dashed border-gray-200 py-8 text-center">
               <p className="text-sm text-gray-400">No hay nada este día</p>
               {puedeCrear && (
-                <button onClick={() => onNuevo(diaSel)} className="mt-1 text-sm font-semibold text-[#00838f]">
+                <button onClick={() => onNuevo(diaSel)} className="mt-1 text-sm font-semibold text-alma-fuerte">
                   Crear un evento
                 </button>
               )}
@@ -293,15 +294,15 @@ export default function CalendarioMobile({
       )}
 
       {/* El botón principal, al alcance del pulgar. En un teléfono el
-          encabezado es el peor lugar para la acción que más se usa. */}
+          encabezado es el peor lugar para la acción que más se usa.
+
+          Antes era un botón escrito acá mismo, con el aspecto copiado del
+          flotante de verdad pero con el `bottom` fijo. Por eso era el único
+          de toda la aplicación que seguía tapando el pie. */}
       {puedeCrear && (
-        <button
-          onClick={() => onNuevo(diaSel ?? undefined)}
-          className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-40 flex h-14 items-center gap-2 rounded-full bg-[#00838f] pl-5 pr-6 font-semibold text-white shadow-lg active:scale-95"
-        >
-          <Plus className="h-5 w-5" />
+        <BotonFlotante onClick={() => onNuevo(diaSel ?? undefined)}>
           Nuevo evento
-        </button>
+        </BotonFlotante>
       )}
 
       {/*
@@ -324,8 +325,8 @@ export default function CalendarioMobile({
                 onClick={() => { setAccionesAbiertas(false); onGenerar() }}
                 className="flex w-full items-center gap-3 rounded-xl border border-gray-200 p-3 text-left active:bg-gray-50"
               >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#4dd0e1]/15">
-                  <Zap className="h-5 w-5 text-[#00838f]" />
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#5ec0cf]/15">
+                  <Zap className="h-5 w-5 text-alma-fuerte" />
                 </span>
                 <span>
                   <span className="block font-semibold text-gray-900">Generar eventos</span>

@@ -1652,11 +1652,14 @@ export async function getAccessAudit(opts?: {
   personId?: number
   moduleKey?: string
   limit?: number
+  /** Cuántos movimientos saltear desde el más reciente. */
+  offset?: number
 }): Promise<AccessAuditEntry[]> {
   const q = new URLSearchParams()
   if (opts?.personId) q.set('person_id', String(opts.personId))
   if (opts?.moduleKey) q.set('module_key', opts.moduleKey)
   if (opts?.limit) q.set('limit', String(opts.limit))
+  if (opts?.offset) q.set('offset', String(opts.offset))
   const qs = q.toString()
   return api.get<AccessAuditEntry[]>(`/accesos/auditoria${qs ? `?${qs}` : ''}`)
 }

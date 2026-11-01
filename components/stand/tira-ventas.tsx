@@ -94,7 +94,7 @@ export default function TiraVentas({
                       onClick={() => onCorregir(f.clave)}
                       aria-label="Corregir: anula y devuelve los productos al carrito"
                       title="Corregir"
-                      className="flex h-11 w-11 items-center justify-center rounded-lg text-[#00838f] transition-colors active:bg-[#4dd0e1]/15"
+                      className="flex h-11 w-11 items-center justify-center rounded-lg text-alma-fuerte transition-colors active:bg-[#5ec0cf]/15"
                     >
                       <RotateCcw className="h-[18px] w-[18px]" />
                     </button>
@@ -141,7 +141,7 @@ export default function TiraVentas({
       {onVerTodas && (
         <button
           onClick={onVerTodas}
-          className="px-1 text-xs font-medium text-[#00838f] hover:underline"
+          className="px-1 text-xs font-medium text-alma-fuerte hover:underline"
         >
           Ver todas
         </button>

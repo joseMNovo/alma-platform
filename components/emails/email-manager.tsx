@@ -20,6 +20,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Mail, Send, Clock, CheckCircle, AlertCircle, Plus } from "lucide-react"
+import BotonFlotante from "@/components/ui/boton-flotante"
 
 export default function EmailManager({ user }: { user: any }) {
   const [volunteers, setVolunteers] = useState<any[]>([])
@@ -63,7 +64,7 @@ Equipo ALMA - Alzheimer Rosario`,
       asunto: "Confirmación de Inscripción - ALMA",
       mensaje: `Estimado/a {nombre},
 
-Su inscripción ha sido confirmada exitosamente:
+Confirmamos su inscripción:
 
 Actividad: {actividad}
 Fecha: {fecha}
@@ -181,7 +182,7 @@ Equipo ALMA - Alzheimer Rosario`,
 
       await Promise.all(promises)
 
-      alert(`Emails enviados exitosamente a ${destinatarios.length} usuarios`)
+      alert(`Se enviaron ${destinatarios.length} emails.`)
       setDialogOpen(false)
       resetForm()
       fetchEmailHistory()
@@ -210,21 +211,23 @@ Equipo ALMA - Alzheimer Rosario`,
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <div>
+        {/* Oculto en el teléfono: el encabezado de sección, arriba, ya dice esto mismo. */}
+        <div className="hidden sm:block">
           <h2 className="text-2xl font-bold text-gray-900">Gestión de Emails</h2>
           <p className="text-gray-600">Envío de comunicaciones y recordatorios</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          {/* En el teléfono va flotando: ver abajo de todo. */}
           <DialogTrigger asChild>
-            <Button onClick={resetForm} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+            <Button onClick={resetForm} className="hidden sm:inline-flex bg-alma-fuerte hover:bg-alma-oscuro text-white">
               <Plus className="w-4 h-4 mr-2" />
-              Nuevo Email
+              Nuevo email
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Enviar Email</DialogTitle>
-              <DialogDescription>Compose y envía emails a los usuarios registrados</DialogDescription>
+              <DialogDescription>Enviar un email a los usuarios registrados.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -322,7 +325,7 @@ Equipo ALMA - Alzheimer Rosario`,
               <Button
                 onClick={enviarEmails}
                 disabled={sending || !formData.asunto || !formData.mensaje}
-                className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white"
+                className="bg-alma-fuerte hover:bg-alma-oscuro text-white"
               >
                 {sending ? (
                   <>
@@ -343,10 +346,10 @@ Equipo ALMA - Alzheimer Rosario`,
 
       <Tabs defaultValue="historial" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2 bg-white border border-gray-200 p-1 rounded-lg">
-          <TabsTrigger value="historial" className="data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white">
+          <TabsTrigger value="historial" className="data-[state=active]:bg-alma-fuerte data-[state=active]:text-white">
             Historial de Emails
           </TabsTrigger>
-          <TabsTrigger value="plantillas" className="data-[state=active]:bg-[#4dd0e1] data-[state=active]:text-white">
+          <TabsTrigger value="plantillas" className="data-[state=active]:bg-alma-fuerte data-[state=active]:text-white">
             Plantillas
           </TabsTrigger>
         </TabsList>
@@ -358,7 +361,7 @@ Equipo ALMA - Alzheimer Rosario`,
                 <CardTitle className="text-sm font-medium text-gray-600">Emails Enviados</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-[#4dd0e1]">{emailHistory.length}</div>
+                <div className="text-2xl font-bold text-[#5ec0cf]">{emailHistory.length}</div>
               </CardContent>
             </Card>
             <Card>
@@ -380,7 +383,7 @@ Equipo ALMA - Alzheimer Rosario`,
                 <CardTitle className="text-sm font-medium text-gray-600">Usuarios Activos</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-[#4dd0e1]">
+                <div className="text-2xl font-bold text-[#5ec0cf]">
                   {volunteers.filter((v) => !v.is_admin).length}
                 </div>
               </CardContent>
@@ -394,7 +397,7 @@ Equipo ALMA - Alzheimer Rosario`,
                   <div className="flex justify-between items-start">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-[#4dd0e1]" />
+                        <Mail className="w-4 h-4 text-[#5ec0cf]" />
                         <h3 className="font-medium">{email.subject}</h3>
                         <Badge
                           variant={email.status === "sent" ? "default" : "secondary"}
@@ -472,6 +475,15 @@ Equipo ALMA - Alzheimer Rosario`,
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* La acción principal, flotando: el botón de arriba se iba de pantalla
+          apenas bajabas por la lista de envíos. */}
+      <BotonFlotante
+        onClick={() => { resetForm(); setDialogOpen(true) }}
+        className="sm:hidden"
+      >
+        Nuevo email
+      </BotonFlotante>
     </div>
   )
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import BotonFlotante from "@/components/ui/boton-flotante"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -169,7 +170,8 @@ export default function GruposManager({ user }: { user: any }) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-        <div>
+        {/* Oculto en el teléfono: el encabezado de sección, arriba, ya dice esto mismo. */}
+        <div className="hidden sm:block">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Grupos</h2>
           <p className="text-sm text-gray-500">Espacios de contención y apoyo emocional</p>
         </div>
@@ -177,7 +179,7 @@ export default function GruposManager({ user }: { user: any }) {
         {can(user, "historiales:view") && (
           <Button
             onClick={() => setShowHistoriales(true)}
-            className="w-full sm:w-auto bg-gradient-to-br from-[#e0f7fa] to-[#7fd4e1] text-[#1A6B7A] font-semibold shadow-md hover:from-[#d0f2f6] hover:to-[#5ec0cf] hover:shadow-lg border border-[#4dd0e1]/40 transition-all"
+            className="w-full sm:w-auto bg-gradient-to-br from-[#dff2f5] to-[#9bd8e1] text-[#04799a] font-semibold shadow-md hover:from-[#bbe5eb] hover:to-[#5ec0cf] hover:shadow-lg border border-[#5ec0cf]/40 transition-all"
           >
             <FolderClock className="w-4 h-4 mr-2" />
             Fichero de historiales
@@ -185,12 +187,20 @@ export default function GruposManager({ user }: { user: any }) {
         )}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           {can(user, "grupos:create") && (
+            <>
             <DialogTrigger asChild>
-              <Button onClick={resetForm} className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white w-full sm:w-auto">
+              <Button onClick={resetForm} className="hidden sm:inline-flex bg-alma-fuerte hover:bg-alma-oscuro text-white w-full sm:w-auto">
                 <Plus className="w-4 h-4 mr-2" />
                 Nuevo Grupo
               </Button>
             </DialogTrigger>
+            {/* En el teléfono el botón de crear flota abajo a la derecha: el
+                de arriba dejaba de existir apenas bajabas tres filas de la
+                lista, que es justo cuando se te ocurre agregar algo. */}
+            <BotonFlotante onClick={() => { resetForm(); setDialogOpen(true) }} className="sm:hidden">
+              Nuevo grupo
+            </BotonFlotante>
+            </>
           )}
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -235,7 +245,7 @@ export default function GruposManager({ user }: { user: any }) {
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" className="bg-[#4dd0e1] hover:bg-[#3bc0d1] text-white">
+                <Button type="submit" className="bg-alma-fuerte hover:bg-alma-oscuro text-white">
                   {editingGroup ? "Actualizar" : "Crear"} Grupo
                 </Button>
               </DialogFooter>
@@ -261,7 +271,7 @@ export default function GruposManager({ user }: { user: any }) {
               >
                 <span
                   className={`w-2 h-2 rounded-full flex-shrink-0 mt-px ${
-                    group.status === "activo" ? "bg-[#4dd0e1]" : "bg-gray-300"
+                    group.status === "activo" ? "bg-[#5ec0cf]" : "bg-gray-300"
                   }`}
                 />
                 <div className="flex-1 min-w-0">
@@ -271,7 +281,7 @@ export default function GruposManager({ user }: { user: any }) {
                 </div>
                 <Badge
                   variant={group.status === "activo" ? "default" : "secondary"}
-                  className={`text-xs flex-shrink-0 ${group.status === "activo" ? "bg-[#4dd0e1]" : ""}`}
+                  className={`text-xs flex-shrink-0 ${group.status === "activo" ? "bg-alma-fuerte" : ""}`}
                 >
                   {group.status}
                 </Badge>
@@ -346,12 +356,12 @@ export default function GruposManager({ user }: { user: any }) {
             >
               <div className="flex justify-between items-start">
                 <div>
-                  <CardTitle className="text-lg hover:text-[#4dd0e1] transition-colors">{group.name}</CardTitle>
+                  <CardTitle className="text-lg hover:text-[#5ec0cf] transition-colors">{group.name}</CardTitle>
                   <CardDescription className="mt-2 line-clamp-2">{group.description}</CardDescription>
                 </div>
                 <Badge
                   variant={group.status === "activo" ? "default" : "secondary"}
-                  className={group.status === "activo" ? "bg-[#4dd0e1]" : ""}
+                  className={group.status === "activo" ? "bg-alma-fuerte" : ""}
                 >
                   {group.status}
                 </Badge>
@@ -408,7 +418,7 @@ export default function GruposManager({ user }: { user: any }) {
               {viewingGroup?.name}
               <Badge
                 variant={viewingGroup?.status === "activo" ? "default" : "secondary"}
-                className={viewingGroup?.status === "activo" ? "bg-[#4dd0e1]" : ""}
+                className={viewingGroup?.status === "activo" ? "bg-alma-fuerte" : ""}
               >
                 {viewingGroup?.status}
               </Badge>
@@ -420,7 +430,7 @@ export default function GruposManager({ user }: { user: any }) {
                 {viewingGroup.description || <span className="italic text-gray-400">Sin descripción.</span>}
               </p>
               {isParticipant && (
-                <p className="rounded-lg bg-[#e0f7fa]/50 p-3 text-sm text-gray-600">
+                <p className="rounded-lg bg-[#dff2f5]/50 p-3 text-sm text-gray-600">
                   Para sumarte, entrá a la <strong>Agenda</strong> y anotate a cada encuentro del grupo.
                 </p>
               )}

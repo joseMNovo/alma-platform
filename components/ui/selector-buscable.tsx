@@ -174,7 +174,7 @@ export default function SelectorBuscable({
                     onMouseDown={(e) => { e.preventDefault(); elegir(o.valor) }}
                     onMouseEnter={() => setResaltada(i)}
                     className={`flex w-full items-center px-2.5 py-1.5 text-left text-sm ${
-                      i === resaltada ? "bg-[#4dd0e1]/10 text-[#00838f]" : "text-gray-700"
+                      i === resaltada ? "bg-[#5ec0cf]/10 text-alma-fuerte" : "text-gray-700"
                     }`}
                   >
                     <Check

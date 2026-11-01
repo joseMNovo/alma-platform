@@ -57,7 +57,7 @@ interface CalendarInstance {
  *  coordinador, co-coordinador o voluntario. */
 function NameChip({ person }: { person: VolunteerRef }) {
   return (
-    <span className="inline-flex items-center rounded-full bg-[#e0f7fa] px-2 py-0.5 text-xs font-medium text-[#0097a7]">
+    <span className="inline-flex items-center rounded-full bg-[#dff2f5] px-2 py-0.5 text-xs font-medium text-[#04799a]">
       {person.name} {person.last_name}
     </span>
   )
@@ -1176,13 +1176,13 @@ export default function CalendariosManager({ user }: { user: any }) {
             <Button variant="outline" size="icon" onClick={() => navigateMonth(1)}>
               <ChevronRight className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={goToToday} className="text-[#4dd0e1] hidden sm:inline-flex">
+            <Button variant="ghost" size="sm" onClick={goToToday} className="text-[#5ec0cf] hidden sm:inline-flex">
               Hoy
             </Button>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge className="bg-[#4dd0e1] text-white">
+            <Badge className="bg-alma-fuerte text-white">
               {grupoCount} grupo{grupoCount !== 1 ? "s" : ""}
             </Badge>
             <Badge className="bg-purple-500 text-white">
@@ -1214,7 +1214,7 @@ export default function CalendariosManager({ user }: { user: any }) {
               </Button>
             )}
             {can(user, "calendar:create") && (
-              <Button size="sm" className="bg-[#4dd0e1] hover:bg-[#26c6da] text-white" onClick={() => openNewInstance()}>
+              <Button size="sm" className="bg-alma-fuerte hover:bg-alma-oscuro text-white" onClick={() => openNewInstance()}>
                 <Plus className="h-4 w-4 mr-1" />
                 Nuevo evento
               </Button>
@@ -1258,7 +1258,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                 variant={filterMine ? "default" : "outline"}
                 size="sm"
                 onClick={() => setFilterMine(!filterMine)}
-                className={filterMine ? "bg-[#4dd0e1] hover:bg-[#26c6da] text-white" : ""}
+                className={filterMine ? "bg-alma-fuerte hover:bg-alma-oscuro text-white" : ""}
               >
                 {filterMine ? "✓ Solo los míos" : "Solo los míos"}
               </Button>
@@ -1270,7 +1270,7 @@ export default function CalendariosManager({ user }: { user: any }) {
               variant={soloAnotados ? "default" : "outline"}
               size="sm"
               onClick={() => setSoloAnotados(!soloAnotados)}
-              className={soloAnotados ? "bg-[#4dd0e1] hover:bg-[#26c6da] text-white" : ""}
+              className={soloAnotados ? "bg-alma-fuerte hover:bg-alma-oscuro text-white" : ""}
             >
               {soloAnotados ? "✓ A los que me anoté" : "A los que me anoté"}
             </Button>
@@ -1327,7 +1327,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                       >
                         <div
                           className={`text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full mx-auto ${
-                            today_ ? "bg-[#4dd0e1] text-white" : "text-gray-700"
+                            today_ ? "bg-alma-fuerte text-white" : "text-gray-700"
                           }`}
                         >
                           {day}
@@ -1342,8 +1342,8 @@ export default function CalendariosManager({ user }: { user: any }) {
                               className={`w-full text-left text-xs px-1.5 py-0.5 rounded truncate block transition-opacity ${
                                 inst.type === "grupo"
                                   ? mine
-                                    ? "bg-[#4dd0e1] text-white hover:bg-[#26c6da]"
-                                    : "bg-[#b2ebf2] text-[#0097a7] hover:bg-[#80deea]"
+                                    ? "bg-alma-fuerte text-white hover:bg-alma-oscuro"
+                                    : "bg-[#bbe5eb] text-[#04799a] hover:bg-[#9bd8e1]"
                                   : inst.type === "taller"
                                   ? mine
                                     ? "bg-purple-500 text-white hover:bg-purple-600"
@@ -1371,7 +1371,10 @@ export default function CalendariosManager({ user }: { user: any }) {
           qué color es cada tipo, y repetirlo abajo era un renglón más) */}
       <div className="hidden sm:flex gap-4 text-xs text-gray-500 px-1 flex-wrap">
         <span className="flex items-center gap-1">
-          <span className="inline-block w-3 h-3 rounded bg-[#4dd0e1]" /> Grupo
+          {/* El mismo turquesa que la píldora llena de arriba. Era el claro, y
+            entonces el cuadradito de la leyenda no coincidía con el color
+            real de los eventos de grupo. */}
+          <span className="inline-block w-3 h-3 rounded bg-alma-fuerte" /> Grupo
         </span>
         <span className="flex items-center gap-1">
           <span className="inline-block w-3 h-3 rounded bg-purple-500" /> Taller
@@ -1387,24 +1390,40 @@ export default function CalendariosManager({ user }: { user: any }) {
       {/* ── Detail Dialog ────────────────────────────────────────── */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="max-w-sm sm:max-w-lg">
+          {/*
+            El nombre del encuentro manda, la fecha va abajo.
+
+            Estaba al revés: el nombre entraba apretado adentro de una pastilla
+            de color y el título grande era la fecha. Pero la fecha es el dato
+            que YA sabés —acabás de tocar ese día en el calendario—, y el
+            nombre es lo que fuiste a buscar. El tipo (grupo / taller /
+            actividad) queda como un punto de color al lado de la fecha: el
+            color es el mismo de la grilla, así que se reconoce sin leerlo.
+          */}
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Badge
-                className={
-                  selectedInstance?.type === "grupo"
-                    ? "bg-[#4dd0e1] text-white"
-                    : selectedInstance?.type === "taller"
-                    ? "bg-purple-500 text-white"
-                    : "bg-orange-400 text-white"
-                }
-              >
-                {selectedInstance && (selectedInstance.title || getSourceName(selectedInstance))}
-              </Badge>
-              {selectedInstance && (() => {
-                const d = new Date(selectedInstance.date + "T12:00:00")
-                return `${d.getDate()} de ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`
-              })()}
+            <DialogTitle className="text-left text-[19px] leading-tight">
+              {selectedInstance && (selectedInstance.title || getSourceName(selectedInstance))}
             </DialogTitle>
+            {selectedInstance && (
+              <p className="flex items-center gap-2 text-sm text-alma-tinta">
+                <span
+                  aria-hidden
+                  className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                    selectedInstance.type === "grupo"
+                      ? "bg-[#5ec0cf]"
+                      : selectedInstance.type === "taller"
+                      ? "bg-purple-500"
+                      : "bg-orange-400"
+                  }`}
+                />
+                <span className="capitalize">{selectedInstance.type}</span>
+                <span className="text-gray-300">·</span>
+                {(() => {
+                  const d = new Date(selectedInstance.date + "T12:00:00")
+                  return `${d.getDate()} de ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`
+                })()}
+              </p>
+            )}
           </DialogHeader>
 
           {selectedInstance && (
@@ -1490,7 +1509,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                   <div className="contents">
                     <span className="border-b border-gray-100 py-2 text-gray-500">Notificación</span>
                     <span className="border-b border-gray-100 py-2">
-                      <Badge variant="outline" className="border-[#4dd0e1] text-[#0097a7]">
+                      <Badge variant="outline" className="border-[#5ec0cf] text-[#04799a]">
                         {(selectedInstance.reminder_offsets || [])
                           .map(o => REMINDER_OPTIONS.find(r => r.value === o)?.label ?? `${o}d`)
                           .join(" · ") || "Activada"}
@@ -1517,8 +1536,8 @@ export default function CalendariosManager({ user }: { user: any }) {
                       disabled={enrolling}
                       onClick={() => toggleEnrollment(selectedInstance.id)}
                       className={"col-span-2 " + (enrolled
-                        ? "bg-white text-[#0097a7] border border-[#4dd0e1] hover:bg-red-50 hover:text-red-500 hover:border-red-300"
-                        : "bg-[#4dd0e1] hover:bg-[#3bb8c9] text-white")}
+                        ? "bg-white text-[#04799a] border border-[#5ec0cf] hover:bg-red-50 hover:text-red-500 hover:border-red-300"
+                        : "bg-alma-fuerte hover:bg-alma-oscuro text-white")}
                     >
                       {enrolling
                         ? <Loader2 className="h-3 w-3 mr-1 animate-spin" />
@@ -1551,7 +1570,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                     variant="outline"
                     disabled={notifying}
                     onClick={handleNotifyEvent}
-                    className="justify-center border-[#4dd0e1] text-[#0097a7] hover:bg-[#4dd0e1]/10"
+                    className="justify-center border-[#5ec0cf] text-[#04799a] hover:bg-[#5ec0cf]/10"
                   >
                     {notifying ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Bell className="h-3 w-3 mr-1" />}
                     {notifying ? "Enviando…" : "Enviar recordatorio"}
@@ -1562,7 +1581,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="justify-center text-[#0097a7] border-[#4dd0e1] hover:bg-[#e0f7fa]"
+                      className="justify-center text-[#04799a] border-[#5ec0cf] hover:bg-[#dff2f5]"
                       onClick={() => handleSelfAssign("coordinator")}
                     >
                       <UserCheck className="h-3 w-3 mr-1" />
@@ -1571,7 +1590,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="justify-center text-[#0097a7] border-[#4dd0e1] hover:bg-[#e0f7fa]"
+                      className="justify-center text-[#04799a] border-[#5ec0cf] hover:bg-[#dff2f5]"
                       onClick={() => handleSelfAssign("co_coordinator")}
                     >
                       <UserPlus className="h-3 w-3 mr-1" />
@@ -1665,7 +1684,7 @@ export default function CalendariosManager({ user }: { user: any }) {
 
             {/* Dynamic fields */}
             {bulkScope === "month" && (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
                 <div className="space-y-1">
                   <Label className="text-sm">Año</Label>
                   <Input
@@ -1778,9 +1797,9 @@ export default function CalendariosManager({ user }: { user: any }) {
       <Dialog open={generateOpen} onOpenChange={setGenerateOpen}>
         <DialogContent className="max-w-5xl h-[90vh] overflow-hidden p-0">
           <div className="flex flex-col h-full">
-            <DialogHeader className="px-6 pt-6 pb-4 border-b">
+            <DialogHeader className="mx-0 px-6 pt-6 pb-4 border-b">
               <DialogTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-[#4dd0e1]" />
+                <Zap className="h-5 w-5 text-[#5ec0cf]" />
                 Generar calendario
               </DialogTitle>
               <DialogDescription>
@@ -1838,7 +1857,7 @@ export default function CalendariosManager({ user }: { user: any }) {
 
                     <div className="border rounded-lg p-3 space-y-3">
                       <p className="text-sm font-semibold text-gray-700">Miércoles alternados</p>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
                         <div className="space-y-1">
                           <Label className="text-xs">Grupo Presencial</Label>
                           <Select
@@ -1857,7 +1876,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                           <Input type="time" value={almaForm.hora_presencial} onChange={e => setAlmaForm(f => ({ ...f, hora_presencial: e.target.value }))} />
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
                         <div className="space-y-1">
                           <Label className="text-xs">Taller</Label>
                           <Select
@@ -1880,7 +1899,7 @@ export default function CalendariosManager({ user }: { user: any }) {
 
                     <div className="border rounded-lg p-3 space-y-3">
                       <p className="text-sm font-semibold text-gray-700">Primer lunes del mes (GA Virtual)</p>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
                         <div className="space-y-1">
                           <Label className="text-xs">Grupo Virtual</Label>
                           <Select
@@ -1907,7 +1926,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                     {/* Módulo A */}
                     <div className="border rounded-lg p-3 space-y-3">
                       <p className="text-sm font-semibold text-gray-700">Módulo A</p>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
                         <div className="space-y-1">
                           <Label className="text-xs">Tipo</Label>
                           <Select value={customForm.module_a} onValueChange={v => setCustomForm(f => ({ ...f, module_a: v, source_a: "" }))}>
@@ -1932,7 +1951,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                           </Select>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
                         <div className="space-y-1">
                           <Label className="text-xs">Hora inicio</Label>
                           <Input type="time" value={customForm.start_time_a} onChange={e => setCustomForm(f => ({ ...f, start_time_a: e.target.value }))} />
@@ -1960,7 +1979,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                     {customForm.intercalar && (
                       <div className="border rounded-lg p-3 space-y-3 border-dashed">
                         <p className="text-sm font-semibold text-gray-700">Módulo B (alternado)</p>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
                           <div className="space-y-1">
                             <Label className="text-xs">Tipo</Label>
                             <Select value={customForm.module_b} onValueChange={v => setCustomForm(f => ({ ...f, module_b: v, source_b: "" }))}>
@@ -1985,7 +2004,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                             </Select>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
                           <div className="space-y-1">
                             <Label className="text-xs">Hora inicio</Label>
                             <Input type="time" value={customForm.start_time_b} onChange={e => setCustomForm(f => ({ ...f, start_time_b: e.target.value }))} />
@@ -2009,7 +2028,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                             onClick={() => toggleCustomDay(day.value)}
                             className={`w-9 h-9 rounded-full text-xs font-medium transition-colors ${
                               customForm.days.includes(day.value)
-                                ? "bg-[#4dd0e1] text-white"
+                                ? "bg-alma-fuerte text-white"
                                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                             }`}
                           >
@@ -2034,7 +2053,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                             onClick={() => setCustomForm(f => ({ ...f, frequency: opt.value as any }))}
                             className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors ${
                               customForm.frequency === opt.value
-                                ? "bg-[#4dd0e1] text-white"
+                                ? "bg-alma-fuerte text-white"
                                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                             }`}
                           >
@@ -2045,7 +2064,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                     </div>
 
                     {/* Rango de fechas */}
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
                       <div className="space-y-1">
                         <Label className="text-sm">Fecha inicio</Label>
                         <Input
@@ -2103,7 +2122,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                             <span
                               className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${
                                 entry.module === "grupo"
-                                  ? "bg-[#4dd0e1]"
+                                  ? "bg-[#5ec0cf]"
                                   : entry.module === "taller"
                                   ? "bg-purple-500"
                                   : "bg-orange-400"
@@ -2144,7 +2163,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                 </Button>
                 {!generateResult && (
                   <Button
-                    className="bg-[#4dd0e1] hover:bg-[#26c6da] text-white"
+                    className="bg-alma-fuerte hover:bg-alma-oscuro text-white"
                     onClick={generateTab === "alma" ? handleGenerateAlma : handleGenerateCustom}
                     disabled={generating || activePreview.length === 0}
                   >
@@ -2181,8 +2200,8 @@ export default function CalendariosManager({ user }: { user: any }) {
 
             {/* ── QUE ────────────────────────────────────────────────── */}
             <section className="space-y-3">
-              <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#00838f]">
-                <span className="h-3 w-1 shrink-0 rounded-full bg-[#4dd0e1]" />
+              <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-alma-fuerte">
+                <span className="h-3 w-1 shrink-0 rounded-full bg-[#5ec0cf]" />
                 Qué
               </h3>
 
@@ -2198,7 +2217,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                     value={instanceForm.module}
                     onValueChange={(v: any) => setInstanceForm(f => ({ ...f, module: v, visible_participantes: v !== "actividad", source_id: "", coordinator_id: "", co_coordinator_ids: [] }))}
                   >
-                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-11 sm:h-9"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="grupo">Grupo</SelectItem>
                       <SelectItem value="taller">Taller</SelectItem>
@@ -2214,7 +2233,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                     value={instanceForm.source_id || "none"}
                     onValueChange={v => setInstanceForm(f => ({ ...f, source_id: v === "none" ? "" : v }))}
                   >
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Sin vincular" /></SelectTrigger>
+                    <SelectTrigger className="h-11 sm:h-9"><SelectValue placeholder="Sin vincular" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Sin vincular</SelectItem>
                       {getSourceItems(instanceForm.module).map((item: any) => (
@@ -2230,7 +2249,7 @@ export default function CalendariosManager({ user }: { user: any }) {
               <div className="space-y-1">
                 <Label className="text-xs">Título <span className="text-gray-400">(opcional)</span></Label>
                 <Input
-                  className="h-9"
+                  className="h-11 sm:h-9"
                   value={instanceForm.title}
                   onChange={e => setInstanceForm(f => ({ ...f, title: e.target.value }))}
                   maxLength={150}
@@ -2240,9 +2259,9 @@ export default function CalendariosManager({ user }: { user: any }) {
             </section>
 
             {/* ── CUANDO ─────────────────────────────────────────────── */}
-            <section className="space-y-3 border-t border-[#4dd0e1]/30 pt-4">
-              <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#00838f]">
-                <span className="h-3 w-1 shrink-0 rounded-full bg-[#4dd0e1]" />
+            <section className="space-y-3 border-t border-[#5ec0cf]/30 pt-4">
+              <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-alma-fuerte">
+                <span className="h-3 w-1 shrink-0 rounded-full bg-[#5ec0cf]" />
                 Cuándo
               </h3>
 
@@ -2250,7 +2269,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                 <div className="space-y-1">
                   <Label className="text-xs">Fecha</Label>
                   <Input
-                    className="h-9"
+                    className="h-11 sm:h-9"
                     type="date"
                     value={instanceForm.date_from}
                     onChange={e => setInstanceForm(f => ({ ...f, date_from: e.target.value }))}
@@ -2273,7 +2292,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                     <div className="space-y-1">
                       <Label className="text-xs">Fecha</Label>
                       <Input
-                        className="h-9"
+                        className="h-11 sm:h-9"
                         type="date"
                         value={instanceForm.date_from}
                         onChange={e => setInstanceForm(f => ({ ...f, date_from: e.target.value }))}
@@ -2285,7 +2304,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                         <div className="space-y-1">
                           <Label className="text-xs">Fecha inicio</Label>
                           <Input
-                            className="h-9"
+                            className="h-11 sm:h-9"
                             type="date"
                             value={instanceForm.date_from}
                             onChange={e => setInstanceForm(f => ({ ...f, date_from: e.target.value }))}
@@ -2294,7 +2313,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                         <div className="space-y-1">
                           <Label className="text-xs">Fecha fin</Label>
                           <Input
-                            className="h-9"
+                            className="h-11 sm:h-9"
                             type="date"
                             value={instanceForm.date_to}
                             onChange={e => setInstanceForm(f => ({ ...f, date_to: e.target.value }))}
@@ -2311,7 +2330,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                               onClick={() => toggleRepeatDay(day.value)}
                               className={`h-9 w-9 rounded-full text-xs font-medium transition-colors ${
                                 instanceForm.repeat_days.includes(day.value)
-                                  ? "bg-[#4dd0e1] text-white"
+                                  ? "bg-alma-fuerte text-white"
                                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                               }`}
                             >
@@ -2336,7 +2355,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                 <div className="space-y-1">
                   <Label className="text-xs">Hora inicio</Label>
                   <Input
-                    className="h-9"
+                    className="h-11 sm:h-9"
                     type="time"
                     value={instanceForm.start_time}
                     onChange={e => setInstanceForm(f => ({ ...f, start_time: e.target.value }))}
@@ -2345,7 +2364,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                 <div className="space-y-1">
                   <Label className="text-xs">Hora fin</Label>
                   <Input
-                    className="h-9"
+                    className="h-11 sm:h-9"
                     type="time"
                     value={instanceForm.end_time}
                     onChange={e => setInstanceForm(f => ({ ...f, end_time: e.target.value }))}
@@ -2355,9 +2374,9 @@ export default function CalendariosManager({ user }: { user: any }) {
             </section>
 
             {/* ── QUIEN ──────────────────────────────────────────────── */}
-            <section className="space-y-3 border-t border-[#4dd0e1]/30 pt-4">
-              <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#00838f]">
-                <span className="h-3 w-1 shrink-0 rounded-full bg-[#4dd0e1]" />
+            <section className="space-y-3 border-t border-[#5ec0cf]/30 pt-4">
+              <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-alma-fuerte">
+                <span className="h-3 w-1 shrink-0 rounded-full bg-[#5ec0cf]" />
                 Quién va
               </h3>
 
@@ -2455,7 +2474,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                       <Label className="text-xs">
                         Voluntarios asignados
                         {instanceForm.volunteer_ids.length > 0 && (
-                          <span className="ml-1.5 text-[#0097a7]">({instanceForm.volunteer_ids.length})</span>
+                          <span className="ml-1.5 text-[#04799a]">({instanceForm.volunteer_ids.length})</span>
                         )}
                       </Label>
                     </div>
@@ -2463,7 +2482,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                     {/* Tilda a todos y bloquea la lista: con "todos" puesto,
                         destildar a uno sería una contradicción silenciosa.
                         Para sacar a alguien, primero se destilda "Todos". */}
-                    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-[#4dd0e1]/40 bg-[#4dd0e1]/5 px-3 py-2">
+                    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-[#5ec0cf]/40 bg-[#5ec0cf]/5 px-3 py-2">
                       <Checkbox
                         checked={todos}
                         disabled={idsAsignables.length === 0}
@@ -2503,9 +2522,9 @@ export default function CalendariosManager({ user }: { user: any }) {
             </section>
 
             {/* ── AVISOS ─────────────────────────────────────────────── */}
-            <section className="space-y-3 border-t border-[#4dd0e1]/30 pt-4">
-              <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#00838f]">
-                <span className="h-3 w-1 shrink-0 rounded-full bg-[#4dd0e1]" />
+            <section className="space-y-3 border-t border-[#5ec0cf]/30 pt-4">
+              <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-alma-fuerte">
+                <span className="h-3 w-1 shrink-0 rounded-full bg-[#5ec0cf]" />
                 Avisos y visibilidad
               </h3>
 
@@ -2566,9 +2585,9 @@ export default function CalendariosManager({ user }: { user: any }) {
                 Importante que siga existiendo: el calendario pinta los
                 cancelados tachados y los realizados en gris a partir de este
                 campo. Borrarlo de verdad se llevaría eso puesto. */}
-            <section className="space-y-3 border-t border-[#4dd0e1]/30 pt-4">
-              <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#00838f]">
-                <span className="h-3 w-1 shrink-0 rounded-full bg-[#4dd0e1]" />
+            <section className="space-y-3 border-t border-[#5ec0cf]/30 pt-4">
+              <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-alma-fuerte">
+                <span className="h-3 w-1 shrink-0 rounded-full bg-[#5ec0cf]" />
                 Notas
               </h3>
 
@@ -2588,7 +2607,7 @@ export default function CalendariosManager({ user }: { user: any }) {
               Cancelar
             </Button>
             <Button
-              className="bg-[#4dd0e1] hover:bg-[#26c6da] text-white"
+              className="bg-alma-fuerte hover:bg-alma-oscuro text-white"
               onClick={handleSaveInstance}
               disabled={
                 saving ||

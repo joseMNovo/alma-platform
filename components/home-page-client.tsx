@@ -157,9 +157,9 @@ export default function HomePageClient({
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-[#4dd0e1] text-xl flex items-center">
+        <div className="text-[#5ec0cf] text-xl flex items-center">
           <svg
-            className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#4dd0e1]"
+            className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#5ec0cf]"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -191,7 +191,7 @@ export default function HomePageClient({
            haría que se vea el calendario un instante: sin ruta de módulo,
            resolveRoute cae en el primer grupo del registro (Agenda). */
         <div className="flex min-h-[60vh] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-[#4dd0e1]" />
+          <Loader2 className="h-8 w-8 animate-spin text-[#5ec0cf]" />
         </div>
       )}
     </div>

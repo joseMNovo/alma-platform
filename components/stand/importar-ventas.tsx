@@ -114,7 +114,7 @@ export default function ImportarVentas({ onImportado }: { onImportado: () => voi
 
   return (
     <>
-      <Button variant="outline" className="h-9 gap-2" onClick={() => setAbierto(true)}>
+      <Button variant="outline" className="h-11 sm:h-9 gap-2" onClick={() => setAbierto(true)}>
         <Upload className="h-4 w-4" />
         Importar
       </Button>
@@ -129,8 +129,8 @@ export default function ImportarVentas({ onImportado }: { onImportado: () => voi
             El archivo <code>.json</code> que exportó el teléfono cuando se quedó sin señal.
           </p>
 
-          <label className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-gray-300 px-4 py-5 transition-colors hover:border-[#4dd0e1]">
-            <FileJson className="h-6 w-6 shrink-0 text-[#4dd0e1]" />
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-gray-300 px-4 py-5 transition-colors hover:border-[#5ec0cf]">
+            <FileJson className="h-6 w-6 shrink-0 text-[#5ec0cf]" />
             <span className="min-w-0 flex-1 text-sm">
               <span className="block font-medium text-gray-800">
                 {nombre || "Elegir archivo"}
@@ -177,7 +177,7 @@ export default function ImportarVentas({ onImportado }: { onImportado: () => voi
             <Button
               onClick={importar}
               disabled={ventas.length === 0 || !!error || subiendo}
-              className="bg-[#4dd0e1] hover:bg-[#3bb8c9]"
+              className="bg-alma-fuerte hover:bg-alma-oscuro"
             >
               {subiendo ? "Importando…" : `Importar ${ventas.length || ""}`}
             </Button>

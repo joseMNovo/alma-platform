@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { Card, CardContent } from "@/components/ui/card"
+import { SegmentadoSimple } from "@/components/ui/pestanas-mobile"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -548,7 +549,7 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
   if (cargando) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-8 h-8 animate-spin text-[#4dd0e1]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#5ec0cf]" />
       </div>
     )
   }
@@ -558,34 +559,34 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
       {/* Encabezado + cambio de vista */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <ShoppingCart className="h-6 w-6 text-[#4dd0e1]" />
+          <ShoppingCart className="h-6 w-6 text-[#5ec0cf]" />
           <h2 className="text-xl font-bold text-gray-900">Puesto de venta</h2>
           {/* El QR y el link a /venta, la caja suelta.
               Acá y no en un menú: el momento en que hace falta es cuando
               estás con otro voluntario al lado y le tenés que pasar la caja a
               su teléfono. Un QR se escanea en dos segundos; dictar una
               dirección y un PIN, no. */}
-          <QrVidriera ruta="/venta" titulo="Puesto de venta" soloIcono />
+          <QrVidriera
+            ruta="/venta"
+            titulo="Abrir la caja en otro dispositivo"
+            descripcion="El voluntario que va a cobrar escanea este código y accede a la caja desde su propio dispositivo, con su sesión."
+            aviso="Uso interno. El código da acceso a la caja; no es un medio de pago."
+            soloIcono
+          />
         </div>
-        <div className="inline-flex w-full overflow-x-auto rounded-lg border border-gray-200 bg-white p-1 sm:w-auto">
-          {([
-            ["vender", "Vender", ShoppingCart],
-            ["stock", "Stock", Package],
-            ["caja", "Caja", Wallet],
-            ["historial", "Historial", ListOrdered],
-          ] as const).map(([clave, texto, Icono]) => (
-            <button
-              key={clave}
-              onClick={() => setVista(clave)}
-              className={`inline-flex flex-1 shrink-0 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors sm:flex-none ${
-                vista === clave ? "bg-[#4dd0e1] text-white" : "text-gray-600 hover:text-[#00838f]"
-              }`}
-            >
-              <Icono className="h-4 w-4" />
-              {texto}
-            </button>
-          ))}
-        </div>
+        {/* Las cuatro se reparten el ancho. Antes la fila se desbordaba y
+            "Historial" quedaba cortada contra el borde derecho: había que
+            arrastrarla para enterarse de que existía. */}
+        <SegmentadoSimple
+          valor={vista}
+          onCambio={setVista}
+          opciones={[
+            { valor: "vender" as const, etiqueta: "Vender", icono: ShoppingCart },
+            { valor: "stock" as const, etiqueta: "Stock", icono: Package },
+            { valor: "caja" as const, etiqueta: "Caja", icono: Wallet },
+            { valor: "historial" as const, etiqueta: "Historial", icono: ListOrdered },
+          ]}
+        />
       </div>
 
       {/* ── VENDER ─────────────────────────────────────────────────── */}
@@ -623,11 +624,11 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
                     onClick={() => sumar(p.id)}
                     disabled={sinStock && cant === 0}
                     className={`relative min-h-[88px] rounded-xl border-2 bg-white p-2.5 text-left transition-transform active:scale-[0.98] disabled:opacity-40 ${
-                      cant > 0 ? "border-[#4dd0e1] bg-[#4dd0e1]/5" : "border-gray-100"
+                      cant > 0 ? "border-[#5ec0cf] bg-[#5ec0cf]/5" : "border-gray-100"
                     }`}
                   >
                     <p className="pr-9 text-sm font-semibold leading-tight text-gray-900">{p.name}</p>
-                    <p className="mt-0.5 text-base font-bold text-[#00838f]">{pesos(p.unit_price)}</p>
+                    <p className="mt-0.5 text-base font-bold text-alma-fuerte">{pesos(p.unit_price)}</p>
                     <p className={`text-[11px] ${sinStock ? "text-red-500" : "text-gray-400"}`}>
                       {sinStock ? "Sin stock" : `Quedan ${p.stock}`}
                     </p>
@@ -644,14 +645,14 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
                             tocar de nuevo suma otro. */}
                         <span
                           key={cant}
-                          className="absolute right-2 top-2 flex h-7 min-w-[1.75rem] items-center justify-center rounded-full bg-[#4dd0e1] px-1.5 text-sm font-bold tabular-nums text-white duration-200 animate-in zoom-in-50"
+                          className="absolute right-2 top-2 flex h-7 min-w-[1.75rem] items-center justify-center rounded-full bg-alma-fuerte px-1.5 text-sm font-bold tabular-nums text-white duration-200 animate-in zoom-in-50"
                         >
                           {cant}
                         </span>
                         <span
                           key={`mas-${cant}`}
                           aria-hidden
-                          className="pointer-events-none absolute left-1/2 top-1/2 animate-sumar-uno text-base font-bold text-[#00838f]"
+                          className="pointer-events-none absolute left-1/2 top-1/2 animate-sumar-uno text-base font-bold text-alma-fuerte"
                         >
                           +1
                         </span>
@@ -714,7 +715,7 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
                 ) : (
                   <button
                     onClick={() => setPidiendoDatos(true)}
-                    className="inline-flex items-center gap-1.5 self-start text-sm font-medium text-[#00838f] hover:underline"
+                    className="inline-flex items-center gap-1.5 self-start text-sm font-medium text-alma-fuerte hover:underline"
                   >
                     <UserPlus className="h-4 w-4" /> Agregar nombre y mail
                   </button>
@@ -730,7 +731,7 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
                     <Banknote className="h-5 w-5" /> Efectivo
                   </Button>
                   <Button
-                    className="h-12 flex-1 gap-2 bg-[#4dd0e1] text-base hover:bg-[#3bb8c9]"
+                    className="h-12 flex-1 gap-2 bg-alma-fuerte text-base hover:bg-alma-oscuro"
                     onClick={() => cobrar("transferencia")} disabled={cobrando}
                   >
                     <ArrowLeftRight className="h-5 w-5" /> Transfer.
@@ -747,7 +748,7 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
         <>
           <div className="flex justify-end">
             <Button
-              className="gap-2 bg-[#4dd0e1] hover:bg-[#3bb8c9]"
+              className="gap-2 bg-alma-fuerte hover:bg-alma-oscuro"
               onClick={() => setEditando({ name: "", unit_price: 0, quantity: 0, sort_order: productos.length + 1 })}
             >
               <PackagePlus className="h-4 w-4" /> Nuevo producto
@@ -762,7 +763,7 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
               <div key={p.id} className="rounded-xl border border-gray-200 bg-white p-3">
                 <div className="flex items-start justify-between gap-2">
                   <p className="font-semibold leading-tight text-gray-900">{p.name}</p>
-                  <p className="shrink-0 font-bold text-[#00838f]">{pesos(p.unit_price)}</p>
+                  <p className="shrink-0 font-bold text-alma-fuerte">{pesos(p.unit_price)}</p>
                 </div>
 
                 {/* "Inicial" ya no está: el stock lo lleva el inventario y se
@@ -856,12 +857,12 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
               </thead>
               <tbody>
                 {caja.by_product.length === 0 ? (
-                  <tr><td colSpan={3} className="px-3 py-8 text-center text-gray-400">Todavía no se vendió nada.</td></tr>
+                  <tr><td colSpan={3} className="px-3 py-8 text-center text-gray-400">Sin ventas registradas.</td></tr>
                 ) : caja.by_product.map(f => (
                   <tr key={f.product_id} className="border-b border-gray-100 last:border-0">
                     <td className="truncate px-3 py-2 font-medium text-gray-900">{f.name}</td>
                     <td className="px-2 py-2 text-right tabular-nums">{f.units}</td>
-                    <td className="px-3 py-2 text-right font-semibold tabular-nums text-[#00838f]">{pesos(f.revenue)}</td>
+                    <td className="px-3 py-2 text-right font-semibold tabular-nums text-alma-fuerte">{pesos(f.revenue)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -879,7 +880,7 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
               <table className="w-full table-fixed text-sm">
                 <tbody>
                   {ventas.length === 0 ? (
-                    <tr><td className="px-3 py-8 text-center text-gray-400">Todavía no hay ventas.</td></tr>
+                    <tr><td className="px-3 py-8 text-center text-gray-400">Sin ventas registradas.</td></tr>
                   ) : ventas.map(v => (
                     <tr
                       key={v.id}
@@ -932,12 +933,21 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
               reparten el ancho y los botones caen abajo; en escritorio entra
               todo en un renglón. */}
           <div className="mb-3 flex flex-wrap items-end gap-2">
-            <div className="flex min-w-0 flex-1 items-end gap-2 sm:flex-initial">
+            {/*
+              `w-full` en el teléfono, y no `flex-1`.
+
+              Con `flex-1` las dos fechas competian por el renglón con PDF,
+              Excel e Importar, y como además tenían `min-w-0` encogían hasta
+              cero en vez de bajar de línea: en un iPhone quedaban dos campos
+              de doce píxeles mostrando un punto. Ocupando el ancho entero,
+              los botones se van abajo solos.
+            */}
+            <div className="flex w-full min-w-0 items-end gap-2 sm:w-auto sm:flex-initial">
               <div className="min-w-0 flex-1 space-y-1 sm:w-36 sm:flex-initial">
                 <Label className="text-xs text-gray-500">Desde</Label>
                 <Input
                   type="date"
-                  className="h-9 w-full"
+                  className="h-11 sm:h-9 w-full"
                   value={rango.desde}
                   onChange={e => { const r = { ...rango, desde: e.target.value }; setRango(r); cargar(r) }}
                 />
@@ -946,7 +956,7 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
                 <Label className="text-xs text-gray-500">Hasta</Label>
                 <Input
                   type="date"
-                  className="h-9 w-full"
+                  className="h-11 sm:h-9 w-full"
                   value={rango.hasta}
                   onChange={e => { const r = { ...rango, hasta: e.target.value }; setRango(r); cargar(r) }}
                 />
@@ -984,7 +994,7 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
               <CardContent className="py-12 text-center text-gray-500">
                 {rango.desde || rango.hasta
                   ? "No hay ventas en el período elegido."
-                  : "Todavía no hay ventas."}
+                  : "Sin ventas registradas."}
               </CardContent>
             </Card>
           ) : (
@@ -1015,12 +1025,12 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
                         <div className="flex items-baseline justify-between gap-3 text-sm">
                           <span className="truncate font-medium text-gray-800">{f.nombre}</span>
                           <span className="shrink-0 text-xs text-gray-400">
-                            {f.unidades} u · <span className="font-semibold text-[#00838f]">{pesos(f.importe)}</span>
+                            {f.unidades} u · <span className="font-semibold text-alma-fuerte">{pesos(f.importe)}</span>
                           </span>
                         </div>
                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
                           <div
-                            className="h-full rounded-full bg-[#4dd0e1]"
+                            className="h-full rounded-full bg-[#5ec0cf]"
                             style={{ width: `${(f.importe / resumen.topProducto) * 100}%` }}
                           />
                         </div>
@@ -1062,10 +1072,58 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
                 )}
               </div>
 
-              {/* El detalle, ahora como tabla. Las tarjetas apiladas obligaban
-                  a leer cada venta entera para comparar dos: en columnas, los
-                  montos se alinean y el ojo las compara solo. */}
-              <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+              {/*
+                Teléfono: una tarjeta por venta.
+
+                La tabla de al lado es mejor PARA COMPARAR —los montos se
+                alinean en columna y el ojo los suma solo—, pero eso vale
+                cuando entran las seis columnas. En 360px no entran: pide
+                640px y arrastra. Y arrastrando se pierde la primera columna,
+                que es la hora, o sea la que te ubica en la jornada.
+              */}
+              <div className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white sm:hidden">
+                {ventas.map(v => (
+                  <div key={v.id} className={`flex items-start gap-3 px-3 py-2.5 ${v.is_void ? "bg-gray-50/60" : ""}`}>
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-[13.5px] ${v.is_void ? "text-gray-400 line-through" : "text-gray-800"}`}>
+                        {v.items.map(i => `${i.quantity}× ${i.product_name ?? "?"}`).join(", ")}
+                      </p>
+                      <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11.5px] text-alma-tinta">
+                        {v.created_at && <span>{fechaHora(v.created_at).hora}</span>}
+                        <span>{v.payment_method === "efectivo" ? "Efectivo" : "Transferencia"}</span>
+                        {(v.customer_name || v.customer_email) && (
+                          <span className="truncate text-alma-fuerte">
+                            {[v.customer_name, v.customer_email].filter(Boolean).join(" · ")}
+                          </span>
+                        )}
+                        {v.is_void && (
+                          <span className="rounded-full bg-gray-200 px-1.5 py-0.5 font-semibold uppercase tracking-wide text-gray-500">
+                            anulada
+                          </span>
+                        )}
+                      </p>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-1">
+                      <span className={`text-[15px] font-semibold tabular-nums ${v.is_void ? "text-gray-400 line-through" : "text-gray-900"}`}>
+                        {pesos(v.total)}
+                      </span>
+                      {!v.is_void && (
+                        <button
+                          onClick={() => anular(v.id)}
+                          aria-label="Anular venta"
+                          className="flex h-9 w-9 items-center justify-center rounded-full text-red-400 active:bg-red-50"
+                        >
+                          <Ban className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Escritorio: la tabla, donde las columnas se comparan solas. */}
+              <div className="hidden overflow-x-auto rounded-xl border border-gray-200 bg-white sm:block">
                 <table className="w-full min-w-[640px] text-sm">
                   <thead>
                     <tr className="border-b border-gray-200 bg-gray-50/80 text-gray-600">
@@ -1101,7 +1159,7 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
                             </span>
                           )}
                         </td>
-                        <td className="truncate px-3 py-2 align-top text-xs text-[#00838f]">
+                        <td className="truncate px-3 py-2 align-top text-xs text-alma-fuerte">
                           {[v.customer_name, v.customer_email].filter(Boolean).join(" · ") || "—"}
                         </td>
                         <td className="px-3 py-2 align-top text-xs text-gray-500">
@@ -1187,7 +1245,7 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
                 onChange={e => setEditando(p => ({ ...p, name: e.target.value }))}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
               <div>
                 <Label>Precio</Label>
                 <Input
@@ -1213,7 +1271,7 @@ export default function PuestoVentaManager({ user }: { user: CurrentUser }) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditando(null)}>Cancelar</Button>
-            <Button className="bg-[#4dd0e1] hover:bg-[#3bb8c9]" onClick={guardarProducto} disabled={guardandoProducto}>
+            <Button className="bg-alma-fuerte hover:bg-alma-oscuro" onClick={guardarProducto} disabled={guardandoProducto}>
               {guardandoProducto ? "Guardando..." : "Guardar"}
             </Button>
           </DialogFooter>
@@ -1239,7 +1297,7 @@ function Kpi({ label, value, destacado }: { label: string; value: string; destac
   return (
     <Card className="border border-gray-200">
       <CardContent className="p-4">
-        <p className={`tabular-nums leading-none ${destacado ? "text-2xl font-bold text-[#00838f]" : "text-xl font-bold text-gray-900"}`}>
+        <p className={`tabular-nums leading-none ${destacado ? "text-2xl font-bold text-alma-fuerte" : "text-xl font-bold text-gray-900"}`}>
           {value}
         </p>
         <p className="mt-1 truncate text-xs text-gray-500">{label}</p>

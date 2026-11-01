@@ -78,7 +78,7 @@ function RestablecerPinContent() {
 
   return (
     <div
-      className="min-h-screen flex flex-col bg-gradient-to-br from-[#4dd0e1] to-[#9a8bc2] relative overflow-hidden"
+      className="min-h-screen flex flex-col bg-gradient-to-br from-[#5ec0cf] to-[#9a8bc2] relative overflow-hidden"
       style={{ fontFamily: "'Gotham Rounded', system-ui, sans-serif" }}
     >
       <div className="flex-1 flex items-center justify-center px-6 py-12">
@@ -87,13 +87,13 @@ function RestablecerPinContent() {
             <img src="/images/alma_blanco.png" alt="ALMA" className="h-16 object-contain mx-auto" />
           </div>
 
-          <div className="bg-white rounded-2xl shadow-2xl p-8 border border-[#b2ebf2] space-y-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 border border-[#bbe5eb] space-y-4">
             {status === "error" && (
               <div className="text-center space-y-4">
                 <XCircle className="w-12 h-12 text-red-400 mx-auto" />
                 <h2 className="text-xl font-bold text-gray-800">Link inválido o expirado</h2>
                 <p className="text-gray-600 text-sm">{isNew ? "Pedile al equipo de ALMA que te reenvíe la invitación." : "Solicitá un nuevo link de restablecimiento."}</p>
-                <a href="/" className="block w-full bg-[#0099b0] hover:bg-[#007a8e] text-white font-semibold py-2.5 px-4 rounded-lg transition-all text-center shadow-md">
+                <a href="/" className="block w-full bg-[#04799a] hover:bg-[#03617b] text-white font-semibold py-2.5 px-4 rounded-lg transition-all text-center shadow-md">
                   Ir al inicio
                 </a>
               </div>
@@ -101,13 +101,13 @@ function RestablecerPinContent() {
 
             {status === "success" && (
               <div className="text-center space-y-4">
-                <CheckCircle2 className="w-12 h-12 text-[#0099b0] mx-auto" />
+                <CheckCircle2 className="w-12 h-12 text-[#04799a] mx-auto" />
                 <h2 className="text-xl font-bold text-gray-800">{isNew ? "¡Cuenta creada!" : "¡PIN actualizado!"}</h2>
                 <p className="text-gray-600 text-sm">Ya podés ingresar con tu {isNew ? "" : "nuevo "}PIN.</p>
                 <p className="text-gray-400 text-sm">
-                  Redirigiendo en <span className="font-bold text-[#0099b0]">{countdown}</span> segundos...
+                  Redirigiendo en <span className="font-bold text-[#04799a]">{countdown}</span> segundos...
                 </p>
-                <a href="/" className="block w-full bg-[#0099b0] hover:bg-[#007a8e] text-white font-semibold py-2.5 px-4 rounded-lg transition-all text-center shadow-md">
+                <a href="/" className="block w-full bg-[#04799a] hover:bg-[#03617b] text-white font-semibold py-2.5 px-4 rounded-lg transition-all text-center shadow-md">
                   Ir al inicio de sesión
                 </a>
               </div>
@@ -133,7 +133,7 @@ function RestablecerPinContent() {
                       onChange={handlePinChange(setPin)}
                       placeholder="••••"
                       maxLength={4}
-                      className="border-[#b2ebf2] focus:border-[#0099b0] focus:ring-2 focus:ring-[#4dd0e1]/30 focus:ring-offset-0 tracking-widest text-center text-lg"
+                      className="border-[#bbe5eb] focus:border-[#04799a] focus:ring-2 focus:ring-[#5ec0cf]/30 focus:ring-offset-0 tracking-widest text-center text-lg"
                     />
                   </div>
 
@@ -147,7 +147,7 @@ function RestablecerPinContent() {
                       onChange={handlePinChange(setPinConfirm)}
                       placeholder="••••"
                       maxLength={4}
-                      className="border-[#b2ebf2] focus:border-[#0099b0] focus:ring-2 focus:ring-[#4dd0e1]/30 focus:ring-offset-0 tracking-widest text-center text-lg"
+                      className="border-[#bbe5eb] focus:border-[#04799a] focus:ring-2 focus:ring-[#5ec0cf]/30 focus:ring-offset-0 tracking-widest text-center text-lg"
                     />
                   </div>
 
@@ -160,7 +160,7 @@ function RestablecerPinContent() {
                   <Button
                     type="submit"
                     disabled={loading || pin.length !== 4 || pinConfirm.length !== 4}
-                    className="w-full bg-[#0099b0] hover:bg-[#007a8e] text-white font-semibold py-2.5 rounded-lg transition-all disabled:bg-gray-100 disabled:text-gray-400 shadow-md hover:shadow-lg"
+                    className="w-full bg-[#04799a] hover:bg-[#03617b] text-white font-semibold py-2.5 rounded-lg transition-all disabled:bg-gray-100 disabled:text-gray-400 shadow-md hover:shadow-lg"
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : isNew ? "Crear mi PIN e ingresar" : "Guardar nuevo PIN"}
                   </Button>

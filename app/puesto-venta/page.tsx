@@ -32,7 +32,7 @@ export default function PuestoVentaPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-[#4dd0e1] text-xl">Cargando...</div>
+        <div className="text-[#5ec0cf] text-xl">Cargando...</div>
       </div>
     )
   }

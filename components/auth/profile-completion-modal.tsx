@@ -66,7 +66,7 @@ export default function ProfileCompletionModal({ user }: ProfileCompletionModalP
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
-            <Heart className="w-6 h-6 text-[#4dd0e1]" />
+            <Heart className="w-6 h-6 text-[#5ec0cf]" />
             ¡Bienvenido/a a ALMA!
           </DialogTitle>
           <DialogDescription className="text-gray-600 text-sm leading-relaxed pt-2">
@@ -84,7 +84,7 @@ export default function ProfileCompletionModal({ user }: ProfileCompletionModalP
           </Button>
           <Button
             onClick={handleCompleteProfile}
-            className="w-full sm:w-auto bg-[#0099b0] hover:bg-[#007a8e] text-white"
+            className="w-full sm:w-auto bg-[#04799a] hover:bg-[#03617b] text-white"
           >
             Completar perfil
           </Button>
