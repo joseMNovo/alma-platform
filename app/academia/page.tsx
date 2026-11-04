@@ -7,7 +7,6 @@ import { getPublicTrainings, type Training } from "@/lib/data-manager"
 import CatalogoCapacitaciones from "@/components/capacitaciones/catalogo-capacitaciones"
 import AcademiaInterna from "@/components/capacitaciones/academia-interna"
 import AlmaFooter from "@/components/ui/alma-footer"
-import MarcaAlma from "@/components/ui/marca-alma"
 
 /**
  * Academia — UNA sola ruta para las dos caras.
@@ -71,8 +70,7 @@ export default async function AcademiaPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/flor.png" alt="ALMA" className="h-8 w-auto" />
-            <MarcaAlma className="text-xl" />
+            <img src="/images/logo-comunidad-celeste.png" alt="Comunidad alma" className="h-9 w-auto" />
           </div>
           <Link
             href="/"

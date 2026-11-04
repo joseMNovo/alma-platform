@@ -118,13 +118,17 @@ export default function RegisterForm() {
           {/* Identidad */}
           <div className="flex-1 flex flex-col items-center md:items-start gap-6 text-center md:text-left">
             <div className="w-full max-w-[390px]">
-              <img src="/images/alma_blanco.png" alt="Alma Alzheimer Rosario" className="w-full h-auto object-contain" />
+              <img src="/images/logo-comunidad-blanco.png" alt="Comunidad alma" className="w-full h-auto object-contain" />
             </div>
             <div className="space-y-3">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-tight" style={{ textShadow: "0 1px 8px rgba(0,0,0,0.15)" }}>
-                Creá tu cuenta<br />en ALMA
+              {/* "en ALMA" se fue: lo dice el logotipo que está justo arriba.
+                  Lo que el logo NO dice, y este título sí, es qué estás por
+                  hacer en esta pantalla. Por eso acá el título se queda y en
+                  el login no. */}
+              <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight" style={{ textShadow: "0 1px 8px rgba(0,0,0,0.15)" }}>
+                Creá tu cuenta
               </h1>
-              <p className="text-white/95 text-lg md:text-xl font-normal" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.12)" }}>
+              <p className="text-white/95 text-base md:text-lg font-normal" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.12)" }}>
                 {role === "participante"
                   ? "Te enviamos un email para confirmar tu cuenta."
                   : role === "voluntario"

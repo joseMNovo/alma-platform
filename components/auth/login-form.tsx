@@ -166,24 +166,26 @@ export default function LoginForm({ onLogin, gamesUrl }: { onLogin: (user: any) 
             {/* Logo de Alma */}
             <div className="w-full max-w-[390px]">
               <img
-                src="/images/alma_blanco.png"
-                alt="Alma Alzheimer Rosario"
+                src="/images/logo-comunidad-blanco.png"
+                alt="Comunidad alma"
                 className="w-full h-auto object-contain"
               />
             </div>
 
-            {/* Headline */}
-            <div className="space-y-3">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-tight" style={{ textShadow: "0 1px 8px rgba(0,0,0,0.15)" }}>
-                Bienvenido a la<br />
-                plataforma ALMA
-              </h1>
-              {/* Subtítulo: más opaco y peso normal para mejor legibilidad */}
-              <p className="text-white/95 text-lg md:text-xl font-normal" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.12)" }}>
-                Gestión de voluntarios,<br className="hidden md:block" />
-                talleres y actividades.
-              </p>
-            </div>
+            {/*
+              Una sola línea.
+
+              Antes eran dos bloques: "Bienvenido a la plataforma ALMA" en
+              grande y la descripción abajo. Con el logotipo arriba, que ya
+              dice "alma · COMUNIDAD", el título repetía el nombre a cuatro
+              centímetros de donde ya estaba escrito —y más grande que el
+              propio logo—. Lo que no decía ninguno de los dos, y es lo único
+              que alguien necesita leer acá, es QUÉ es esto.
+            */}
+            <h1 className="text-xl sm:text-2xl font-normal leading-snug text-white/95" style={{ textShadow: "0 1px 6px rgba(0,0,0,0.15)" }}>
+              Gestión de voluntarios,<br className="hidden md:block" />
+              talleres y actividades.
+            </h1>
           </div>
 
           {/* Columna derecha — acción */}

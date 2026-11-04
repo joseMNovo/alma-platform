@@ -84,7 +84,7 @@ function RestablecerPinContent() {
       <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
-            <img src="/images/alma_blanco.png" alt="ALMA" className="h-16 object-contain mx-auto" />
+            <img src="/images/logo-comunidad-blanco.png" alt="Comunidad alma" className="h-16 object-contain mx-auto" />
           </div>
 
           <div className="bg-white rounded-2xl shadow-2xl p-8 border border-[#bbe5eb] space-y-4">

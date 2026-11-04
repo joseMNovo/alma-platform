@@ -4,7 +4,6 @@ import { notFound } from "next/navigation"
 import { getPublicTraining, type Training } from "@/lib/data-manager"
 import CompraWizard from "@/components/capacitaciones/compra-wizard"
 import AlmaFooter from "@/components/ui/alma-footer"
-import MarcaAlma from "@/components/ui/marca-alma"
 
 /**
  * Compra exprés — /academia/<slug>/comprar
@@ -55,8 +54,7 @@ export default async function ComprarPage({
         <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-4">
           <Link href={`/academia/${slug}`} className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/flor.png" alt="ALMA" className="h-8 w-auto" />
-            <MarcaAlma className="text-xl" />
+            <img src="/images/logo-comunidad-celeste.png" alt="Comunidad alma" className="h-9 w-auto" />
           </Link>
           <Link
             href="/"

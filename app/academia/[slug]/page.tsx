@@ -4,7 +4,6 @@ import { notFound } from "next/navigation"
 import { getPublicTraining, type Training } from "@/lib/data-manager"
 import { config } from "@/lib/config"
 import AlmaFooter from "@/components/ui/alma-footer"
-import MarcaAlma from "@/components/ui/marca-alma"
 import TrainingPlayer from "@/components/capacitaciones/training-player"
 
 /**
@@ -65,8 +64,7 @@ export default async function CapacitacionPublicaPage({ params }: { params: Prom
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
-            <img src="/images/flor.png" alt="ALMA" className="h-8 w-auto" />
-            <MarcaAlma className="text-xl" />
+            <img src="/images/logo-comunidad-celeste.png" alt="Comunidad alma" className="h-9 w-auto" />
           </div>
           <div className="flex items-center gap-4">
             <Link

@@ -71,7 +71,6 @@ import BarraModulos from "@/components/dashboard/barra-modulos"
 import BuscadorModulos from "@/components/dashboard/buscador-modulos"
 import AlmaFooter from "@/components/ui/alma-footer"
 import { urlWebSegura } from "@/lib/enlaces"
-import MarcaAlma from "@/components/ui/marca-alma"
 import ProfileCompletionModal from "@/components/auth/profile-completion-modal"
 import ParticipanteOnboarding from "@/components/participantes/onboarding-modal"
 import AnnouncementModal from "@/components/announcements/announcement-modal"
@@ -453,8 +452,11 @@ export default function Dashboard({ user: usuarioReal, onLogout }: { user: any, 
               title="Ir a Inicio"
               className="flex shrink-0 items-center gap-2.5 transition-transform active:scale-95"
             >
-              <img src="/images/flor.png" alt="Inicio" className="h-8 w-auto" />
-              <MarcaAlma className="text-xl sm:text-2xl" />
+              <img
+                src="/images/logo-comunidad-celeste.png"
+                alt="Inicio"
+                className="h-9 w-auto sm:h-10"
+              />
             </button>
 
             <div className="flex min-w-0 flex-1 justify-center">

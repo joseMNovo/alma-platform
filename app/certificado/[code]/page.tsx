@@ -3,7 +3,6 @@ import Link from "next/link"
 import { BadgeCheck, ShieldAlert, Download, GraduationCap } from "lucide-react"
 import { verifyCertificate, type CertificateVerification } from "@/lib/data-manager"
 import AlmaFooter from "@/components/ui/alma-footer"
-import MarcaAlma from "@/components/ui/marca-alma"
 
 /**
  * Verificación PÚBLICA de un certificado — /certificado/<codigo>
@@ -61,8 +60,7 @@ export default async function VerificarCertificadoPage({
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
           <Link href="/academia" className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/flor.png" alt="ALMA" className="h-8 w-auto" />
-            <MarcaAlma className="text-xl" />
+            <img src="/images/logo-comunidad-celeste.png" alt="Comunidad alma" className="h-9 w-auto" />
           </Link>
           <Link
             href="/academia"
