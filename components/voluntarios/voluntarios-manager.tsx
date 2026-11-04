@@ -1,5 +1,6 @@
 "use client"
 
+import { edadDesde, edadTexto, fechaCorta } from "@/lib/edad"
 import { useState, useEffect, useMemo, Suspense } from "react"
 import { toast } from "@/hooks/use-toast"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -302,11 +303,6 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
     setFormData({ ...formData, phone: value })
   }
 
-  const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^0-9]/g, "")
-    setFormData({ ...formData, age: value })
-  }
-
   // Las especialidades que están efectivamente en uso, ordenadas de la más
   // repetida a la menos. Se muestran como pastillas solo las primeras: son
   // texto libre y con veinte voluntarios puede haber veinte distintas, lo que
@@ -433,16 +429,15 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                   )}
                 </div>
 
+                {/* La edad ya no se tipea: sale de la fecha de nacimiento,
+                    unos campos más abajo. Acá solo se muestra lo que dio, para
+                    poder ver en el momento si la fecha que se cargó es la que
+                    se quería cargar. */}
                 <div>
-                  <Label htmlFor="age">Edad</Label>
-                  <Input
-                    id="age"
-                    type="text"
-                    value={formData.age}
-                    onChange={handleAgeChange}
-                    placeholder="Edad"
-                    maxLength={3}
-                  />
+                  <Label>Edad</Label>
+                  <div className="flex h-10 items-center rounded-md border border-dashed border-gray-200 bg-gray-50 px-3 text-sm text-gray-500">
+                    {edadTexto(formData.birth_date) ?? "Según la fecha de nacimiento"}
+                  </div>
                 </div>
 
                 <div>
@@ -705,9 +700,9 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
 
                 {/* Age badge + chevron */}
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {volunteer.age && (
+                  {edadDesde(volunteer.birth_date) !== null && (
                     <Badge variant="outline" className="text-xs px-1.5 py-0">
-                      {volunteer.age}a
+                      {edadDesde(volunteer.birth_date)}a
                     </Badge>
                   )}
                   <ChevronDown
@@ -743,7 +738,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                       {volunteer.birth_date && (
                         <div className="flex items-center gap-2 text-xs text-gray-500">
                           <Calendar className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                          <span>Nac: {volunteer.birth_date.slice(0, 10).split("-").reverse().join("/")}</span>
+                          <span>Nac: {fechaCorta(volunteer.birth_date)}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -835,9 +830,9 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                   <div className="min-w-0 flex-1">
                     <CardTitle className="text-lg truncate">{getFullName(volunteer)}</CardTitle>
                     <div className="flex flex-wrap items-center gap-2 mt-1">
-                      {volunteer.age && (
+                      {edadTexto(volunteer.birth_date) && (
                         <Badge variant="outline" className="text-xs">
-                          {volunteer.age} años
+                          {edadTexto(volunteer.birth_date)}
                         </Badge>
                       )}
                     </div>
@@ -969,7 +964,7 @@ function VoluntariosManagerInner({ user }: { user: CurrentUser }) {
                           <span className="font-semibold text-gray-800">{getFullName(volunteer)}</span>
                         </div>
                       </td>
-                      <td className="px-5 py-2 border-t border-r border-gray-100 text-gray-500 whitespace-nowrap">{volunteer.age ? `${volunteer.age} años` : "—"}</td>
+                      <td className="px-5 py-2 border-t border-r border-gray-100 text-gray-500 whitespace-nowrap">{edadTexto(volunteer.birth_date) ?? "—"}</td>
                       <td className="px-5 py-2 border-t border-r border-gray-100 text-gray-500 tabular-nums whitespace-nowrap">{volunteer.phone || "—"}</td>
                       <td className="px-5 py-2 border-t border-r border-gray-100 text-gray-500">{volunteer.email || "—"}</td>
                       <td className="px-5 py-2 border-t border-r border-gray-100 text-gray-500 tabular-nums whitespace-nowrap">{formatLocalDate(volunteer.registration_date)}</td>

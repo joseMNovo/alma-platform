@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Bell, BellOff, Megaphone, CalendarClock, CalendarPlus, Info } from "lucide-react"
+import { Bell, BellOff, Megaphone, CalendarClock, CalendarPlus, Info, Cake } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { AppNotification } from "@/lib/data-manager"
@@ -14,6 +14,10 @@ const KIND_STYLES: Record<string, { Icon: typeof Bell; bg: string; fg: string }>
   announcement: { Icon: Megaphone, bg: "bg-[#5ec0cf]/10", fg: "text-[#5ec0cf]" },
   calendar_reminder: { Icon: CalendarClock, bg: "bg-[#5ec0cf]/10", fg: "text-[#5ec0cf]" },
   calendar_new: { Icon: CalendarPlus, bg: "bg-[#5ec0cf]/10", fg: "text-[#5ec0cf]" },
+  // El cumpleaños es el único aviso que no pide hacer nada, así que es el
+  // único que no va en el turquesa del resto: en lavanda se distingue de un
+  // vistazo entre una lista de recordatorios.
+  birthday: { Icon: Cake, bg: "bg-[#9a8bc2]/10", fg: "text-[#9a8bc2]" },
   system: { Icon: Info, bg: "bg-gray-100", fg: "text-gray-400" },
 }
 

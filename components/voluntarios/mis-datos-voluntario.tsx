@@ -1,5 +1,6 @@
 "use client"
 
+import { edadTexto } from "@/lib/edad"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -47,11 +48,6 @@ export default function MisDatosVoluntario({ user }: { user: any }) {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null)
 
-  const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value.replace(/\D/g, "").slice(0, 3)
-    setFormData({ ...formData, age: v })
-  }
-
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value.replace(/[^0-9+\-\s()]/g, "").slice(0, 20)
     setFormData({ ...formData, phone: v })
@@ -86,6 +82,10 @@ export default function MisDatosVoluntario({ user }: { user: any }) {
           last_name: formData.last_name,
           phone: formData.phone,
           gender: formData.gender,
+          // `age` viaja igual aunque ya nadie la edite: es el valor viejo
+          // de la columna, que se reenvía tal cual. Mandar null acá la
+          // borraría de la base en el primer guardado de cada persona, y es
+          // el único rastro que queda de quien nunca cargó su fecha.
           age: formData.age,
           birth_date: formData.birth_date,
           specialties: formData.specialties,
@@ -169,15 +169,12 @@ export default function MisDatosVoluntario({ user }: { user: any }) {
                   maxLength={20}
                 />
               </div>
+              {/* Calculada, no tipeada: ver lib/edad.ts. */}
               <div className="space-y-1.5">
-                <Label htmlFor="age">Edad</Label>
-                <Input
-                  id="age"
-                  value={formData.age}
-                  onChange={handleAgeChange}
-                  placeholder="Edad"
-                  maxLength={3}
-                />
+                <Label>Edad</Label>
+                <div className="flex h-10 items-center rounded-md border border-dashed border-gray-200 bg-gray-50 px-3 text-sm text-gray-500">
+                  {edadTexto(formData.birth_date) ?? "Cargá tu fecha de nacimiento"}
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label>Sexo</Label>
