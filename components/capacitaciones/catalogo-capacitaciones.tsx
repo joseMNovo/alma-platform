@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, ChevronUp, ArrowDown } from "lucide-react"
 import type { Training } from "@/lib/data-manager"
 import TrainingCard, { groupByCategory, colorDeCategoria } from "./training-card"
 
@@ -27,6 +27,7 @@ export default function CatalogoCapacitaciones({
   showAccess = false,
   mostrarEstado = false,
   cta,
+  onReordenar,
 }: {
   trainings: Training[]
   /** Prefijo del link de cada tarjeta, ej. "/capacitacion". Excluyente con onSelect. */
@@ -39,33 +40,120 @@ export default function CatalogoCapacitaciones({
   mostrarEstado?: boolean
   /** Texto del pie de cada tarjeta. */
   cta?: string
+  /**
+   * Si viene, cada tarjeta muestra flechas para acomodarla. Recibe la lista
+   * ENTERA de ids en el orden nuevo. Solo se le pasa a quien administra: el
+   * orden que se guarda es el que ve todo el mundo, incluida la landing
+   * pública, así que no es una preferencia de quien mira.
+   */
+  onReordenar?: (orden: number[]) => void
 }) {
-  const grupos = useMemo(() => groupByCategory(trainings), [trainings])
+  /**
+   * El orden mientras se acomoda.
+   *
+   * Las flechas tienen que mover la tarjeta en el acto: esperar a que vuelva
+   * el guardado es medio segundo mirando una lista quieta, y ahí uno vuelve a
+   * tocar la flecha pensando que no anduvo. Se reordena acá y el guardado va
+   * por detrás.
+   *
+   * Se guardan ids y no objetos: cuando el padre recarga llegan objetos
+   * nuevos con los datos frescos, y esto los reordena igual. Un id que no
+   * esté en la lista local (una capacitación recién creada) queda al final
+   * en vez de desaparecer.
+   */
+  const [ordenLocal, setOrdenLocal] = useState<number[] | null>(null)
+
+  const ordenadas = useMemo(() => {
+    if (!ordenLocal) return trainings
+    const posicion = new Map(ordenLocal.map((id, i) => [id, i]))
+    return [...trainings].sort(
+      (a, b) => (posicion.get(a.id) ?? Infinity) - (posicion.get(b.id) ?? Infinity),
+    )
+  }, [trainings, ordenLocal])
+
+  const grupos = useMemo(() => groupByCategory(ordenadas), [ordenadas])
   const [filtro, setFiltro] = useState<string | null>(null)
   const [plegadas, setPlegadas] = useState<string[]>([])
+
+  /**
+   * Mueve una capacitación un lugar dentro de SU categoría.
+   *
+   * Dentro de la categoría y no en la lista entera porque es lo que se ve: la
+   * grilla está agrupada, así que una tarjeta que "subiera" hasta salirse de
+   * su sección desaparecería de donde la estabas mirando.
+   *
+   * Después arma el orden global pegando todos los grupos tal como se
+   * muestran. Así cada categoría ocupa un tramo propio de `sort_order` y el
+   * agrupado no se desarma.
+   */
+  const mover = (categoria: string, indice: number, paso: -1 | 1) => {
+    if (!onReordenar) return
+    const destino = indice + paso
+
+    const nuevos = grupos.map(([nombre, lista]): [string, Training[]] => {
+      if (nombre !== categoria) return [nombre, lista]
+      if (destino < 0 || destino >= lista.length) return [nombre, lista]
+      const copia = [...lista]
+      const guardada = copia[indice]
+      copia[indice] = copia[destino]
+      copia[destino] = guardada
+      return [nombre, copia]
+    })
+
+    const orden = nuevos.flatMap(([, lista]) => lista.map((t) => t.id))
+    setOrdenLocal(orden)
+    onReordenar(orden)
+  }
 
   // Sin categorías cargadas no hay nada que filtrar ni títulos que poner:
   // queda una grilla y listo.
   const sinCategorias = grupos.length === 1 && grupos[0][0] === ""
   const visibles = filtro === null ? grupos : grupos.filter(([nombre]) => nombre === filtro)
 
-  const tarjeta = (t: Training) => (
-    <TrainingCard
-      key={t.id}
-      training={t}
-      showAccess={showAccess}
-      mostrarEstado={mostrarEstado}
-      cta={cta}
-      href={hrefBase ? `${hrefBase}/${t.slug}` : undefined}
-      onClick={onSelect ? () => onSelect(t) : undefined}
-    />
+  const tarjeta = (t: Training, categoria: string, i: number, total: number) => (
+    <div key={t.id} className="flex flex-col">
+      <TrainingCard
+        training={t}
+        showAccess={showAccess}
+        mostrarEstado={mostrarEstado}
+        cta={cta}
+        href={hrefBase ? `${hrefBase}/${t.slug}` : undefined}
+        onClick={onSelect ? () => onSelect(t) : undefined}
+      />
+
+      {/* Las flechas van DEBAJO de la tarjeta y no encima de la portada: ahí
+          arriba taparían la imagen, y además la tarjeta entera es un botón
+          que abre la capacitación, así que una flecha flotando encima se
+          tocaría sin querer al intentar entrar. */}
+      {onReordenar && total > 1 && (
+        <div className="mt-1.5 flex items-center gap-1.5">
+          <Flecha
+            etiqueta={`Subir ${t.title}`}
+            Icono={ChevronUp}
+            deshabilitada={i === 0}
+            onClick={() => mover(categoria, i, -1)}
+          />
+          <Flecha
+            etiqueta={`Bajar ${t.title}`}
+            Icono={ArrowDown}
+            deshabilitada={i === total - 1}
+            onClick={() => mover(categoria, i, 1)}
+          />
+          <span className="ml-auto text-xs tabular-nums text-gray-400">
+            {i + 1} de {total}
+          </span>
+        </div>
+      )}
+    </div>
   )
 
-  const grilla = (list: Training[]) => (
-    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{list.map(tarjeta)}</div>
+  const grilla = (categoria: string, list: Training[]) => (
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {list.map((t, i) => tarjeta(t, categoria, i, list.length))}
+    </div>
   )
 
-  if (sinCategorias) return grilla(grupos[0][1])
+  if (sinCategorias) return grilla(grupos[0][0], grupos[0][1])
 
   return (
     <div className="space-y-6">
@@ -92,7 +180,7 @@ export default function CatalogoCapacitaciones({
           const clave = nombre || "otras"
           // Con el filtro puesto queda una sola sección y el título repetiría
           // la pastilla ya marcada arriba: en ese caso va la grilla sola.
-          if (filtro !== null) return <div key={clave}>{grilla(list)}</div>
+          if (filtro !== null) return <div key={clave}>{grilla(nombre, list)}</div>
 
           const plegada = plegadas.includes(clave)
           return (
@@ -116,7 +204,7 @@ export default function CatalogoCapacitaciones({
                 </span>
                 <span className="text-sm text-gray-400">{list.length}</span>
               </button>
-              {!plegada && grilla(list)}
+              {!plegada && grilla(nombre, list)}
             </section>
           )
         })}
@@ -156,4 +244,30 @@ function Chip({
 /** El número de la pastilla, siempre un punto más apagado que el texto. */
 function Contador({ children }: { children: React.ReactNode }) {
   return <span className="text-xs opacity-60">{children}</span>
+}
+
+/** Una flecha de 44px: se usa con el pulgar, en el teléfono. */
+function Flecha({
+  etiqueta,
+  Icono,
+  deshabilitada,
+  onClick,
+}: {
+  etiqueta: string
+  Icono: typeof ChevronUp
+  deshabilitada: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={deshabilitada}
+      aria-label={etiqueta}
+      title={etiqueta}
+      className="flex h-11 w-11 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition-colors active:bg-gray-100 disabled:opacity-30 sm:h-9 sm:w-9"
+    >
+      <Icono className="h-4 w-4" />
+    </button>
+  )
 }

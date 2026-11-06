@@ -1374,6 +1374,16 @@ export async function updateTraining(id: number, data: Partial<Training>): Promi
   return api.put<Training>(`/capacitaciones/${id}`, data)
 }
 
+/**
+ * Acomoda las capacitaciones a mano.
+ *
+ * Se manda la lista ENTERA de ids en el orden deseado, no "movete un lugar":
+ * así dos admins acomodando a la vez terminan con el orden del último que
+ * guardó, y no con uno mezclado a partir de dos movimientos relativos.
+ */
+export async function reorderTrainings(order: number[]): Promise<Training[]> {
+  return api.put<Training[]>('/capacitaciones/reorder', { order })
+}
 export async function deleteTraining(id: number): Promise<void> {
   await api.delete(`/capacitaciones/${id}`)
 }

@@ -48,6 +48,28 @@ export default function CapacitacionesAdmin({
   /** Apaga el pedido apenas se consume (ver comentario en el efecto). */
   onOpenNewHandled?: () => void
 }) {
+  /**
+   * Guarda el orden nuevo de la vidriera.
+   *
+   * No muestra spinner ni bloquea nada: la grilla ya se movió sola y el
+   * guardado es una lista de números. Si falla, se avisa y se recarga, que
+   * devuelve la lista al orden que de verdad quedó guardado — y así lo que
+   * se ve nunca miente sobre lo que hay en la base.
+   */
+  const guardarOrden = async (orden: number[]) => {
+    try {
+      const r = await fetch("/api/capacitaciones/reorder", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order: orden }),
+      })
+      if (!r.ok) throw new Error(String(r.status))
+    } catch {
+      toast({ title: "No se pudo guardar el orden", variant: "destructive" })
+      onChanged()
+    }
+  }
+
   const [editing, setEditing] = useState<Partial<Training> | null>(null)
   const [itemForm, setItemForm] = useState<{ trainingId: number; item: Partial<TrainingItem> } | null>(null)
   const [confirm, setConfirm] = useState<{ label: string; run: () => void } | null>(null)
@@ -294,6 +316,7 @@ export default function CapacitacionesAdmin({
             setAbiertaId(t.id)
             setItemAbiertoId(null)
           }}
+          onReordenar={guardarOrden}
         />
       )}
 
