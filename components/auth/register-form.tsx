@@ -79,9 +79,10 @@ export default function RegisterForm() {
         if (res.ok) {
           setSuccess(true)
         } else {
-          setError(data.error?.includes("409") || res.status === 409
-            ? "El email ya está registrado"
-            : data.error || "Error al registrarse")
+          // El 409 ya no es uno solo: puede ser "ya sos voluntario/a" o "ya
+          // tenés cuenta de participante, pedí que te habiliten". El segundo
+          // explica cómo seguir, así que se muestra tal cual viene.
+          setError(data.error || "Error al registrarse")
         }
       }
     } catch {
