@@ -207,6 +207,26 @@ export interface Persona {
   volunteer_id?: number | null     // presente => tiene ficha en `voluntarios`
   /** Vive en `voluntarios`. Solo puede ser true si hay volunteer_id. */
   is_admin?: boolean
+
+  // ── El rol voluntario ───────────────────────────────────────────────
+  // Viven en `voluntarios`, no en el perfil. Vienen en el payload para que la
+  // ficha de una persona muestre su voluntariado sin ir a buscarlo a otro
+  // módulo. Son null cuando la persona no tiene ficha de voluntaria.
+  /** activo | pendiente | inactivo */
+  volunteer_status?: string | null
+  specialties?: string[] | null
+  /** `registration_date`: desde cuándo es voluntario/a. */
+  volunteer_since?: string | null
+
+  // ── La cuenta de participante ───────────────────────────────────────
+  // `participant_id` solo dice que la cuenta existe; estos dicen si sirve.
+  // Una cuenta apagada es la de alguien que pasó a ser voluntario/a; una sin
+  // verificar es la de alguien que se registró y nunca entró al mail.
+  account_active?: boolean | null
+  account_verified?: boolean | null
+  /** Talleres, grupos y actividades en los que está anotado/a. */
+  enrollments_count?: number
+
   name?: string | null
   last_name?: string | null
   email?: string | null

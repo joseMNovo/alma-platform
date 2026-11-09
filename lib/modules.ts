@@ -17,7 +17,6 @@ import {
   GraduationCap,
   KeyRound,
   LayoutGrid,
-  Heart,
   Award,
   ClipboardList,
   Receipt,
@@ -121,9 +120,20 @@ export const MODULES: ModuleDef[] = [
     defaultRoles: ["admin", "voluntario"],
     grantable: false,
     children: [
-      { key: "personas", label: "Base de datos", route: "/personas", icon: Database, defaultRoles: ["admin", "voluntario"], grantable: false , sinonimos: ["base de datos", "contactos", "gente", "socios", "miembros", "fichas"] },
-      { key: "voluntarios", label: "Voluntarios", route: "/voluntarios", icon: Heart, defaultRoles: ["admin", "voluntario"], grantable: false , sinonimos: ["equipo", "staff", "colaboradores"] },
-      { key: "participantes", label: "Participantes", route: "/participantes", icon: UserCircle, defaultRoles: ["admin", "voluntario"], grantable: false , sinonimos: ["usuarios", "alumnos", "asistentes"] },
+      // Base de datos absorbió a Voluntarios y a Participantes: una persona es
+      // una sola, y tenerla repartida en tres pantallas era lo que hacía que
+      // sus datos se contradijeran entre sí. La ficha muestra las secciones del
+      // rol que cada una tenga, y las acciones que vivían en esos módulos
+      // (fijar PIN, aprobar, especialidades, reenviar verificación) están acá.
+      //
+      // Las rutas /voluntarios y /participantes SIGUEN EXISTIENDO: salen del
+      // menú, no del sistema. Hay links que entran directo —el modal de
+      // completar perfil manda a /voluntarios?editSelf=true— y romperlos no
+      // tiene nada que ver con unificar el menú.
+      //
+      // Los sinónimos de los dos módulos viejos quedan acá para que el buscador
+      // siga encontrando esto cuando alguien escriba "voluntarios".
+      { key: "personas", label: "Base de datos", route: "/personas", icon: Database, defaultRoles: ["admin", "voluntario"], grantable: false , sinonimos: ["base de datos", "contactos", "gente", "socios", "miembros", "fichas", "voluntarios", "equipo", "staff", "colaboradores", "participantes", "usuarios", "alumnos", "asistentes", "personas"] },
       { key: "aprobaciones", label: "Aprobaciones", route: "/aprobaciones", icon: ClipboardCheck, defaultRoles: ["admin"], grantable: false , sinonimos: ["aprobar", "altas", "solicitudes", "pendientes de alta"] },
     ],
   },

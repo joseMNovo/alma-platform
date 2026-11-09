@@ -54,11 +54,11 @@ export default function ProfileCompletionModal({ user }: ProfileCompletionModalP
   const handleCompleteProfile = () => {
     setOpen(false)
     releaseTurn()
-    if (registrationRole === "participante") {
-      router.push("/mis-datos")
-    } else {
-      router.push("/voluntarios?editSelf=true")
-    }
+    // Los dos roles van al mismo lado: "Mi perfil" ya muestra la ficha que
+    // corresponde (MiCuenta elige entre MisDatos y MisDatosVoluntario). Antes
+    // el voluntario iba a /voluntarios?editSelf=true, que abría el módulo
+    // entero para editarse a sí mismo —y ese módulo ya no está en el menú.
+    router.push("/mis-datos")
   }
 
   return (

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -14,12 +14,13 @@ import {
   Plus, Edit, Trash2, Database, Search, X, ChevronDown,
   ArrowUpDown, ArrowUp, ArrowDown, Send, Loader2, AlertTriangle,
   Mail, Phone, MapPin, IdCard, UserCheck, UserX, BadgeCheck, Users, UserCircle, LogIn,
-  ShieldCheck,
+  ShieldCheck, Cake, KeyRound, MailCheck,
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { can } from "@/lib/permissions"
 import type { Persona } from "@/lib/data-manager"
 import { VolunteerFlower, ParticipantMark } from "@/components/personas/role-marks"
+import { edadDesde, edadTexto, fechaCorta } from "@/lib/edad"
 
 // ── Tipos internos ─────────────────────────────────────────────────────
 interface PersonaFormData {
@@ -37,15 +38,17 @@ interface PersonaFormData {
   province: string
   postal_code: string
   phone: string
+  /** Solo se usa si la persona tiene ficha de voluntaria. Vive en `voluntarios`. */
+  specialties: string[]
 }
 
 const EMPTY_FORM: PersonaFormData = {
   name: "", last_name: "", email: "", cuit: "", dni: "", is_member: false, birth_date: "", address: "",
-  floor: "", apartment: "", city: "", province: "", postal_code: "", phone: "",
+  floor: "", apartment: "", city: "", province: "", postal_code: "", phone: "", specialties: [],
 }
 
 // Filtros categóricos. "all" = sin filtrar.
-const EMPTY_SEG = { member: "all", volunteer: "all", account: "all" }
+const EMPTY_SEG = { member: "all", volunteer: "all", account: "all", pendiente: "all" }
 
 type SortKey = "last_name" | "name" | "cuit" | "city" | "province"
 
@@ -83,6 +86,95 @@ function MemberMark({ active, size = "w-4 h-4" }: { active?: boolean; size?: str
   )
 }
 
+
+/**
+ * Los botones de la ficha abierta. Están acá y no repetidos en cada botón
+ * para que no se vayan separando de a poco: alcanza con que uno quede con
+ * otro borde para que la fila entera se vea desprolija.
+ *
+ * Todos iguales y sin color propio: el color se guarda para el único que
+ * pide una decisión ahora.
+ */
+const ACCION_FICHA =
+  "h-9 gap-1.5 border-alma/30 bg-white/70 text-alma-tinta hover:border-alma hover:bg-white hover:text-alma-fuerte"
+const ACCION_URGENTE = "h-9 gap-1.5 bg-amber-500 text-white hover:bg-amber-600"
+
+/**
+ * El color de la franja del borde izquierdo de la fila (y de la tarjeta en
+ * celular). Es lo que deja distinguir un voluntario de un participante
+ * recorriendo la lista con la vista, sin leer.
+ *
+ * Los dos colores salen del manual: el turquesa de marca y el lavanda. No se
+ * usa el turquesa oscuro porque al lado del claro se confunden, y la gracia
+ * es justamente que no se confundan.
+ */
+function franjaDeRol(p: Persona): string {
+  if (p.is_volunteer) return "border-l-alma"
+  if (p.participant_id != null) return "border-l-alma-lavanda"
+  return "border-l-transparent"
+}
+
+/**
+ * El rol de la persona, en una palabra.
+ *
+ * Reemplaza a las columnas «Voluntario/a» y «Participante», que eran dos
+ * íconos parecidos en dos lugares distintos. Como los roles son excluyentes
+ * (voluntario XOR participante, ver espejo_persona.py), una sola etiqueta los
+ * dice a los dos sin perder nada.
+ *
+ * Si se puede editar, el chip ES el control: tocarlo habilita como
+ * voluntario/a, o le saca el rol si ya lo es. Antes eso era "hacer clic en la
+ * flor gris", que no se le ocurría a nadie.
+ */
+function ChipRol({ p, editable, onElegirRol, onHabilitar, onQuitar }: {
+  p: Persona
+  editable: boolean
+  /** Sin ningún rol: hay dos caminos posibles, se pregunta cuál. */
+  onElegirRol: () => void
+  /** Ya es participante: el único camino que queda es voluntario/a. */
+  onHabilitar: () => void
+  onQuitar: () => void
+}) {
+  const info = p.is_volunteer
+    ? {
+        texto: "Voluntario/a",
+        cls: "border-alma/60 bg-alma-suave text-alma-fuerte",
+        icono: <VolunteerFlower active size="w-3.5 h-3.5" />,
+        titulo: editable ? "Voluntario/a — clic para quitarle el rol" : "Voluntario/a",
+        accion: onQuitar,
+      }
+    : p.participant_id != null
+    ? {
+        texto: "Participante",
+        cls: "border-alma-lavanda/60 bg-alma-lavanda/10 text-alma-tinta",
+        icono: <ParticipantMark active size="w-3.5 h-3.5" />,
+        titulo: editable ? "Participante — clic para habilitar como voluntario/a" : "Participante",
+        accion: onHabilitar,
+      }
+    : {
+        texto: "Sin rol",
+        cls: "border-gray-200 bg-gray-50 text-gray-400",
+        icono: <VolunteerFlower active={false} size="w-3.5 h-3.5" />,
+        titulo: editable ? "Sin rol — clic para darle uno" : "Sin rol",
+        accion: onElegirRol,
+      }
+
+  const base = `inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-medium leading-none whitespace-nowrap ${info.cls}`
+  const contenido = <>{info.icono}{info.texto}</>
+
+  if (!editable) return <span title={info.titulo} className={base}>{contenido}</span>
+
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); info.accion() }}
+      title={info.titulo}
+      className={`${base} transition-all hover:ring-2 hover:ring-alma/30`}
+    >
+      {contenido}
+    </button>
+  )
+}
 
 /** Tiene cuenta en la plataforma si tiene login de participante (participant_id)
  *  O ficha de voluntario (volunteer_id) — los voluntarios se loguean por la tabla
@@ -125,6 +217,18 @@ export default function PersonasDbManager({ user }: { user: any }) {
 
   // Invitar a la plataforma desde el tablero (persona con email y sin cuenta)
   const [invitingId, setInvitingId] = useState<number | null>(null)
+
+  // ── Lo que vivía en Voluntarios y Participantes ─────────────────────
+  // Tres acciones que obligaban a cambiar de módulo para operar sobre la misma
+  // persona que ya tenías en pantalla.
+  const [pinTarget, setPinTarget] = useState<Persona | null>(null)
+  // Persona sin ningún rol a la que le estamos por dar uno. Son dos caminos
+  // distintos (ficha de voluntario/a vs. invitación por mail), así que hay
+  // que preguntar en vez de asumir.
+  const [rolTarget, setRolTarget] = useState<Persona | null>(null)       // fijar PIN
+  const [aprobarTarget, setAprobarTarget] = useState<Persona | null>(null)
+  const [aprobando, setAprobando] = useState(false)
+  const [reenviandoId, setReenviandoId] = useState<number | null>(null)  // verificación
 
   // Revertir voluntario/a → participante (sacar la flor)
   const [revertOpen, setRevertOpen] = useState(false)
@@ -209,7 +313,10 @@ export default function PersonasDbManager({ user }: { user: any }) {
     const matchSeg = (p: Persona) =>
       (seg.member === "all" || (seg.member === "yes" ? !!p.is_member : !p.is_member)) &&
       (seg.volunteer === "all" || (seg.volunteer === "yes" ? !!p.is_volunteer : !p.is_volunteer)) &&
-      (seg.account === "all" || (seg.account === "with" ? hasUserAccount(p) : !hasUserAccount(p)))
+      (seg.account === "all" || (seg.account === "with" ? hasUserAccount(p) : !hasUserAccount(p))) &&
+      // La cola de aprobaciones, dentro de la misma lista: es el único filtro
+      // que señala trabajo pendiente, no una característica de la persona.
+      (seg.pendiente === "all" || p.volunteer_status === "pendiente")
 
     const list = personas.filter(p => matchTexto(p) && matchSeg(p))
 
@@ -243,6 +350,12 @@ export default function PersonasDbManager({ user }: { user: any }) {
   }, [personas])
 
   const hasActiveFilters = !!busqueda.trim() || Object.values(seg).some(v => v !== "all")
+
+  /** Cuántos voluntarios esperan aprobación. Alimenta el filtro "Pendientes". */
+  const pendientes = useMemo(
+    () => personas.filter(p => p.volunteer_status === "pendiente").length,
+    [personas],
+  )
 
   const limpiarFiltros = () => { setBusqueda(""); setSeg(EMPTY_SEG) }
 
@@ -300,6 +413,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
       cuit: p.cuit ?? "", dni: p.dni ?? "", is_member: !!p.is_member, birth_date: p.birth_date ?? "", address: p.address ?? "",
       floor: p.floor ?? "", apartment: p.apartment ?? "", city: p.city ?? "",
       province: p.province ?? "", postal_code: p.postal_code ?? "", phone: p.phone ?? "",
+      specialties: Array.isArray(p.specialties) ? p.specialties : [],
     })
     setFormOpen(true)
   }
@@ -511,6 +625,52 @@ export default function PersonasDbManager({ user }: { user: any }) {
     }
   }
 
+  /**
+   * Aprueba a un voluntario/a pendiente.
+   *
+   * Al aprobar, el backend lo pasa a 'activo', lo mete en el directorio de
+   * personas y le manda el link para que elija su PIN. Antes había que irse a
+   * Aprobaciones; ahora se hace sobre la misma fila que estás mirando.
+   */
+  const aprobar = async () => {
+    const p = aprobarTarget
+    if (!p?.volunteer_id) return
+    setAprobando(true)
+    try {
+      const res = await fetch(`/api/voluntarios/${p.volunteer_id}/approve`, { method: "POST" })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "No se pudo aprobar")
+      toast({
+        title: "Voluntario/a aprobado/a",
+        description: `Le mandamos a ${p.email} el link para que elija su PIN.`,
+      })
+      setAprobarTarget(null)
+      await fetchPersonas()
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" })
+    } finally {
+      setAprobando(false)
+    }
+  }
+
+  /** Le vuelve a mandar el mail de verificación a quien se registró y nunca entró. */
+  const reenviarVerificacion = async (p: Persona) => {
+    if (!p.email) return
+    setReenviandoId(p.id)
+    try {
+      const res = await fetch("/api/registro", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: p.email }),
+      })
+      if (!res.ok) throw new Error()
+      toast({ title: "Verificación reenviada", description: `Se le mandó el link a ${p.email}.` })
+    } catch {
+      toast({ title: "Error", description: "No se pudo reenviar el email", variant: "destructive" })
+    } finally {
+      setReenviandoId(null)
+    }
+  }
+
   // ── Habilitar como voluntario/a ─────────────────────────────────────
   const [volFormOpen, setVolFormOpen] = useState(false)
   const [volPersona, setVolPersona] = useState<Persona | null>(null) // persona a habilitar; null = voluntario nuevo
@@ -655,6 +815,9 @@ export default function PersonasDbManager({ user }: { user: any }) {
             <FilterChip active={seg.volunteer === "no"} onClick={() => alternarSeg("volunteer", "no")}>Participantes</FilterChip>
             <FilterChip active={seg.member === "yes"} onClick={() => alternarSeg("member", "yes")}>Socios</FilterChip>
             <FilterChip active={seg.account === "without"} onClick={() => alternarSeg("account", "without")}>Sin usuario</FilterChip>
+            {pendientes > 0 && (
+              <FilterChip active={seg.pendiente === "yes"} onClick={() => alternarSeg("pendiente", "yes")}>Pendientes ({pendientes})</FilterChip>
+            )}
           </div>
         </HojaFiltros>
         </div>
@@ -685,6 +848,13 @@ export default function PersonasDbManager({ user }: { user: any }) {
           <FilterChip active={seg.account === "without"} onClick={() => alternarSeg("account", "without")}>
             Sin usuario
           </FilterChip>
+          {/* La cola de aprobaciones. Solo aparece si hay alguien esperando:
+              un filtro que siempre devuelve vacío es ruido. */}
+          {pendientes > 0 && (
+            <FilterChip active={seg.pendiente === "yes"} onClick={() => alternarSeg("pendiente", "yes")}>
+              Pendientes ({pendientes})
+            </FilterChip>
+          )}
           {hasActiveFilters && (
             <button onClick={limpiarFiltros} className="text-xs text-gray-400 underline hover:text-gray-600">
               Limpiar
@@ -744,7 +914,9 @@ export default function PersonasDbManager({ user }: { user: any }) {
             const st = personaStatus(p)
             const isExpanded = expandedId === p.id
             return (
-              <div key={p.id} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+              // La misma franja de color que la tabla: el rol se reconoce
+              // igual en las dos vistas.
+              <div key={p.id} className={`bg-white rounded-xl border border-gray-100 border-l-[3px] ${franjaDeRol(p)} shadow-sm overflow-hidden`}>
                 {/* Fila compacta — siempre visible */}
                 <div
                   role="button"
@@ -811,8 +983,14 @@ export default function PersonasDbManager({ user }: { user: any }) {
                     ) : canCreate ? (
                       <button
                         type="button"
-                        onClick={e => { e.stopPropagation(); openEnableVolunteer(p) }}
-                        title="Habilitar como voluntario/a"
+                        onClick={e => {
+                          e.stopPropagation()
+                          // Sin ningún rol hay dos caminos; ya participante,
+                          // uno solo. Mismo criterio que el chip de la tabla.
+                          if (p.participant_id != null) openEnableVolunteer(p)
+                          else setRolTarget(p)
+                        }}
+                        title={p.participant_id != null ? "Habilitar como voluntario/a" : "Darle un rol"}
                         className="p-1 rounded-full transition-transform active:scale-90"
                       >
                         <VolunteerFlower active={false} />
@@ -838,13 +1016,59 @@ export default function PersonasDbManager({ user }: { user: any }) {
                         {p.cuit && <p className="flex items-center gap-2"><IdCard className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />{p.cuit}</p>}
                         {p.email && <p className="flex items-center gap-2 break-all"><Mail className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />{p.email}</p>}
                         {p.phone && <p className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />{p.phone}</p>}
+                        {p.birth_date && (
+                          <p className="flex items-center gap-2">
+                            <Cake className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                            {fechaCorta(p.birth_date)}
+                            {edadTexto(p.birth_date) && <span className="text-gray-400">· {edadTexto(p.birth_date)}</span>}
+                          </p>
+                        )}
                         {(p.address || p.city || p.province) && (
                           <p className="flex items-start gap-2"><MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" /><span className="break-words">{fullAddress(p)}</span></p>
                         )}
-                        {!p.email && !p.phone && !p.address && !p.city && !p.province && !p.cuit && (
+                        {!p.email && !p.phone && !p.birth_date && !p.address && !p.city && !p.province && !p.cuit && (
                           <p className="text-gray-400 italic text-xs">Sin datos de contacto</p>
                         )}
                       </div>
+
+                      <SeccionesDeRol p={p} />
+
+                      {/* Aprobar: lo único de esta ficha que alguien está
+                          esperando, así que va arriba de todo lo demás. */}
+                      {isAdmin && p.volunteer_status === "pendiente" && (
+                        <Button
+                          size="sm"
+                          onClick={() => setAprobarTarget(p)}
+                          className="w-full h-11 gap-1.5 bg-amber-500 text-white hover:bg-amber-600"
+                        >
+                          <BadgeCheck className="w-4 h-4" /> Aprobar voluntario/a
+                        </Button>
+                      )}
+
+                      {canCreate && p.account_verified === false && !!p.email && (
+                        <Button
+                          variant="outline" size="sm"
+                          onClick={() => reenviarVerificacion(p)}
+                          disabled={reenviandoId === p.id}
+                          className="w-full h-11 gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50"
+                        >
+                          {reenviandoId === p.id
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <MailCheck className="w-3.5 h-3.5" />}
+                          Reenviar verificación
+                        </Button>
+                      )}
+
+                      {isAdmin && hasUserAccount(p) && (
+                        <Button
+                          variant="outline" size="sm"
+                          onClick={() => setPinTarget(p)}
+                          className="w-full h-11 gap-1.5 border-[#5ec0cf]/50 text-alma-fuerte hover:bg-[#5ec0cf]/10"
+                        >
+                          <KeyRound className="w-3.5 h-3.5" /> Asignar PIN
+                        </Button>
+                      )}
+
                       {/* Invitar a la plataforma: solo si tiene email y todavía
                           no tiene cuenta. Aparece "en escalera", sin recargar. */}
                       {canCreate && !hasUserAccount(p) && !!p.email && (
@@ -895,46 +1119,101 @@ export default function PersonasDbManager({ user }: { user: any }) {
           })}
         </div>
 
-        {/* ── DESKTOP: tabla (≥ lg) ── */}
-        <div className="hidden lg:block rounded-xl border border-gray-200 bg-white shadow-sm">
-          <table className="w-full text-sm">
+        {/* ── DESKTOP: tabla (≥ lg) ──
+            8 columnas, no 14. Las cuatro de rol (Socio/a, Voluntario/a,
+            Participante, Admin) eran cuatro íconos parecidos repartidos en
+            cuatro lugares: para saber qué era alguien había que comparar
+            columnas. Ahora el rol es UNA columna con la palabra escrita, y
+            como los roles son excluyentes (voluntario XOR participante) eso
+            no pierde información. CUIT y Especialidades se fueron al
+            desplegable: el primero está vacío en casi todas las filas y el
+            segundo solo aplica a voluntarias. Localidad y Provincia son una
+            sola columna. Resultado: entra sin scroll horizontal.
+            El `overflow-x-auto` queda de red: si algún día no entra, scrollea
+            adentro de la tarjeta en vez de desbordarla como hacía antes. */}
+        <div className="hidden lg:block rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+          {/* `table-fixed` + colgroup: sin esto el navegador reparte el ancho
+              según el contenido, así que las columnas se corren solas cada vez
+              que filtrás o que una fila trae un mail más largo. Con anchos
+              declarados la grilla queda quieta y los separadores alineados.
+              No son ocho anchos iguales a propósito: Edad son dos dígitos y
+              Contacto lleva mail + teléfono; repartir 12,5% a cada una
+              desperdicia una columna y achica la otra. */}
+          <table className="w-full min-w-[920px] table-fixed text-sm">
+            <colgroup>
+              <col className="w-[12%]" />{/* Nombre */}
+              <col className="w-[12%]" />{/* Apellido */}
+              <col className="w-[18%]" />{/* Contacto */}
+              <col className="w-[6%]" /> {/* Edad */}
+              <col className="w-[13%]" />{/* Ubicación */}
+              <col className="w-[15%]" />{/* Rol */}
+              <col className="w-[11%]" />{/* Estado */}
+              <col className="w-[13%]" />{/* Acciones */}
+            </colgroup>
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50/80 text-left text-gray-600">
-                <SortableTh label="Nombre" k="name" onClick={toggleSort} SortIcon={SortIcon} />
+              <tr className="border-b border-gray-200 bg-[#f7f8f9] text-left text-gray-600">
+                {/* El borde transparente iguala la franja de color de las
+                    filas, para que los encabezados no queden corridos 3px. */}
+                <SortableTh label="Nombre" k="name" onClick={toggleSort} SortIcon={SortIcon} className="border-l-[3px] border-l-transparent" />
                 <SortableTh label="Apellido" k="last_name" onClick={toggleSort} SortIcon={SortIcon} />
-                <SortableTh label="CUIT" k="cuit" onClick={toggleSort} SortIcon={SortIcon} />
-                <th className="px-4 py-2 font-semibold">Contacto</th>
-                <SortableTh label="Localidad" k="city" onClick={toggleSort} SortIcon={SortIcon} />
-                <SortableTh label="Provincia" k="province" onClick={toggleSort} SortIcon={SortIcon} />
-                <th className="px-4 py-2 font-semibold text-center">Socio/a</th>
-                <th className="px-4 py-2 font-semibold text-center">Voluntario/a</th>
-                <th className="px-4 py-2 font-semibold text-center">Participante</th>
-                {/* Solo para admins: es el permiso más alto del sistema y no
-                    tiene por qué estar a la vista de todo el mundo. */}
-                {isAdmin && <th className="px-4 py-2 font-semibold text-center">Admin</th>}
-                <th className="px-4 py-2 font-semibold">Estado</th>
-                <th className="px-4 py-2 font-semibold text-right">Acciones</th>
+                <th className="px-3 py-2 font-semibold whitespace-nowrap">Contacto</th>
+                {/* La edad se calcula desde la fecha de nacimiento (lib/edad):
+                    no hay una columna `edad` que pueda contradecirla. */}
+                <th className="px-3 py-2 font-semibold text-center whitespace-nowrap">Edad</th>
+                <SortableTh label="Ubicación" k="city" onClick={toggleSort} SortIcon={SortIcon} />
+                <th className="px-3 py-2 font-semibold whitespace-nowrap">Rol</th>
+                <th className="px-3 py-2 font-semibold whitespace-nowrap">Estado</th>
+                <th className="px-3 py-2 font-semibold text-right whitespace-nowrap">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(p => {
+              {filtered.map((p, i) => {
                 const st = personaStatus(p)
+                const abierta = expandedId === p.id
+                // El rayado se calcula acá y no con `even:` de CSS: al abrir
+                // una fila se inserta otra <tr> debajo, y nth-child la cuenta,
+                // así que de ahí para abajo el rayado se daba vuelta solo.
+                const rayada = i % 2 === 1
+                const ubicacion = [p.city, p.province].filter(Boolean).join(", ")
                 return (
-                  <tr key={p.id} className="border-b border-gray-100 last:border-0 even:bg-gray-50/50 hover:bg-[#5ec0cf]/[0.06] transition-colors">
-                    <td className="px-4 py-2 font-medium text-gray-900">{p.name || "—"}</td>
-                    <td className="px-4 py-2 text-gray-700">{p.last_name || "—"}</td>
-                    <td className="px-4 py-2 text-gray-500 tabular-nums">{p.cuit || "—"}</td>
-                    <td className="px-4 py-2 text-gray-500">
+                  <React.Fragment key={p.id}>
+                  {/* La fila entera abre la ficha, como la tarjeta del
+                      celular. Los botones y las marcas que viven adentro
+                      cortan la propagación para no abrirla sin querer. */}
+                  <tr
+                    onClick={() => setExpandedId(abierta ? null : p.id)}
+                    className={`cursor-pointer border-b border-gray-100 last:border-0 hover:bg-[#f5fbfc] transition-colors ${abierta ? "bg-[#f5fbfc]" : rayada ? "bg-[#fafafa]" : "bg-white"}`}
+                  >
+                    {/* La franja del borde izquierdo: el rol se reconoce por
+                        color antes de leer nada, recorriendo la lista de
+                        arriba abajo. Los dos son colores del manual. */}
+                    <td className={`border-l-[3px] ${franjaDeRol(p)} truncate px-3 py-2 font-medium text-gray-900`} title={p.name || ""}>{p.name || "—"}</td>
+                    <td className="truncate px-3 py-2 text-gray-700" title={p.last_name || ""}>{p.last_name || "—"}</td>
+                    <td className="px-3 py-2 text-gray-500">
                       <div className="flex flex-col gap-0.5">
-                        {p.email && <span className="inline-flex items-center gap-1 truncate max-w-[200px]"><Mail className="w-3 h-3 flex-shrink-0" />{p.email}</span>}
+                        {p.email && <span title={p.email} className="inline-flex items-center gap-1 truncate max-w-full"><Mail className="w-3 h-3 flex-shrink-0" />{p.email}</span>}
                         {p.phone && <span className="inline-flex items-center gap-1"><Phone className="w-3 h-3 flex-shrink-0" />{p.phone}</span>}
                         {!p.email && !p.phone && "—"}
                       </div>
                     </td>
-                    <td className="px-4 py-2 text-gray-700">{p.city || "—"}</td>
-                    <td className="px-4 py-2 text-gray-700">{p.province || "—"}</td>
-                    <td className="px-4 py-2">
-                      <div className="flex justify-center">
+                    <td className="px-3 py-2 text-center text-gray-700 tabular-nums">
+                      {edadDesde(p.birth_date) ?? <span className="text-gray-300">—</span>}
+                    </td>
+                    <td className="truncate px-3 py-2 text-gray-700" title={ubicacion}>{ubicacion || "—"}</td>
+
+                    {/* ── Rol: la etiqueta ES el control ── */}
+                    <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-1.5">
+                        <ChipRol
+                          p={p}
+                          editable={canCreate}
+                          onElegirRol={() => setRolTarget(p)}
+                          onHabilitar={() => openEnableVolunteer(p)}
+                          onQuitar={() => openRevert(p)}
+                        />
+                        {/* Socio/a va aparte porque es ortogonal al rol: se
+                            puede ser socia y voluntaria a la vez. */}
                         {canEdit ? (
                           <button
                             type="button"
@@ -942,83 +1221,78 @@ export default function PersonasDbManager({ user }: { user: any }) {
                             disabled={togglingId === p.id}
                             title={p.is_member ? "Socio/a — clic para quitar" : "No socio/a — clic para marcar"}
                             aria-pressed={!!p.is_member}
-                            className="p-1 rounded-full transition-transform hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-wait"
+                            className="rounded-full p-0.5 transition-transform hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-wait"
                           >
                             <MemberMark active={!!p.is_member} />
                           </button>
-                        ) : (
-                          <div title={p.is_member ? "Socio/a" : "No socio/a"}>
-                            <MemberMark active={!!p.is_member} />
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-2">
-                      <div className="flex justify-center">
-                        {p.is_volunteer ? (
-                          canCreate ? (
-                            <button
-                              type="button"
-                              onClick={() => openRevert(p)}
-                              title="Voluntario/a — clic para quitar el rol y volverlo participante"
-                              className="p-1 rounded-full transition-transform hover:scale-110 active:scale-95"
-                            >
-                              <VolunteerFlower active />
-                            </button>
-                          ) : (
-                            <div title="Voluntario/a"><VolunteerFlower active /></div>
-                          )
-                        ) : canCreate ? (
+                        ) : p.is_member ? (
+                          <span title="Socio/a"><MemberMark active /></span>
+                        ) : null}
+                        {/* El flag de admin vive en la ficha de voluntario/a,
+                            así que solo tiene sentido si la persona ya lo es. */}
+                        {isAdmin && p.volunteer_id != null && (
                           <button
                             type="button"
-                            onClick={() => openEnableVolunteer(p)}
-                            title="Habilitar como voluntario/a"
-                            className="p-1 rounded-full transition-transform hover:scale-110 active:scale-95"
+                            onClick={(e) => { e.stopPropagation(); toggleAdmin(p) }}
+                            disabled={togglingId === p.id}
+                            title={p.is_admin ? "Administrador/a — clic para quitar" : "Clic para hacer administrador/a"}
+                            aria-pressed={!!p.is_admin}
+                            className="rounded-full p-0.5 transition-transform hover:scale-110 active:scale-95 disabled:opacity-50"
                           >
-                            <VolunteerFlower active={false} />
+                            <ShieldCheck className={`w-4 h-4 ${p.is_admin ? "text-alma-fuerte" : "text-gray-300"}`} />
                           </button>
-                        ) : (
-                          <div title="No voluntario/a"><VolunteerFlower active={false} /></div>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-2">
-                      {/* Read-only: participante = tiene login propio (participant_id).
-                          No se "habilita" desde acá; la persona se registra sola. */}
-                      <div className="flex justify-center" title={p.participant_id != null ? "Participante" : "No participante"}>
-                        <ParticipantMark active={p.participant_id != null} />
-                      </div>
-                    </td>
-                    {isAdmin && (
-                      <td className="px-4 py-2">
-                        <div className="flex justify-center">
-                          {/* El flag vive en la ficha de voluntario/a, así que
-                              solo tiene sentido si la persona ya lo es. */}
-                          {p.volunteer_id ? (
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); toggleAdmin(p) }}
-                              disabled={togglingId === p.id}
-                              title={p.is_admin ? "Administrador/a — clic para quitar" : "Clic para hacer administrador/a"}
-                              aria-pressed={!!p.is_admin}
-                              className="p-1 rounded-full transition-transform hover:scale-110 active:scale-95 disabled:opacity-50"
-                            >
-                              <ShieldCheck className={`w-[18px] h-[18px] ${p.is_admin ? "text-alma-fuerte" : "text-gray-300"}`} />
-                            </button>
-                          ) : (
-                            <span className="text-gray-200">—</span>
-                          )}
-                        </div>
-                      </td>
-                    )}
-                    <td className="px-4 py-2">
+
+                    <td className="px-3 py-2">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] leading-none font-medium border whitespace-nowrap ${st.cls}`}>
                         <st.Icon className="w-2.5 h-2.5" />
                         {st.label}
                       </span>
                     </td>
-                    <td className="px-4 py-2">
-                      <div className="flex items-center justify-end gap-1">
+                    <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-0.5">
+                        {/* Queda igual aunque la fila entera ya abra: es el
+                            control accesible por teclado y la pista visual de
+                            que hay algo más abajo. */}
+                        <Button
+                          variant="ghost" size="sm"
+                          onClick={() => setExpandedId(abierta ? null : p.id)}
+                          title={abierta ? "Ocultar ficha" : "Ver ficha completa"}
+                          aria-expanded={abierta}
+                          className="h-7 w-7 p-0 text-gray-400 hover:bg-[#5ec0cf]/10 hover:text-alma-fuerte"
+                        >
+                          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${abierta ? "rotate-180" : ""}`} />
+                        </Button>
+                        {/* Aprobar: solo cuando hay algo que aprobar. Va
+                            primero y en ámbar porque es lo único de esta fila
+                            que alguien está esperando. */}
+                        {isAdmin && p.volunteer_status === "pendiente" && (
+                          <Button variant="ghost" size="sm" onClick={() => setAprobarTarget(p)}
+                            title="Aprobar voluntario/a"
+                            className="h-7 w-7 p-0 text-amber-600 hover:bg-amber-50 hover:text-amber-700">
+                            <BadgeCheck className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                        {/* Reenviar verificación: se registró y nunca entró al mail. */}
+                        {canCreate && p.account_verified === false && !!p.email && (
+                          <Button variant="ghost" size="sm" onClick={() => reenviarVerificacion(p)}
+                            disabled={reenviandoId === p.id} title="Reenviar verificación"
+                            className="h-7 w-7 p-0 text-gray-400 hover:bg-amber-50 hover:text-amber-700">
+                            {reenviandoId === p.id
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <MailCheck className="w-3.5 h-3.5" />}
+                          </Button>
+                        )}
+                        {/* Fijar PIN: el ícono llave que vivía en Voluntarios. */}
+                        {isAdmin && hasUserAccount(p) && (
+                          <Button variant="ghost" size="sm" onClick={() => setPinTarget(p)}
+                            title="Asignar PIN"
+                            className="h-7 w-7 p-0 text-gray-400 hover:bg-[#5ec0cf]/10 hover:text-alma-fuerte">
+                            <KeyRound className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
                         {canCreate && !hasUserAccount(p) && !!p.email && (
                           <Button variant="ghost" size="sm" onClick={() => handleInvite(p)} disabled={invitingId === p.id}
                             title="Invitar a Comunidad ALMA"
@@ -1052,13 +1326,123 @@ export default function PersonasDbManager({ user }: { user: any }) {
                       </div>
                     </td>
                   </tr>
+
+                  {/* La fila desplegada: lo que salió de las columnas (CUIT,
+                      documento, dirección, especialidades) más las secciones
+                      por rol. Son las mismas secciones que la tarjeta de
+                      celular, para no mantener dos versiones de lo mismo. */}
+                  {abierta && (
+                    <tr className="border-b border-gray-100 bg-white">
+                      <td colSpan={8} className="px-3 pb-3 pt-0">
+                        {/* Un solo panel, en el turquesa suave del manual. El
+                            fondo de antes (#f8fcfd) era casi blanco sobre
+                            blanco: se adivinaba dónde empezaba la ficha en vez
+                            de verse. */}
+                        <div className="space-y-3 rounded-xl border border-alma/25 bg-alma-suave px-4 py-3.5">
+                          <SeccionesDeRol p={p} conDatos />
+
+                          {/* Los mismos botones del renglón, pero con el
+                              nombre escrito. Los de arriba quedan para el que
+                              ya sabe qué es cada ícono; estos son para el que
+                              no. Mismo handler, así que no hay dos caminos que
+                              puedan quedar distintos. */}
+                          {/* Centrados, y todos del mismo color salvo el que
+                              hay que hacer ahora: si todo grita, nada grita.
+                              Aprobar es lo único que alguien está esperando,
+                              así que es el único con relleno. */}
+                          <div className="flex flex-wrap justify-center gap-2 border-t border-alma/25 pt-3">
+                            {isAdmin && p.volunteer_status === "pendiente" && (
+                              <Button size="sm" onClick={() => setAprobarTarget(p)} className={ACCION_URGENTE}>
+                                <BadgeCheck className="h-4 w-4" /> Aprobar voluntario/a
+                              </Button>
+                            )}
+                            {isAdmin && hasUserAccount(p) && (
+                              <Button variant="outline" size="sm" onClick={() => setPinTarget(p)} className={ACCION_FICHA}>
+                                <KeyRound className="h-4 w-4" /> Asignar PIN
+                              </Button>
+                            )}
+                            {canCreate && p.account_verified === false && !!p.email && (
+                              <Button variant="outline" size="sm" onClick={() => reenviarVerificacion(p)}
+                                disabled={reenviandoId === p.id} className={ACCION_FICHA}>
+                                {reenviandoId === p.id
+                                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                                  : <MailCheck className="h-4 w-4" />}
+                                Reenviar verificación
+                              </Button>
+                            )}
+                            {canCreate && !hasUserAccount(p) && !!p.email && (
+                              <Button variant="outline" size="sm" onClick={() => handleInvite(p)}
+                                disabled={invitingId === p.id} className={ACCION_FICHA}>
+                                {invitingId === p.id
+                                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                                  : <Send className="h-4 w-4" />}
+                                Invitar
+                              </Button>
+                            )}
+                            {isAdmin && !!p.email && (p.volunteer_id || p.participant_id) && (
+                              <Button variant="outline" size="sm" onClick={() => handleImpersonateClick(p)}
+                                disabled={impersonatingId === p.id} className={ACCION_FICHA}>
+                                {impersonatingId === p.id
+                                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                                  : <LogIn className="h-4 w-4" />}
+                                Ingresar como
+                              </Button>
+                            )}
+                            {canEdit && (
+                              <Button variant="outline" size="sm" onClick={() => openEdit(p)} className={ACCION_FICHA}>
+                                <Edit className="h-4 w-4" /> Editar
+                              </Button>
+                            )}
+                            {canDelete && (
+                              <Button variant="outline" size="sm" onClick={() => askDelete(p)}
+                                className={`${ACCION_FICHA} hover:border-red-200 hover:bg-red-50 hover:text-red-600`}>
+                                <Trash2 className="h-4 w-4" /> Eliminar
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </React.Fragment>
                 )
               })}
             </tbody>
           </table>
+          </div>
         </div>
         </>
       )}
+
+      {/* ── Modal: fijar PIN ─────────────────────────────────────────── */}
+      {pinTarget && (
+        <DialogoPin persona={pinTarget} onClose={() => setPinTarget(null)} />
+      )}
+
+      {/* ── Modal: aprobar voluntario/a ───────────────────────────────── */}
+      <Dialog open={!!aprobarTarget} onOpenChange={o => { if (!o && !aprobando) setAprobarTarget(null) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>¿Aprobar a {fullName(aprobarTarget ?? {} as Persona)}?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 text-sm text-gray-600">
+            <p>Queda como voluntario/a activo/a y entra a la base de personas.</p>
+            <p>
+              Le llega un mail a <span className="font-medium text-gray-800">{aprobarTarget?.email}</span> con
+              el link para que elija su PIN. Hasta que lo haga no puede ingresar.
+            </p>
+          </div>
+          <DialogFooter className="pt-4">
+            <Button variant="outline" onClick={() => setAprobarTarget(null)} disabled={aprobando}>
+              Cancelar
+            </Button>
+            <Button onClick={aprobar} disabled={aprobando} className="bg-amber-500 text-white hover:bg-amber-600">
+              {aprobando ? <Loader2 className="w-4 h-4 animate-spin" /> : <BadgeCheck className="w-4 h-4" />}
+              <span className="ml-1.5">Aprobar</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Modal: Alta (con pestañas) / Edición ─────────────────────── */}
       <Dialog open={formOpen} onOpenChange={o => { if (!o) closeForm() }}>
@@ -1116,6 +1500,18 @@ export default function PersonasDbManager({ user }: { user: any }) {
                 <Input value={form.phone} onChange={e => setField("phone", e.target.value)} maxLength={50} placeholder="Celular" />
               </Field>
             </div>
+
+            {/* Especialidades: SOLO si la persona es voluntaria. No es un campo
+                vacío en la ficha de un participante, es un campo que no está —
+                es lo que hace que una sola pantalla para todos no confunda. */}
+            {editing?.volunteer_id && (
+              <Field label="Especialidades">
+                <EditorEspecialidades
+                  valor={form.specialties}
+                  onChange={lista => setForm(prev => ({ ...prev, specialties: lista }))}
+                />
+              </Field>
+            )}
 
             {/* Socio/a de ALMA */}
             <button
@@ -1345,6 +1741,50 @@ export default function PersonasDbManager({ user }: { user: any }) {
         loading={deleting}
       />
 
+      {/* ── Darle un rol a alguien que no tiene ninguno ────────────────
+          Por qué se pregunta en vez de hacer: no son dos variantes de lo
+          mismo. Voluntario/a se lo das vos ahí mismo (le creás la ficha y
+          entra con un PIN). Participante no se "da": se le manda una
+          invitación por mail y la persona crea su cuenta, así que hace falta
+          que tenga un mail cargado. */}
+      <Dialog open={!!rolTarget} onOpenChange={(o) => !o && setRolTarget(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>¿Qué rol le damos?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-500">
+            {rolTarget ? fullName(rolTarget) : ""} está en la base de datos pero todavía no tiene ningún rol.
+          </p>
+          <div className="flex flex-col gap-3 pt-1">
+            <div>
+              <Button
+                variant="outline"
+                className="h-11 w-full justify-start"
+                onClick={() => { if (rolTarget) openEnableVolunteer(rolTarget); setRolTarget(null) }}
+              >
+                <VolunteerFlower active size="w-4 h-4" /> <span className="ml-2">Voluntario/a</span>
+              </Button>
+              <p className="mt-1 text-xs text-gray-400">Le creás la ficha ahora y entra con un PIN.</p>
+            </div>
+            <div>
+              <Button
+                variant="outline"
+                className="h-11 w-full justify-start"
+                disabled={!rolTarget?.email || invitingId != null}
+                onClick={() => { if (rolTarget) handleInvite(rolTarget); setRolTarget(null) }}
+              >
+                <ParticipantMark active size="w-4 h-4" /> <span className="ml-2">Participante</span>
+              </Button>
+              <p className="mt-1 text-xs text-gray-400">
+                {rolTarget?.email
+                  ? `Le mandamos un mail a ${rolTarget.email} para que cree su cuenta.`
+                  : "Necesita un email cargado para poder recibir la invitación."}
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* ── Impersonar: elegir ficha cuando tiene las dos ──────────────── */}
       <Dialog open={!!impersonateChoice} onOpenChange={(o) => !o && setImpersonateChoice(null)}>
         <DialogContent className="sm:max-w-xs">
@@ -1383,14 +1823,337 @@ export default function PersonasDbManager({ user }: { user: any }) {
 }
 
 // ── Subcomponentes ─────────────────────────────────────────────────────
+/**
+ * Las especialidades de un voluntario/a: chips que se agregan y se sacan.
+ *
+ * Es texto libre y no una lista cerrada, igual que en el módulo de Voluntarios:
+ * lo que hace cada persona en ALMA no entra en un catálogo fijo, y obligar a
+ * elegir de una lista termina en que todos eligen "Otro".
+ */
+function EditorEspecialidades({
+  valor,
+  onChange,
+}: {
+  valor: string[]
+  onChange: (lista: string[]) => void
+}) {
+  const [texto, setTexto] = useState("")
+
+  const agregar = () => {
+    const limpio = texto.trim()
+    // Sin repetidos: dos chips iguales no agregan nada y encima rompen el
+    // `key` de React.
+    if (!limpio || valor.includes(limpio)) { setTexto(""); return }
+    onChange([...valor, limpio])
+    setTexto("")
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-2">
+        <Input
+          value={texto}
+          onChange={e => setTexto(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); agregar() } }}
+          placeholder="Acompañamiento, Talleres…"
+          maxLength={60}
+        />
+        <Button type="button" variant="outline" onClick={agregar} disabled={!texto.trim()} className="h-11 px-3">
+          <Plus className="w-4 h-4" />
+        </Button>
+      </div>
+
+      {valor.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {valor.map(e => (
+            <span key={e} className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 py-0.5 pl-2.5 pr-1 text-xs text-gray-700">
+              {e}
+              <button
+                type="button"
+                onClick={() => onChange(valor.filter(x => x !== e))}
+                aria-label={`Quitar ${e}`}
+                className="flex h-5 w-5 items-center justify-center rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-600"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Fijar el PIN de una persona.
+ *
+ * Reemplaza a los dos diálogos que había: el ícono llave de Voluntarios y el de
+ * Participantes. Eran el mismo formulario contra endpoints distintos, y para
+ * saber cuál usar había que saber de antemano qué era la persona.
+ *
+ * Acá el rol lo decide el componente: si tiene ficha de voluntario/a va por ahí
+ * —es el login que manda, porque los roles son excluyentes y el de voluntario/a
+ * gana— y si no, por el de participante. El PIN viaja en claro hasta la ruta de
+ * Next, que lo hashea con bcrypt antes de mandarlo al backend; nunca sale del
+ * servidor sin hashear.
+ */
+function DialogoPin({ persona, onClose }: { persona: Persona; onClose: () => void }) {
+  const [pin, setPin] = useState("")
+  const [guardando, setGuardando] = useState(false)
+
+  const esVoluntaria = !!persona.volunteer_id
+  const ruta = esVoluntaria ? "/api/voluntarios/pin" : "/api/participantes/pin"
+  const id = esVoluntaria ? persona.volunteer_id : persona.participant_id
+  const valido = /^\d{4}$/.test(pin)
+
+  const guardar = async () => {
+    if (!valido || !id) return
+    setGuardando(true)
+    try {
+      const res = await fetch(ruta, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, pin }),
+      })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "No se pudo guardar")
+      toast({
+        title: "PIN asignado",
+        description: `${fullName(persona)} ya puede ingresar con ese PIN.`,
+      })
+      onClose()
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" })
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={o => { if (!o && !guardando) onClose() }}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>PIN de {fullName(persona)}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600">
+            Ingresa como{" "}
+            <span className="font-medium text-gray-800">
+              {esVoluntaria ? "voluntario/a" : "participante"}
+            </span>{" "}
+            con {persona.email}.
+          </p>
+          <div>
+            <Label htmlFor="pin-persona">PIN nuevo</Label>
+            <Input
+              id="pin-persona"
+              value={pin}
+              onChange={e => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="4 dígitos"
+              className="mt-1 h-11 text-center text-lg tracking-[0.5em] tabular-nums"
+              onKeyDown={e => { if (e.key === "Enter" && valido) guardar() }}
+            />
+          </div>
+          <p className="text-xs text-gray-400">
+            Pisa el PIN anterior. Avisale por otro medio: no le llega ningún mail.
+          </p>
+        </div>
+
+        <DialogFooter className="pt-2">
+          <Button variant="outline" onClick={onClose} disabled={guardando}>Cancelar</Button>
+          <Button
+            onClick={guardar}
+            disabled={!valido || guardando}
+            className="bg-alma-fuerte text-white hover:bg-alma-oscuro"
+          >
+            {guardando ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+            <span className="ml-1.5">Guardar</span>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/**
+ * Las secciones por rol de una persona.
+ *
+ * Una persona es una fila; sus ROLES viven en otras dos tablas. Hasta ahora,
+ * para ver el voluntariado de alguien había que irse al módulo de Voluntarios,
+ * y para ver sus inscripciones al de Participantes. Esto trae las tres cosas al
+ * mismo lugar.
+ *
+ * Cada sección aparece SOLO si la persona tiene ese rol. Esa es la regla que
+ * hace que juntar los módulos no termine en una ficha confusa: las
+ * especialidades no son un campo vacío en la ficha de un participante, son un
+ * campo que no está. Y al revés con las inscripciones.
+ */
+/**
+ * Los datos que salieron de la tabla cuando se pasó de 14 columnas a 8: CUIT,
+ * documento, nacimiento y dirección. Eran columnas vacías en casi todas las
+ * filas, así que ocupaban ancho todo el tiempo para servir de vez en cuando.
+ * Solo salen los que la persona tiene cargados.
+ */
+function itemsDeFicha(p: Persona): { Icono: typeof IdCard; valor: string }[] {
+  const direccion = fullAddress(p)
+  const items: { Icono: typeof IdCard; valor: string }[] = []
+  if (p.cuit) items.push({ Icono: IdCard, valor: `CUIT ${p.cuit}` })
+  if (p.dni) items.push({ Icono: IdCard, valor: `Doc. ${p.dni}` })
+  if (p.birth_date) {
+    const edad = edadTexto(p.birth_date)
+    items.push({ Icono: Cake, valor: fechaCorta(p.birth_date) + (edad ? ` · ${edad}` : "") })
+  }
+  if (direccion && direccion !== "—") items.push({ Icono: MapPin, valor: direccion })
+  return items
+}
+
+/**
+ * La ficha abierta de una persona.
+ *
+ * Las secciones se reparten el ancho en vez de apilarse contra el margen
+ * izquierdo: el panel ocupa toda la fila, y con todo amontonado a la
+ * izquierda quedaban dos tercios de celeste vacío. Cada sección crece hasta
+ * llenar lo que le toca (`flex-1`) y baja de renglón recién cuando no entra
+ * en 190px, así que en celular se apilan solas.
+ *
+ * `conDatos` lo usa la tabla de escritorio, donde documento, nacimiento y
+ * dirección no tienen columna propia. La tarjeta del celular ya los lista
+ * arriba, así que ahí no se repiten.
+ */
+function SeccionesDeRol({ p, conDatos = false }: { p: Persona; conDatos?: boolean }) {
+  const esVoluntaria = !!p.volunteer_id
+  const tieneCuenta = !!p.participant_id
+  const datos = conDatos ? itemsDeFicha(p) : []
+  if (!esVoluntaria && !tieneCuenta && datos.length === 0) return null
+
+  const especialidades = Array.isArray(p.specialties) ? p.specialties : []
+
+  return (
+    <div className="flex flex-wrap gap-x-8 gap-y-4 pt-1">
+      {datos.length > 0 && (
+        <Seccion titulo="Datos" icono={<IdCard className="h-3 w-3 text-alma-fuerte/60" />}>
+          {datos.map(({ Icono, valor }) => (
+            <p key={valor} className="flex items-start gap-1.5 text-xs text-alma-tinta">
+              <Icono className="mt-px h-3.5 w-3.5 flex-shrink-0 text-alma-fuerte/50" />
+              <span className="break-words">{valor}</span>
+            </p>
+          ))}
+        </Seccion>
+      )}
+
+      {esVoluntaria && (
+        <Seccion titulo="Voluntariado" icono={<VolunteerFlower active size="w-3 h-3" />}>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <EstadoVoluntariado estado={p.volunteer_status} />
+            {p.is_admin && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium leading-none text-amber-700">
+                <ShieldCheck className="h-2.5 w-2.5" /> Administra
+              </span>
+            )}
+          </div>
+
+          {p.volunteer_since && (
+            <p className="text-xs text-gray-500">Desde {fechaCorta(p.volunteer_since)}</p>
+          )}
+
+          {especialidades.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {especialidades.map(e => (
+                <span key={e} className="rounded-full border border-alma/30 bg-white/70 px-2 py-0.5 text-[11px] leading-none text-alma-tinta">
+                  {e}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs italic text-gray-400">Sin especialidades cargadas</p>
+          )}
+        </Seccion>
+      )}
+
+      {tieneCuenta && (
+        <Seccion titulo="Participación" icono={<ParticipantMark active size="w-3 h-3" />}>
+          <EstadoCuenta p={p} />
+          <p className="text-xs text-gray-500">
+            {p.enrollments_count
+              ? `${p.enrollments_count} ${p.enrollments_count === 1 ? "inscripción" : "inscripciones"}`
+              : "Sin inscripciones"}
+          </p>
+        </Seccion>
+      )}
+    </div>
+  )
+}
+
+function Seccion({
+  titulo,
+  icono,
+  children,
+}: {
+  titulo: string
+  icono: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    // Sin caja: adentro del panel turquesa, una caja gris con borde es un
+    // marco dentro de otro marco. Un filete al costado alcanza para agrupar.
+    <div className="min-w-[190px] flex-1 border-l-2 border-alma/40 pl-3">
+      <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-alma-tinta">
+        {icono}
+        {titulo}
+      </p>
+      <div className="space-y-1.5">{children}</div>
+    </div>
+  )
+}
+
+/** El estado del voluntariado. 'pendiente' se destaca: alguien lo tiene que aprobar. */
+function EstadoVoluntariado({ estado }: { estado?: string | null }) {
+  const mapa: Record<string, { texto: string; cls: string }> = {
+    activo: { texto: "Activa", cls: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+    pendiente: { texto: "Pendiente de aprobación", cls: "border-amber-200 bg-amber-50 text-amber-700" },
+    inactivo: { texto: "Inactiva", cls: "border-gray-200 bg-gray-100 text-gray-500" },
+  }
+  const v = mapa[estado ?? ""] ?? { texto: estado || "Sin estado", cls: "border-gray-200 bg-gray-100 text-gray-500" }
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium leading-none ${v.cls}`}>
+      {v.texto}
+    </span>
+  )
+}
+
+/**
+ * Si la cuenta sirve o no.
+ *
+ * `participant_id` solo dice que la cuenta existe. Las dos formas de existir sin
+ * servir son distintas y conviene distinguirlas: una cuenta APAGADA es la de
+ * alguien que pasó a ser voluntario/a (los roles son excluyentes), y una SIN
+ * VERIFICAR es la de alguien que se registró y nunca entró al mail.
+ */
+function EstadoCuenta({ p }: { p: Persona }) {
+  if (p.account_active === false) {
+    return (
+      <p className="text-xs text-gray-500">
+        Cuenta apagada{p.volunteer_id ? " — es voluntario/a" : ""}
+      </p>
+    )
+  }
+  if (p.account_verified === false) {
+    return <p className="text-xs text-amber-700">Se registró pero no verificó el email</p>
+  }
+  return <p className="text-xs text-gray-500">Cuenta activa</p>
+}
+
 function SortableTh({
-  label, k, onClick, SortIcon,
+  label, k, onClick, SortIcon, className = "",
 }: {
   label: string; k: SortKey
   onClick: (k: SortKey) => void; SortIcon: (p: { k: SortKey }) => React.ReactNode
+  className?: string
 }) {
   return (
-    <th className="px-4 py-2 font-semibold">
+    <th className={`px-3 py-2 font-semibold whitespace-nowrap ${className}`}>
       <button onClick={() => onClick(k)} className="inline-flex items-center gap-1.5 hover:text-alma-fuerte transition-colors">
         {label}
         <SortIcon k={k} />
