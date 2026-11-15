@@ -73,7 +73,13 @@ export default function PendientesPage() {
   }
 
   return (
-    <div className="relative overflow-hidden">
+    // `overflow-x-clip` y no `overflow-hidden`: los dos recortan las flores
+    // de abajo, que son `absolute`, pero `hidden` convierte a este div en
+    // contenedor de scroll, y adentro de uno `position: sticky` se pega acá
+    // —que nunca scrollea— en lugar de a la pantalla. Con `hidden` quedaban
+    // muertos el encabezado del Dashboard, el de la tabla de personas y
+    // cualquier otro que se agregue.
+    <div className="relative overflow-x-clip">
       {/* Flores decorativas de fondo distribuidas aleatoriamente */}
       <div className="absolute top-16 left-16 w-34 h-34 opacity-[0.01] pointer-events-none">
         <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />

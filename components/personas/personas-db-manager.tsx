@@ -14,7 +14,7 @@ import {
   Plus, Edit, Trash2, Database, Search, X, ChevronDown,
   ArrowUpDown, ArrowUp, ArrowDown, Send, Loader2, AlertTriangle,
   Mail, Phone, MapPin, IdCard, UserCheck, UserX, BadgeCheck, Users, UserCircle, LogIn,
-  ShieldCheck, Cake, KeyRound, MailCheck,
+  ShieldCheck, Cake, KeyRound, MailCheck, CalendarDays, Tag, ClipboardList,
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { can } from "@/lib/permissions"
@@ -112,6 +112,22 @@ function franjaDeRol(p: Persona): string {
   if (p.is_volunteer) return "border-l-alma"
   if (p.participant_id != null) return "border-l-alma-lavanda"
   return "border-l-transparent"
+}
+
+/**
+ * El degradé que acompaña a la franja: arranca con el color al 25% pegado al
+ * borde y se apaga antes de llegar al apellido.
+ *
+ * Es la forma de que el color se note más sin subir el volumen: pintar el
+ * renglón entero de turquesa o de lavanda deja la tabla a dos colores y lo
+ * que se pierde es justamente lo que se quería ganar. Un degradé corto se ve
+ * de reojo recorriendo la lista y no compite con el texto, que sigue sobre
+ * blanco.
+ */
+function lavadoDeRol(p: Persona): string {
+  if (p.is_volunteer) return "bg-gradient-to-r from-alma/25 via-alma/5 to-transparent"
+  if (p.participant_id != null) return "bg-gradient-to-r from-alma-lavanda/25 via-alma-lavanda/5 to-transparent"
+  return ""
 }
 
 /**
@@ -221,11 +237,26 @@ export default function PersonasDbManager({ user }: { user: any }) {
   // ── Lo que vivía en Voluntarios y Participantes ─────────────────────
   // Tres acciones que obligaban a cambiar de módulo para operar sobre la misma
   // persona que ya tenías en pantalla.
-  const [pinTarget, setPinTarget] = useState<Persona | null>(null)
+  const [pinTarget, setPinTarget] = useState<Persona | null>(null)       // fijar PIN
   // Persona sin ningún rol a la que le estamos por dar uno. Son dos caminos
   // distintos (ficha de voluntario/a vs. invitación por mail), así que hay
   // que preguntar en vez de asumir.
-  const [rolTarget, setRolTarget] = useState<Persona | null>(null)       // fijar PIN
+  const [rolTarget, setRolTarget] = useState<Persona | null>(null)
+
+  /**
+   * El encabezado de la tabla se queda arriba mientras bajás.
+   *
+   * No se pega en `top-0` sino debajo del <header> del dashboard, que mide
+   * 64px (h-16) y también es sticky: los dos en cero pelean por el mismo
+   * lugar. Cuando hay banda de impersonación el header baja a `top-9`, así
+   * que todo corre 36px más.
+   *
+   * La barra de módulos NO entra en la cuenta: no es sticky, se va con el
+   * scroll.
+   */
+  const thFijo = `sticky z-20 bg-[#f7f8f9] shadow-[inset_0_-1px_0_0_#e5e7eb] ${
+    user?.impersonating ? "top-[100px]" : "top-16"
+  }`
   const [aprobarTarget, setAprobarTarget] = useState<Persona | null>(null)
   const [aprobando, setAprobando] = useState(false)
   const [reenviandoId, setReenviandoId] = useState<number | null>(null)  // verificación
@@ -916,14 +947,14 @@ export default function PersonasDbManager({ user }: { user: any }) {
             return (
               // La misma franja de color que la tabla: el rol se reconoce
               // igual en las dos vistas.
-              <div key={p.id} className={`bg-white rounded-xl border border-gray-100 border-l-[3px] ${franjaDeRol(p)} shadow-sm overflow-hidden`}>
+              <div key={p.id} className={`bg-white rounded-xl border border-gray-100 border-l-4 ${franjaDeRol(p)} shadow-sm overflow-hidden`}>
                 {/* Fila compacta — siempre visible */}
                 <div
                   role="button"
                   tabIndex={0}
                   onClick={() => setExpandedId(isExpanded ? null : p.id)}
                   onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpandedId(isExpanded ? null : p.id) } }}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-left cursor-pointer transition-colors active:bg-gray-50"
+                  className={`w-full flex items-center gap-3 px-4 py-2 text-left cursor-pointer transition-colors active:bg-gray-50 ${lavadoDeRol(p)}`}
                 >
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#5ec0cf] to-[#55adba] flex items-center justify-center flex-shrink-0">
                     <span className="text-white font-semibold text-xs">{initials(p)}</span>
@@ -1131,8 +1162,13 @@ export default function PersonasDbManager({ user }: { user: any }) {
             sola columna. Resultado: entra sin scroll horizontal.
             El `overflow-x-auto` queda de red: si algún día no entra, scrollea
             adentro de la tarjeta en vez de desbordarla como hacía antes. */}
-        <div className="hidden lg:block rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+        {/* `overflow-x-clip` y no `overflow-hidden`: los dos recortan lo que
+            se pase de ancho, pero `hidden` crea un contenedor de scroll, y
+            adentro de un contenedor de scroll `position: sticky` se pega a ESE
+            contenedor —que nunca scrollea— en vez de a la pantalla. O sea: el
+            encabezado no se pegaba nunca. `clip` recorta sin crear uno, así
+            que el thead de abajo puede quedarse fijo mientras bajás. */}
+        <div className="hidden lg:block rounded-xl border border-gray-200 bg-white shadow-sm overflow-x-clip">
           {/* `table-fixed` + colgroup: sin esto el navegador reparte el ancho
               según el contenido, así que las columnas se corren solas cada vez
               que filtrás o que una fila trae un mail más largo. Con anchos
@@ -1141,30 +1177,43 @@ export default function PersonasDbManager({ user }: { user: any }) {
               Contacto lleva mail + teléfono; repartir 12,5% a cada una
               desperdicia una columna y achica la otra. */}
           <table className="w-full min-w-[920px] table-fixed text-sm">
+            {/* Sin un solo espacio entre los <col>: en HTML, <colgroup>
+                no admite nodos de texto, y un espacio suelto antes de un
+                comentario JSX es uno. El servidor lo escribe y el navegador
+                lo tira, así que los dos árboles dejan de coincidir y React
+                avisa con un error de hidratación. */}
             <colgroup>
               <col className="w-[12%]" />{/* Nombre */}
               <col className="w-[12%]" />{/* Apellido */}
-              <col className="w-[18%]" />{/* Contacto */}
-              <col className="w-[6%]" /> {/* Edad */}
-              <col className="w-[13%]" />{/* Ubicación */}
-              <col className="w-[15%]" />{/* Rol */}
+              <col className="w-[17%]" />{/* Contacto */}
+              <col className="w-[6%]" />{/* Edad */}
+              <col className="w-[12%]" />{/* Ubicación */}
+              <col className="w-[12%]" />{/* Rol */}
+              <col className="w-[7%]" />{/* Socio/a */}
               <col className="w-[11%]" />{/* Estado */}
-              <col className="w-[13%]" />{/* Acciones */}
+              <col className="w-[11%]" />{/* Acciones */}
             </colgroup>
             <thead>
-              <tr className="border-b border-gray-200 bg-[#f7f8f9] text-left text-gray-600">
+              {/* Se queda arriba mientras bajás y vuelve a su lugar al
+                  subir, que es lo que hace `sticky` solo: no hay nada que
+                  escuchar ni ningún scroll que medir. */}
+              <tr className="bg-[#f7f8f9] text-left text-gray-600">
                 {/* El borde transparente iguala la franja de color de las
                     filas, para que los encabezados no queden corridos 3px. */}
-                <SortableTh label="Nombre" k="name" onClick={toggleSort} SortIcon={SortIcon} className="border-l-[3px] border-l-transparent" />
-                <SortableTh label="Apellido" k="last_name" onClick={toggleSort} SortIcon={SortIcon} />
-                <th className="px-3 py-2 font-semibold whitespace-nowrap">Contacto</th>
+                <SortableTh label="Nombre" k="name" onClick={toggleSort} SortIcon={SortIcon} className={`${thFijo} border-l-4 border-l-transparent`} />
+                <SortableTh label="Apellido" k="last_name" onClick={toggleSort} SortIcon={SortIcon} className={thFijo} />
+                <th className={`${thFijo} px-3 py-2 font-semibold whitespace-nowrap`}>Contacto</th>
                 {/* La edad se calcula desde la fecha de nacimiento (lib/edad):
                     no hay una columna `edad` que pueda contradecirla. */}
-                <th className="px-3 py-2 font-semibold text-center whitespace-nowrap">Edad</th>
-                <SortableTh label="Ubicación" k="city" onClick={toggleSort} SortIcon={SortIcon} />
-                <th className="px-3 py-2 font-semibold whitespace-nowrap">Rol</th>
-                <th className="px-3 py-2 font-semibold whitespace-nowrap">Estado</th>
-                <th className="px-3 py-2 font-semibold text-right whitespace-nowrap">Acciones</th>
+                <th className={`${thFijo} px-3 py-2 font-semibold text-center whitespace-nowrap`}>Edad</th>
+                <SortableTh label="Ubicación" k="city" onClick={toggleSort} SortIcon={SortIcon} className={thFijo} />
+                <th className={`${thFijo} px-3 py-2 font-semibold whitespace-nowrap`}>Rol</th>
+                {/* Columna propia: la insignia suelta al lado del rol no decía
+                    qué era, y ser socio/a no es un rol —se puede ser socia y
+                    voluntaria a la vez—, así que tampoco iba adentro. */}
+                <th className={`${thFijo} px-3 py-2 font-semibold text-center whitespace-nowrap`}>Socio/a</th>
+                <th className={`${thFijo} px-3 py-2 font-semibold whitespace-nowrap`}>Estado</th>
+                <th className={`${thFijo} px-3 py-2 font-semibold text-right whitespace-nowrap`}>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -1188,7 +1237,7 @@ export default function PersonasDbManager({ user }: { user: any }) {
                     {/* La franja del borde izquierdo: el rol se reconoce por
                         color antes de leer nada, recorriendo la lista de
                         arriba abajo. Los dos son colores del manual. */}
-                    <td className={`border-l-[3px] ${franjaDeRol(p)} truncate px-3 py-2 font-medium text-gray-900`} title={p.name || ""}>{p.name || "—"}</td>
+                    <td className={`border-l-4 ${franjaDeRol(p)} ${lavadoDeRol(p)} truncate px-3 py-2 font-medium text-gray-900`} title={p.name || ""}>{p.name || "—"}</td>
                     <td className="truncate px-3 py-2 text-gray-700" title={p.last_name || ""}>{p.last_name || "—"}</td>
                     <td className="px-3 py-2 text-gray-500">
                       <div className="flex flex-col gap-0.5">
@@ -1212,22 +1261,6 @@ export default function PersonasDbManager({ user }: { user: any }) {
                           onHabilitar={() => openEnableVolunteer(p)}
                           onQuitar={() => openRevert(p)}
                         />
-                        {/* Socio/a va aparte porque es ortogonal al rol: se
-                            puede ser socia y voluntaria a la vez. */}
-                        {canEdit ? (
-                          <button
-                            type="button"
-                            onClick={() => toggleMember(p)}
-                            disabled={togglingId === p.id}
-                            title={p.is_member ? "Socio/a — clic para quitar" : "No socio/a — clic para marcar"}
-                            aria-pressed={!!p.is_member}
-                            className="rounded-full p-0.5 transition-transform hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-wait"
-                          >
-                            <MemberMark active={!!p.is_member} />
-                          </button>
-                        ) : p.is_member ? (
-                          <span title="Socio/a"><MemberMark active /></span>
-                        ) : null}
                         {/* El flag de admin vive en la ficha de voluntario/a,
                             así que solo tiene sentido si la persona ya lo es. */}
                         {isAdmin && p.volunteer_id != null && (
@@ -1241,6 +1274,28 @@ export default function PersonasDbManager({ user }: { user: any }) {
                           >
                             <ShieldCheck className={`w-4 h-4 ${p.is_admin ? "text-alma-fuerte" : "text-gray-300"}`} />
                           </button>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* ── Socio/a ── */}
+                    <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex justify-center">
+                        {canEdit ? (
+                          <button
+                            type="button"
+                            onClick={() => toggleMember(p)}
+                            disabled={togglingId === p.id}
+                            title={p.is_member ? "Socio/a — clic para quitar" : "No socio/a — clic para marcar"}
+                            aria-pressed={!!p.is_member}
+                            className="rounded-full p-1 transition-transform hover:scale-110 active:scale-95 disabled:cursor-wait disabled:opacity-50"
+                          >
+                            <MemberMark active={!!p.is_member} />
+                          </button>
+                        ) : (
+                          <span title={p.is_member ? "Socio/a" : "No socio/a"}>
+                            <MemberMark active={!!p.is_member} />
+                          </span>
                         )}
                       </div>
                     </td>
@@ -1333,13 +1388,13 @@ export default function PersonasDbManager({ user }: { user: any }) {
                       celular, para no mantener dos versiones de lo mismo. */}
                   {abierta && (
                     <tr className="border-b border-gray-100 bg-white">
-                      <td colSpan={8} className="px-3 pb-3 pt-0">
+                      <td colSpan={9} className="px-3 pb-3 pt-0">
                         {/* Un solo panel, en el turquesa suave del manual. El
                             fondo de antes (#f8fcfd) era casi blanco sobre
                             blanco: se adivinaba dónde empezaba la ficha en vez
                             de verse. */}
                         <div className="space-y-3 rounded-xl border border-alma/25 bg-alma-suave px-4 py-3.5">
-                          <SeccionesDeRol p={p} conDatos />
+                          <SeccionesDeRol p={p} conDatos onEditar={canEdit ? () => openEdit(p) : undefined} />
 
                           {/* Los mismos botones del renglón, pero con el
                               nombre escrito. Los de arriba quedan para el que
@@ -1409,7 +1464,6 @@ export default function PersonasDbManager({ user }: { user: any }) {
               })}
             </tbody>
           </table>
-          </div>
         </div>
         </>
       )}
@@ -1996,17 +2050,43 @@ function DialogoPin({ persona, onClose }: { persona: Persona; onClose: () => voi
  * filas, así que ocupaban ancho todo el tiempo para servir de vez en cuando.
  * Solo salen los que la persona tiene cargados.
  */
-function itemsDeFicha(p: Persona): { Icono: typeof IdCard; valor: string }[] {
+function itemsDeFicha(p: Persona): { Icono: typeof IdCard; titulo: string; valor: string }[] {
   const direccion = fullAddress(p)
-  const items: { Icono: typeof IdCard; valor: string }[] = []
-  if (p.cuit) items.push({ Icono: IdCard, valor: `CUIT ${p.cuit}` })
-  if (p.dni) items.push({ Icono: IdCard, valor: `Doc. ${p.dni}` })
+  const items: { Icono: typeof IdCard; titulo: string; valor: string }[] = []
+  if (p.cuit) items.push({ Icono: IdCard, titulo: "CUIT", valor: p.cuit })
+  if (p.dni) items.push({ Icono: IdCard, titulo: "Documento", valor: p.dni })
   if (p.birth_date) {
     const edad = edadTexto(p.birth_date)
-    items.push({ Icono: Cake, valor: fechaCorta(p.birth_date) + (edad ? ` · ${edad}` : "") })
+    items.push({
+      Icono: Cake,
+      titulo: "Nacimiento",
+      valor: `${fechaCorta(p.birth_date)}${edad ? ` · ${edad}` : ""}`,
+    })
   }
-  if (direccion && direccion !== "—") items.push({ Icono: MapPin, valor: direccion })
+  if (direccion && direccion !== "—") items.push({ Icono: MapPin, titulo: "Dirección", valor: direccion })
   return items
+}
+
+/**
+ * `"hace 5 meses"`, `"hace 3 años"`, `"este mes"`.
+ *
+ * Una fecha sola no dice nada sin hacer la cuenta: "04/06/2020" obliga a
+ * restar mentalmente para saber si es alguien que entró la semana pasada o
+ * hace seis años, que es lo único que se quería saber al mirarla.
+ */
+function haceCuanto(fecha?: string | null): string | null {
+  const crudo = (fecha ?? "").slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(crudo)) return null
+  const [anio, mes, dia] = crudo.split("-").map(Number)
+  const hoy = new Date()
+  let meses = (hoy.getFullYear() - anio) * 12 + (hoy.getMonth() + 1 - mes)
+  if (hoy.getDate() < dia) meses -= 1
+  if (meses < 0) return null                       // fecha futura: no se inventa nada
+  if (meses === 0) return "este mes"
+  if (meses === 1) return "hace 1 mes"
+  if (meses < 24) return `hace ${meses} meses`
+  const anios = Math.floor(meses / 12)
+  return `hace ${anios} años`
 }
 
 /**
@@ -2022,7 +2102,12 @@ function itemsDeFicha(p: Persona): { Icono: typeof IdCard; valor: string }[] {
  * dirección no tienen columna propia. La tarjeta del celular ya los lista
  * arriba, así que ahí no se repiten.
  */
-function SeccionesDeRol({ p, conDatos = false }: { p: Persona; conDatos?: boolean }) {
+function SeccionesDeRol({ p, conDatos = false, onEditar }: {
+  p: Persona
+  conDatos?: boolean
+  /** Para que un dato vacío pueda ofrecer cargarse en vez de solo avisar. */
+  onEditar?: () => void
+}) {
   const esVoluntaria = !!p.volunteer_id
   const tieneCuenta = !!p.participant_id
   const datos = conDatos ? itemsDeFicha(p) : []
@@ -2032,55 +2117,83 @@ function SeccionesDeRol({ p, conDatos = false }: { p: Persona; conDatos?: boolea
 
   return (
     <div className="flex flex-wrap gap-x-8 gap-y-4 pt-1">
-      {datos.length > 0 && (
-        <Seccion titulo="Datos" icono={<IdCard className="h-3 w-3 text-alma-fuerte/60" />}>
-          {datos.map(({ Icono, valor }) => (
-            <p key={valor} className="flex items-start gap-1.5 text-xs text-alma-tinta">
-              <Icono className="mt-px h-3.5 w-3.5 flex-shrink-0 text-alma-fuerte/50" />
-              <span className="break-words">{valor}</span>
-            </p>
-          ))}
+      {/* Un dato por columna. Antes era una columna "Voluntariado" con tres
+          cosas apiladas adentro, y las tres se leían como una sola masa de
+          texto chico: el estado, la fecha y las especialidades no tienen nada
+          que ver entre sí salvo que las tres son del voluntariado. Con
+          etiqueta propia cada una se busca sola. */}
+      {datos.map(({ Icono, titulo, valor }) => (
+        <Seccion key={titulo} titulo={titulo} icono={<Icono className="h-3 w-3 text-alma-fuerte/60" />}>
+          <p className="break-words text-xs text-alma-tinta">{valor}</p>
         </Seccion>
-      )}
+      ))}
 
       {esVoluntaria && (
-        <Seccion titulo="Voluntariado" icono={<VolunteerFlower active size="w-3 h-3" />}>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <EstadoVoluntariado estado={p.volunteer_status} />
-            {p.is_admin && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium leading-none text-amber-700">
-                <ShieldCheck className="h-2.5 w-2.5" /> Administra
-              </span>
-            )}
-          </div>
-
-          {p.volunteer_since && (
-            <p className="text-xs text-gray-500">Desde {fechaCorta(p.volunteer_since)}</p>
-          )}
-
-          {especialidades.length > 0 ? (
-            <div className="flex flex-wrap gap-1">
-              {especialidades.map(e => (
-                <span key={e} className="rounded-full border border-alma/30 bg-white/70 px-2 py-0.5 text-[11px] leading-none text-alma-tinta">
-                  {e}
+        <>
+          <Seccion titulo="Voluntariado" icono={<VolunteerFlower active size="w-3 h-3" />}>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <EstadoVoluntariado estado={p.volunteer_status} />
+              {p.is_admin && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium leading-none text-amber-700">
+                  <ShieldCheck className="h-2.5 w-2.5" /> Administra
                 </span>
-              ))}
+              )}
             </div>
-          ) : (
-            <p className="text-xs italic text-gray-400">Sin especialidades cargadas</p>
-          )}
-        </Seccion>
+          </Seccion>
+
+          <Seccion titulo="Desde" icono={<CalendarDays className="h-3 w-3 text-alma-fuerte/60" />}>
+            {p.volunteer_since ? (
+              <p className="text-xs text-alma-tinta">
+                {fechaCorta(p.volunteer_since)}
+                {haceCuanto(p.volunteer_since) && (
+                  <span className="text-gray-400"> · {haceCuanto(p.volunteer_since)}</span>
+                )}
+              </p>
+            ) : (
+              <p className="text-xs italic text-gray-400">Sin fecha</p>
+            )}
+          </Seccion>
+
+          <Seccion titulo="Especialidades" icono={<Tag className="h-3 w-3 text-alma-fuerte/60" />}>
+            {especialidades.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {especialidades.map(e => (
+                  <span key={e} className="rounded-full border border-alma/30 bg-white/70 px-2 py-0.5 text-[11px] leading-none text-alma-tinta">
+                    {e}
+                  </span>
+                ))}
+              </div>
+            ) : onEditar ? (
+              // Un dato que falta y se puede cargar ahí mismo: avisar sin
+              // ofrecer el arreglo obliga a ir a buscar el botón de editar.
+              <button
+                type="button"
+                onClick={onEditar}
+                className="text-xs text-alma-fuerte underline-offset-2 hover:underline"
+              >
+                + Agregar especialidades
+              </button>
+            ) : (
+              <p className="text-xs italic text-gray-400">Sin especialidades cargadas</p>
+            )}
+          </Seccion>
+        </>
       )}
 
       {tieneCuenta && (
-        <Seccion titulo="Participación" icono={<ParticipantMark active size="w-3 h-3" />}>
-          <EstadoCuenta p={p} />
-          <p className="text-xs text-gray-500">
-            {p.enrollments_count
-              ? `${p.enrollments_count} ${p.enrollments_count === 1 ? "inscripción" : "inscripciones"}`
-              : "Sin inscripciones"}
-          </p>
-        </Seccion>
+        <>
+          <Seccion titulo="Participación" icono={<ParticipantMark active size="w-3 h-3" />}>
+            <EstadoCuenta p={p} />
+          </Seccion>
+
+          <Seccion titulo="Inscripciones" icono={<ClipboardList className="h-3 w-3 text-alma-fuerte/60" />}>
+            <p className="text-xs text-alma-tinta">
+              {p.enrollments_count
+                ? `${p.enrollments_count} ${p.enrollments_count === 1 ? "inscripción" : "inscripciones"}`
+                : <span className="italic text-gray-400">Sin inscripciones</span>}
+            </p>
+          </Seccion>
+        </>
       )}
     </div>
   )

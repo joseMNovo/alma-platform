@@ -398,7 +398,15 @@ export default function Dashboard({ user: usuarioReal, onLogout }: { user: any, 
 
 
   return (
-    <div className="min-h-screen bg-gray-50 relative overflow-hidden">
+    // `overflow-x-clip` y no `overflow-hidden`: recorta igual lo que se
+    // pase de ancho, pero NO crea un contenedor de scroll. `overflow-hidden`
+    // sí lo crea, y adentro de uno `position: sticky` se pega a ESE
+    // contenedor —que nunca scrollea— en vez de a la pantalla, así que
+    // cualquier encabezado o banda pegajosa de cualquier módulo quedaba
+    // muerta sin que nada avisara. Las flores decorativas de acá abajo son
+    // `fixed`, y a un elemento `fixed` no lo recorta el overflow de un
+    // ancestro, así que esto nunca las estuvo conteniendo.
+    <div className="min-h-screen bg-gray-50 relative overflow-x-clip">
       {/* Flor decorativa — solo desktop, fixed en el viewport, alterna posición por módulo */}
       <div className={`hidden md:block fixed top-0 right-0 w-[700px] h-[700px] pointer-events-none select-none translate-x-1/3 -translate-y-1/3 -rotate-[20deg] transition-opacity duration-700 ${flowerTop ? 'opacity-[0.07]' : 'opacity-0'}`}>
         <img src="/images/flor.png" alt="" className="w-full h-full object-contain" />
