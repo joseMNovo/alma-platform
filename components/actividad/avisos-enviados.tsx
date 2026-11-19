@@ -61,7 +61,21 @@ const RANGOS = [
   { dias: 7, texto: "7 días" },
   { dias: 14, texto: "14 días" },
   { dias: 30, texto: "30 días" },
+  { dias: 90, texto: "3 meses" },
+  { dias: 365, texto: "Un año" },
 ]
+
+/**
+ * El tope que pide la pantalla, que es también el máximo que acepta el
+ * backend.
+ *
+ * Importa porque el buscador filtra sobre lo que YA se trajo, no sobre la
+ * base: si el rango devuelve más avisos que esto, lo que quedó afuera es
+ * invisible para la búsqueda. Buscar a alguien y no encontrarlo se leería
+ * como "no le llegó nada", que es justo lo contrario de lo que pasó. Por eso
+ * cuando se llega al tope la pantalla lo dice (ver `TOPE` abajo).
+ */
+const TOPE = 1000
 
 function fechaHora(iso?: string | null): string {
   if (!iso) return "—"
@@ -87,7 +101,7 @@ export default function AvisosEnviados() {
     let vigente = true
     setCargando(true)
     setError("")
-    const query = new URLSearchParams({ days: String(dias), limit: "500" })
+    const query = new URLSearchParams({ days: String(dias), limit: String(TOPE) })
     if (canal !== "todos") query.set("canal", canal)
     if (soloAutomaticos) query.set("solo_automaticos", "true")
 
@@ -188,6 +202,12 @@ export default function AvisosEnviados() {
           <span className="text-gray-400">{resumen.mails} por mail</span>
           {resumen.fallidos > 0 && (
             <span className="font-medium text-red-600">{resumen.fallidos} con error</span>
+          )}
+          {avisos.length >= TOPE && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+              <AlertTriangle className="h-3 w-3" />
+              Se muestran los {TOPE} más nuevos — achicá el rango para ver más atrás
+            </span>
           )}
         </div>
       )}
