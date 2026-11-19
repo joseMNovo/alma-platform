@@ -47,6 +47,7 @@ import InscripcionesManager from "@/components/espacios/inscripciones-manager"
 import MiCuenta from "@/components/cuenta/mi-cuenta"
 import AprobacionesManager from "@/components/voluntarios/aprobaciones-manager"
 import ActividadManager from "@/components/actividad/actividad-manager"
+import AvisosEnviados from "@/components/actividad/avisos-enviados"
 import CapacitacionesManager from "@/components/capacitaciones/capacitaciones-manager"
 import AccesosManager from "@/components/accesos/accesos-manager"
 import CertificadosAdmin from "@/components/capacitaciones/certificados-admin"
@@ -243,6 +244,7 @@ export default function Dashboard({ user: usuarioReal, onLogout }: { user: any, 
     ideas: <IdeasManager user={user} />,
     aprobaciones: <AprobacionesManager user={user} onPendingCount={setPendingCount} />,
     actividad: <ActividadManager user={user} />,
+    avisos: <AvisosEnviados />,
     anuncios: <BroadcastManager user={user} />,
     "puesto-venta": <PuestoVentaManager user={user} />,
     ingresos: <IngresosTablero esAdmin={isAdmin} />,

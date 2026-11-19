@@ -240,7 +240,24 @@ export const MODULES: ModuleDef[] = [
   // partir Gestión en tres, y todas de trabajo diario.
   { key: "mis-datos", label: "Mi perfil", route: "/mis-datos", icon: UserCircle, defaultRoles: ["admin", "voluntario", "participante"], grantable: false, inUserMenu: true , sinonimos: ["perfil", "mi cuenta", "pin", "contrasena", "notificaciones", "mis datos"] },
   { key: "anuncios", label: "Anuncios", route: "/anuncios", icon: Megaphone, defaultRoles: ["admin"], grantable: false, inUserMenu: true , sinonimos: ["novedades", "avisos", "comunicados", "broadcast"] },
-  { key: "actividad", label: "Actividad", route: "/actividad", icon: BarChart3, defaultRoles: ["admin"], grantable: false, inUserMenu: true , sinonimos: ["estadisticas", "uso", "metricas", "tablero"] },
+  {
+    key: "actividad",
+    label: "Actividad",
+    route: "/actividad",
+    icon: BarChart3,
+    defaultRoles: ["admin"],
+    grantable: false,
+    inUserMenu: true,
+    sinonimos: ["estadisticas", "uso", "metricas", "tablero"],
+    children: [
+      // La ruta del padre y la del primer hijo son la misma, igual que en
+      // Espacios: entrar al módulo cae en su primera pestaña.
+      { key: "actividad", label: "Uso", route: "/actividad", icon: BarChart3, defaultRoles: ["admin"], grantable: false , sinonimos: ["ingresos", "visitas", "quien entro"] },
+      // Qué salió del sistema y a quién le llegó. Los sinónimos apuntan a cómo
+      // se pregunta de verdad: "¿le llegó el mail?", no "ver email_logs".
+      { key: "avisos", label: "Avisos enviados", route: "/avisos", icon: Send, defaultRoles: ["admin"], grantable: false , sinonimos: ["mails enviados", "le llego el mail", "notificaciones enviadas", "cron", "recordatorios"] },
+    ],
+  },
 ]
 
 /**

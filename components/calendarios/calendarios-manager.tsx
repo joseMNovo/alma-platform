@@ -378,6 +378,20 @@ interface CustomGenerateForm {
 
 // ── Component ──────────────────────────────────────────────────────────────
 
+/**
+ * Avisa que esta persona ya no es un voluntariado activo y que sigue en la
+ * lista solo porque ya estaba asignada a este evento. Sin esto, su casilla
+ * sería idéntica a la de cualquier otro y nadie entendería por qué está.
+ */
+function MarcaFueraDeLista({ estado }: { estado?: string }) {
+  if (!estado || estado === "activo") return null
+  return (
+    <span className="rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium leading-none text-amber-700">
+      {estado}
+    </span>
+  )
+}
+
 export default function CalendariosManager({ user }: { user: any }) {
   const today = new Date()
 
@@ -390,6 +404,42 @@ export default function CalendariosManager({ user }: { user: any }) {
   const [grupos, setGrupos] = useState<any[]>([])
   const [actividades, setActividades] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  /**
+   * Quién se puede asignar a un evento: SOLO voluntariados activos.
+   *
+   * `volunteers` trae la tabla `voluntarios` entera, sin filtrar por estado,
+   * y eso incluye fichas dadas de baja. A alguien a quien le sacaron el rol
+   * le queda la ficha en `inactivo`, así que seguía apareciendo para
+   * coordinar o para que lo asignaran — aunque Personas ya la muestre como
+   * participante. Ese fue el bug reportado.
+   *
+   * El filtro NO se hace en el fetch: la lista completa se sigue
+   * necesitando para `asignablesCon()` de acá abajo y para el filtro de la
+   * grilla, donde ver los eventos viejos de alguien que ya no está es
+   * legítimo.
+   */
+  const voluntariosActivos = useMemo(
+    () => volunteers.filter(v => v.status === "activo"),
+    [volunteers],
+  )
+
+  /**
+   * Los activos MÁS quien ya esté asignado a este evento aunque hoy no lo
+   * esté.
+   *
+   * Si a alguien lo dan de baja mientras tiene eventos futuros encima, su
+   * casilla desaparecería del formulario: quedaría asignado sin que nadie
+   * pueda verlo ni sacarlo, y el botón "Todos los voluntarios" lo borraría
+   * sin decir nada. Así sigue a la vista, marcado, y se lo saca a mano.
+   *
+   * Hoy no hay ningún caso (lo verificamos con `sql/32`), pero va a pasar:
+   * dar de baja a alguien no cancela los eventos que ya tenía.
+   */
+  const asignablesCon = (ids: number[]) => {
+    const fueraDeLista = volunteers.filter(v => v.status !== "activo" && ids.includes(v.id))
+    return [...voluntariosActivos, ...fueraDeLista]
+  }
 
   // Filters
   const [filterType, setFilterType] = useState<"all" | "grupo" | "taller" | "actividad">("all")
@@ -2401,9 +2451,12 @@ export default function CalendariosManager({ user }: { user: any }) {
                       })}
                       opciones={[
                         { valor: "none", texto: "Sin asignar" },
-                        ...volunteers.map(v => ({
+                        ...asignablesCon(
+                          instanceForm.coordinator_id ? [parseInt(instanceForm.coordinator_id)] : [],
+                        ).map(v => ({
                           valor: String(v.id),
-                          texto: `${v.name || ""} ${v.last_name || ""}`.trim() || "(sin nombre)",
+                          texto: ((`${v.name || ""} ${v.last_name || ""}`.trim() || "(sin nombre)")
+                            + (v.status !== "activo" ? ` — ${v.status}` : "")),
                         })),
                       ]}
                       placeholder="Sin asignar"
@@ -2418,7 +2471,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                         nadie ocupe dos roles. */}
                     {(() => {
                       const coordId = instanceForm.coordinator_id ? parseInt(instanceForm.coordinator_id) : null
-                      const elegibles = volunteers
+                      const elegibles = asignablesCon(instanceForm.co_coordinator_ids)
                         .filter(v => v.id !== coordId)
                         .sort((a, b) => `${a.name} ${a.last_name}`.localeCompare(`${b.name} ${b.last_name}`))
                       const toggle = (id: number) => setInstanceForm(f => {
@@ -2444,6 +2497,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                                   onCheckedChange={() => toggle(v.id)}
                                 />
                                 {v.name} {v.last_name}
+                                <MarcaFueraDeLista estado={v.status} />
                               </label>
                             ))
                           )}
@@ -2460,7 +2514,7 @@ export default function CalendariosManager({ user }: { user: any }) {
               {(() => {
                 const coordId = instanceForm.coordinator_id ? parseInt(instanceForm.coordinator_id) : null
                 const coCoordIds = instanceForm.co_coordinator_ids
-                const assignable = volunteers
+                const assignable = asignablesCon(instanceForm.volunteer_ids)
                   .filter(v => v.id !== coordId && !coCoordIds.includes(v.id))
                   .sort((a, b) => `${a.name} ${a.last_name}`.localeCompare(`${b.name} ${b.last_name}`))
                 const idsAsignables = assignable.map(v => v.id)
@@ -2512,6 +2566,7 @@ export default function CalendariosManager({ user }: { user: any }) {
                               onCheckedChange={() => toggleVolunteer(v.id)}
                             />
                             {v.name} {v.last_name}
+                            <MarcaFueraDeLista estado={v.status} />
                           </label>
                         ))
                       )}

@@ -197,7 +197,21 @@ const DialogContent = React.forwardRef<
           "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
           // ── Escritorio: la ventana centrada de siempre ───────────────
           "sm:inset-x-auto sm:bottom-auto sm:left-[50%] sm:top-[50%]",
-          "sm:w-[calc(100vw-2rem)] sm:max-w-lg sm:max-h-[85vh]",
+          "sm:w-[calc(100vw-2rem)] sm:max-h-[85vh]",
+          // El ancho de escritorio va SIN prefijo, y no es un descuido.
+          //
+          // Con `sm:max-w-lg` el que llama no podía cambiarlo: Tailwind emite
+          // los bloques `@media` después de las utilidades sueltas, así que de
+          // 640px para arriba ganaba esta clase contra el `max-w-5xl` del
+          // llamador. Y `twMerge` no las unificaba, porque las ve como
+          // variantes distintas: convivían las dos y no se notaba. Había
+          // diálogos pidiendo 1024px que se dibujaban a 512.
+          //
+          // Sin prefijo, `twMerge` sí lo ve: es el mismo grupo y la misma
+          // variante, así que el ancho del llamador REEMPLAZA a este en vez de
+          // acumularse. En el teléfono no molesta porque lo anula el
+          // `max-sm:!max-w-none` de arriba.
+          "max-w-lg",
           "sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:border sm:p-6",
           // Devuelven la animación de zoom del centro y anulan la de abajo.
           "sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95",

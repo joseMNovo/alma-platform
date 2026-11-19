@@ -655,12 +655,12 @@ export default function HistorialesManager({
 
       {/* Create/Edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-5xl w-[96vw] h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
+        <DialogContent className="max-w-6xl w-[96vw] h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
           <DialogHeader className="mx-0 px-6 pt-6 pb-4 border-b shrink-0">
             <DialogTitle>{editing ? "Editar historial" : "Nueva ficha de encuentro"}</DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[320px_1fr] overflow-y-auto lg:overflow-hidden">
+          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)] overflow-y-auto lg:overflow-hidden">
             {/* ── Columna izquierda: datos del encuentro ── */}
             <div className="p-6 space-y-4 border-b lg:border-b-0 lg:border-r bg-gray-50/60 lg:overflow-y-auto">
               <div className="space-y-2">
@@ -720,7 +720,7 @@ export default function HistorialesManager({
             </div>
 
             {/* ── Columna derecha: asistentes (carga rápida) ── */}
-            <div className="flex flex-col min-h-0">
+            <div className="flex min-w-0 flex-col min-h-0">
               {/* Carga rápida */}
               <div className="p-5 border-b bg-white shrink-0 space-y-2.5">
                 <div className="flex items-center justify-between">
@@ -731,7 +731,7 @@ export default function HistorialesManager({
                   <span className="text-[11px] text-gray-400">Enter para agregar</span>
                 </div>
 
-                <div className="grid grid-cols-[1fr_84px] gap-2">
+                <div className="grid grid-cols-[minmax(0,1fr)_84px] gap-2">
                   <div className="relative">
                     <Input
                       ref={nameInputRef}
@@ -777,7 +777,7 @@ export default function HistorialesManager({
                   />
                 </div>
 
-                <div className="grid grid-cols-[1fr_84px] gap-2">
+                <div className="grid grid-cols-[minmax(0,1fr)_84px] gap-2">
                   <Input
                     placeholder="Pariente enfermo"
                     value={draft.patient_name}
